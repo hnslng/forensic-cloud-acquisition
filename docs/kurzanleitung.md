@@ -27,4 +27,4 @@ Unter **Einstellungen → Technischer Status** kann ein Administrator die Parall
 
 Google und Microsoft benötigen einmalig eine registrierte Anbieteranwendung. Die Einrichtung und die tatsächlich unterstützten Datenbereiche sind im [Anbieter- und Funktionsstatus](cloud-acquisition.md) beschrieben. Die Google-Webanmeldung benötigt außerdem eine zugelassene HTTPS-Domain; die private Labor-IP allein genügt dafür nicht.
 
-Die technische Implementierung und die synthetischen Prüfungen ersetzen noch keine erfolgreiche Anmeldung und Sicherung mit einem echten Anbieter-Testkonto.
+Die synthetischen Prüfungen ersetzen keine vollständige Abnahme der einzelnen Datenbereiche mit einem vorbereiteten Anbieter-Testkonto. Die iCloud-Anmeldung wurde im Labor bereits erfolgreich durchgeführt; eine vollständige Sicherung bleibt zu prüfen.

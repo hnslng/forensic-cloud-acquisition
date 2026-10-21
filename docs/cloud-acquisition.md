@@ -19,7 +19,7 @@ Stand: 21.10.2026. Implementierte Laborversion, keine Behauptung einer bereits e
 
 | Anbieter/Bereich | Implementiert | Praktische Echtkonto-Abnahme | Abgrenzung |
 | --- | --- | --- | --- |
-| iCloud Drive | Anmeldung/2FA, Ordneransicht, rekursive Inventarisierung und Download | Offen: vorbereitetes Konto muss angemeldet werden | Sichtbare aktuelle Objekte über rclone 1.75.2; keine öffentliche allgemeine Apple-Download-API. ADP/Webfreigabe, geteilte Ordner und Apple-Änderungen können Zugriff einschränken. |
+| iCloud Drive | Anmeldung/2FA, Ordneransicht, rekursive Inventarisierung und Download | Anmeldung/2FA im Labor erfolgreich, 4.466 Dateien erfasst; vollständige Download-Abnahme offen. Testzustand anschließend auf Benutzerwunsch bereinigt | Sichtbare aktuelle Objekte über rclone 1.75.2; keine öffentliche allgemeine Apple-Download-API. ADP/Webfreigabe, geteilte Ordner und Apple-Änderungen können Zugriff einschränken. |
 | iCloud Fotos | Bereichsansicht, Inventarisierung und Download der vom Adapter angebotenen Fotoansicht | Offen | Keine Zusicherung aller Originalvarianten, RAW/Live-Photo-Komponenten, Bearbeitungen oder aller Mediatheksmetadaten; Einschränkungen des Adapters gelten. |
 | Google Drive | Offizielles OAuth mit PKCE/Offline-Zugriff, persönliche Stammordnerstruktur, Binärdateien und Workspace-Exporte | Offen: registrierte App und Testkonto fehlen | „Meine Ablage“, keine eigenständige Erfassung geteilter Ablagen oder „Mit mir geteilt“, sofern nicht unter dieser Struktur sichtbar. Dokumente→DOCX, Tabellen→XLSX, Präsentationen→PPTX, Zeichnungen→PDF. Originaldateiformat dieser nativen Objekte ist kein herunterladbares Binäroriginal. Exportgrenze der API beachten. Nicht unterstützte Workspace-Typen/Verknüpfungen werden protokolliert. |
 | Google Kalender | Kalenderliste, sämtliche abrufbaren Ereignisse mit Serienregeln, Ausnahmen und Löschmarkierungen als paginierte Anbieter-JSON-Daten | Offen: App/Testkonto fehlen | Nur in der Kalenderliste verfügbare Kalender. Keine Terminanhänge als Binärdateien; keine Garantie für bereits dauerhaft gelöschte Ereignisse. |
@@ -104,3 +104,8 @@ Eine praktische Anbieterabnahme benötigt ausdrücklich freigegebene Konten und,
 ## Bereitstellung und Nachweise
 
 Version 0.5.0 ist auf VM 105 bereitgestellt. **66 automatisierte Prüfungen und GitHub CI erfolgreich**, bestehende Daten/Dateien unverändert, alte und neue Datenbankversion sowie Dateiarchive tatsächlich getrennt wiederhergestellt. Einzelheiten, Ressourcen und synthetische Desktop-/Mobilaufnahmen: [Prüf- und Bereitstellungsnachweis](cloud-acquisition-validation.md). Für die tägliche Bedienung: [Kurzanleitung](kurzanleitung.md).
+
+
+## Ergänzung: parallele Erfassung und Labor-Neustart
+
+Die Erfassung mit laufendem Dateizähler und gleichzeitigen Downloads wurde am 21.10.2026 bereitgestellt. Anschließend wurden auf ausdrücklichen Benutzerwunsch alle bisherigen Laborfälle, Konten und Sicherungsstände entfernt; Benutzer und vorhandene Audit-Einträge blieben unverändert. [Prüfnachweis](parallel-discovery-validation.md).
