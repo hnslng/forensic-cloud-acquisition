@@ -301,6 +301,8 @@ def test_report_separates_secured_bytes_failures_inaccessible_and_open_inventory
     report=json.loads((evidence.directory(current['directory']+'/_FCA')/'Sicherungsbericht.json').read_text())
     ledger=report['umfangsbilanz']
     assert ledger['completed']==7 and ledger['inaccessible']==1 and ledger['failed']==0
+    assert ledger['discovered_known_bytes']==sum([0,1,1024,65536,262144,17,8192,99])
+    assert ledger['inaccessible_known_bytes']==262144 and ledger['failed_known_bytes']==0
     assert report['bytes']==ledger['secured_bytes'] and ledger['inventory_complete']
     assert ledger['entire_account_complete'] is False
 
