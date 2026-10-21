@@ -74,6 +74,10 @@ def test_paths_case_collision_accounts_and_no_overwrite(storage,tmp_path):
         two=evidence.ensure_account(db,case_row,{'id':another['id'],'provider':'apple'},'drive')
         assert one.endswith('/iCloud_1') and two.endswith('/iCloud_2')
     assert evidence.source_name('same.txt','1')!=evidence.source_name('same.txt','2')
+    unicode_case=new_case(c,'漢'*120)
+    assert unicode_case['id']
+    assert len(evidence.component('漢'*120).encode('utf-8')) <= 160
+    assert len(evidence.source_name('漢'*120+'.txt','unicode').encode('utf-8')) < 255
     root=evidence.root();(root/'escape').symlink_to(tmp_path,target_is_directory=True)
     with pytest.raises(evidence.StorageError):evidence.directory('escape/forbidden')
     with pytest.raises(evidence.StorageError):evidence.file_path(root,'../bad')

@@ -17,6 +17,8 @@ def root():
 def component(name):
     text = unicodedata.normalize('NFC', str(name))
     text = re.sub(r'[^\w. -]', '-', text, flags=re.UNICODE).strip(' .-')[:80]
+    while len(text.encode('utf-8')) > 160:
+        text=text[:-1]
     return text or 'Ohne-Bezeichnung'
 
 def directory(relative):
