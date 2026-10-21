@@ -1,0 +1,14 @@
+{
+  "vmid": 105,
+  "name": "forensic-cloud-acquisition",
+  "vcpus": 2,
+  "memory_mib": 2048,
+  "system_disk_gib": 32,
+  "data_disk_gib": 32,
+  "storage": "local-lvm",
+  "bridge": "vmbr0",
+  "host_memory_reserve_mib": 1536,
+  "storage_reserve_gib": 24,
+  "onboot": true,
+  "approved": false
+}

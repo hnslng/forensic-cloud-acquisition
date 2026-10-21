@@ -1,0 +1,31 @@
+name: Infrastructure checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  infrastructure:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Synthetic capacity and inventory safety tests
+        run: python3 -m unittest discover -s tests -v
+      - name: Validate Compose and test database migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          export FCA_STATE_ROOT="$RUNNER_TEMP/fca-state"
+          export FCA_POSTGRES_PASSWORD_FILE="$RUNNER_TEMP/fca-postgres-password"
+          umask 077
+          openssl rand -hex 32 > "$FCA_POSTGRES_PASSWORD_FILE"
+          docker compose config --quiet
+          trap 'docker compose down --volumes' EXIT
+          docker compose up -d --wait --wait-timeout 120
+          docker compose exec -T database psql -v ON_ERROR_STOP=1 -U fca_bootstrap -d fca < migrations/0001_bootstrap.sql
+          value="$(docker compose exec -T database psql -At -U fca_bootstrap -d fca -c 'SELECT version FROM schema_migrations')"
+          test "$value" = 1
+          if docker compose exec -T database psql -v ON_ERROR_STOP=1 -U fca_bootstrap -d fca < migrations/0001_bootstrap.sql; then
+            echo 'Repeated bootstrap unexpectedly succeeded' >&2
+            exit 1
+          fi

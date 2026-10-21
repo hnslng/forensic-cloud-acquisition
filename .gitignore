@@ -1,0 +1,25 @@
+# Runtime data and local infrastructure inventory never belong in Git.
+.local/
+.env
+.env.*
+!.env.example
+secrets/
+evidence/
+backups/
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite*
+*.qcow2
+*.raw
+*.iso
+*.log
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+node_modules/
+dist/
+build/
+.DS_Store
