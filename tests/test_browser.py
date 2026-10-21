@@ -113,6 +113,23 @@ def test_start_nested_login_case_and_multi_cloud_persistence(page):
     page.locator('#cloud-form [name=label]').fill('iCloud – Umbenannt')
     page.locator('#cloud-submit').click()
     expect(page.locator('.cloud-card').first).to_contain_text('iCloud – Umbenannt')
+    # Proportions/readability at ordinary desktop sizes; real content/API above.
+    expect(page.get_by_role('region', name='Sicherungsaufträge und Downloads')).to_be_visible()
+    expect(page.locator('#jobs-panel button')).to_have_count(0)
+    for width, height in [(1440, 1000), (1920, 1080), (1280, 900)]:
+        page.set_viewport_size({'width': width, 'height': height})
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        dimensions = first.bounding_box()
+        assert 360 <= dimensions['width'] <= 600
+        assert dimensions['height'] < 350
+        assert page.locator('.case-dock').bounding_box()['height'] <= 80
+        assert float(first.locator('.cloud-actions button').first.evaluate('(el) => parseFloat(getComputedStyle(el).fontSize)')) >= 14
+        assert float(first.locator('.cloud-name').evaluate('(el) => parseFloat(getComputedStyle(el).fontSize)')) >= 20
+        screenshot(page, '06-workspace-' + str(width))
+    page.set_viewport_size({'width': 390, 'height': 844})
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    screenshot(page, '07-mobile-workspace')
+    page.set_viewport_size({'width': 1440, 'height': 1000})
     screenshot(page, '03-cloud-workspace')
     page.locator('#leave-case-button').click()
     expect(page.locator('#start-overlay')).to_be_visible()

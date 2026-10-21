@@ -16,6 +16,7 @@ Sicherungen sind noch nicht implementiert.
 
 - [Abschlussbericht Phase 0 und Ressourcenverbrauch](docs/phase-0-completion.md)
 - [Umsetzung und Abnahme Phase 1](docs/phase-1-status.md)
+- [Layoutüberarbeitung für Lesbarkeit und Desktopproportionen](docs/ui-layout-refinement.md)
 - [Vergleich mit dem tatsächlichen TRIAGE//BOX-Frontend](docs/ui-triagebox-comparison.md)
 - [Laborzugang und Administration](docs/operation.md)
 

@@ -355,12 +355,24 @@ function renderClouds() {
   for (const account of cloudList) {
     const card = node("article", undefined, "cloud-card");
     card.dataset.accountId = account.id;
+    card.dataset.provider = account.provider;
     card.setAttribute("aria-label", account.label);
     const top = node("div", undefined, "cloud-card-top");
-    top.append(
-      node("b", providers[account.provider]),
-      node("span", "VORBEREITET"),
+    const provider = node("div", undefined, "provider-identity");
+    const mark = node(
+      "span",
+      { apple: "iC", google: "G", microsoft: "OD" }[account.provider],
+      "provider-mark",
     );
+    mark.setAttribute("aria-hidden", "true");
+    provider.append(mark, node("b", providers[account.provider]));
+    top.append(provider, node("span", "Konto erfasst", "cloud-catalog-state"));
+    const status = node("dl", undefined, "cloud-status");
+    for (const title of ["Anbindung", "Sicherung"]) {
+      const column = node("div");
+      column.append(node("dt", title), node("dd", "Nicht verfügbar"));
+      status.append(column);
+    }
     const actions = node("div", undefined, "cloud-actions");
     for (const text of ["Authentifizieren", "Sicherung starten"]) {
       const button = node("button", text);
@@ -376,7 +388,7 @@ function renderClouds() {
     card.append(
       top,
       node("h3", account.label, "cloud-name"),
-      node("p", "ANBINDUNG UND SICHERUNG NOCH NICHT VERFÜGBAR", "cloud-state"),
+      status,
       actions,
       rename,
     );

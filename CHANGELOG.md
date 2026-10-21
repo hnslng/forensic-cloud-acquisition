@@ -1,5 +1,14 @@
 # Änderungen
 
+## 2026-10-21 – Layoutnachbesserung
+
+- Größere, klarere Schrift und höherer Kontrast im bestehenden TRIAGE//BOX-Stil.
+- Breiterer Desktoparbeitsbereich und großzügigere, klar gegliederte Cloud-Karten.
+- Kompakte Fallleiste; Anbieter über Kürzel, Namen und Farbakzente unterscheidbar.
+- Eigener leerer Bereich für spätere Sicherungsaufträge und Downloads.
+- Fallablauf, Sicherheitsfunktionen, API und Datenbank unverändert.
+- Bestehende Browserabnahme um Desktopproportionen und mobile Arbeitsansicht ergänzt.
+
 ## 0.3.0 – 2026-10-21 – TRIAGE//BOX-Bedienkonzept
 
 - Tatsächliches TRIAGE//BOX alpha 82 vor dem Umbau mit FCA verglichen.

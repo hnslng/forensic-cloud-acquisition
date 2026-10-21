@@ -1,7 +1,7 @@
 /* TRIAGE//BOX alpha 82 is the concrete layout reference. See docs/ui-triagebox-comparison.md. */
 :root {
   --ink: #e8eadf;
-  --muted: #8e9685;
+  --muted: #a6ae9c;
   --ground: #0b0d0a;
   --panel: #121610;
   --line: #394134;
@@ -9,9 +9,10 @@
   --amber: #ffb44a;
   --danger: #ff685f;
   --mono-stack:
-    ui-monospace, "SFMono-Regular", Menlo, Monaco, "Cascadia Mono",
-    "Segoe UI Mono", Consolas, monospace;
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
   font-family: var(--mono-stack);
+  font-size: 16px;
+  line-height: 1.5;
   color: var(--ink);
   background: var(--ground);
   color-scheme: dark;
@@ -55,7 +56,7 @@ html {
 }
 .shell {
   position: relative;
-  width: min(1480px, calc(100% - 32px));
+  width: min(1840px, calc(100% - 48px));
   min-height: 100vh;
   margin: 0 auto;
   padding: 4px 0 64px;
@@ -125,7 +126,7 @@ html {
   background: var(--acid);
   color: #111;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 950;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -148,7 +149,7 @@ html {
 .brand-version {
   margin-bottom: 2px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -218,7 +219,7 @@ h1 span {
   padding: 9px 13px;
   background: var(--ink);
   color: #111;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
 }
 .mode-badge {
@@ -226,7 +227,7 @@ h1 span {
 }
 .system-state {
   justify-self: end;
-  font-size: 11px;
+  font-size: 14px;
 }
 .utility-controls {
   display: flex;
@@ -248,58 +249,55 @@ h1 span {
   border-color: #111;
 }
 .rulebar #clock {
-  font-size: 11px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .case-dock {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 1px;
-  margin-top: 10px;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 6px 12px;
   border: 1px solid var(--line);
-  background: var(--line);
-  box-shadow: 4px 4px 0 #050605;
+  background: var(--panel);
 }
 .case-dock > div {
   min-width: 0;
-  min-height: 62px;
-  display: grid;
-  align-content: center;
-  padding: 9px 13px;
-  background: var(--panel);
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: 18px;
 }
-.case-dock span,
+.case-dock > div > span {
+  display: none;
+}
 .case-dock small {
   color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 .case-dock strong {
-  margin: 4px 0;
-  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
   color: var(--ink);
   font-size: 16px;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .case-dock > button {
-  align-self: stretch;
-  min-width: 210px;
-  padding: 10px 18px;
-  border: 0;
-  background: var(--acid);
-  color: #111;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 950;
-  text-transform: uppercase;
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 .case-dock > button.secondary {
-  min-width: 0;
-  background: var(--panel);
+  border-color: transparent;
   color: var(--muted);
-  font-size: 10px;
 }
 .case-dock > button.secondary:hover {
   color: var(--acid);
@@ -307,8 +305,8 @@ h1 span {
 .control-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 18px;
+  margin-top: 18px;
   align-items: start;
 }
 .panel {
@@ -320,11 +318,11 @@ h1 span {
 }
 .panel-title {
   border-bottom: 1px solid var(--line);
-  padding: 10px 12px;
-  color: var(--muted);
-  font-size: 13px;
+  padding: 14px 18px;
+  color: var(--ink);
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
 }
 .panel-title span {
   color: var(--acid);
@@ -338,7 +336,7 @@ h1 span {
 }
 .device-title b {
   color: var(--ink);
-  font-size: 12px;
+  font-size: 14px;
 }
 .device-title-actions {
   display: flex;
@@ -346,18 +344,18 @@ h1 span {
   gap: 12px;
 }
 .device-title-actions button {
-  min-height: 30px;
-  padding: 0 10px;
+  min-height: 40px;
+  padding: 7px 14px;
   border: 1px solid var(--line);
   background: transparent;
   color: var(--acid);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 900;
   text-transform: uppercase;
 }
 .device-empty {
-  min-height: 180px;
+  min-height: 150px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -368,95 +366,168 @@ h1 span {
   text-align: center;
 }
 .device-empty strong {
-  font-size: 14px;
+  font-size: 16px;
 }
 .device-empty small {
-  max-width: 460px;
-  font-size: 11px;
+  max-width: 640px;
+  font-size: 14px;
   line-height: 1.6;
 }
 .plug {
   color: var(--line);
   border: 2px solid var(--line);
   padding: 7px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .coverage-note {
   margin: 0;
-  padding: 10px 12px;
+  padding: 12px 18px;
   border-top: 1px dashed var(--line);
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.6;
   color: var(--muted);
 }
 .cloud-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
-  gap: 10px;
-  padding: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: 16px;
+  padding: 18px;
 }
 .cloud-list:empty {
   display: none;
 }
 .cloud-card {
+  --provider-color: #bad7ee;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  padding: 13px;
+  padding: 16px 18px 12px;
   border: 1px solid var(--line);
+  border-top: 3px solid var(--provider-color);
   background: #0b0e0a;
   box-shadow: 3px 3px 0 #070807;
+}
+[data-provider="apple"] {
+  --provider-color: #bad7ee;
+}
+[data-provider="google"] {
+  --provider-color: #ffb44a;
+}
+[data-provider="microsoft"] {
+  --provider-color: #8fbaff;
 }
 .cloud-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 10px;
-  color: var(--muted);
+  gap: 12px;
 }
-.cloud-card-top b {
-  color: var(--acid);
-  font-size: 11px;
+.provider-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.provider-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid var(--provider-color);
+  color: var(--provider-color);
+  font: 700 14px/1 var(--mono-stack);
+}
+.provider-identity b {
+  color: var(--provider-color);
+  font-size: 15px;
+}
+.cloud-catalog-state {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: right;
 }
 .cloud-name {
-  margin: 14px 0 9px;
-  font-size: 16px;
-  line-height: 1.35;
+  margin: 14px 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
-.cloud-state {
-  font-size: 10px;
+.cloud-status {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.cloud-status dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+.cloud-status dd {
   color: var(--amber);
-  line-height: 1.5;
-  margin: 0 0 12px;
+  font-size: 14px;
+  margin: 3px 0 0;
 }
 .cloud-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 10px;
   margin-top: auto;
 }
 .cloud-actions button {
-  font-size: 10px;
-  padding: 8px 5px;
+  font-size: 14px;
+  padding: 8px 6px;
+  min-height: 38px;
 }
 .cloud-rename {
   align-self: start;
-  margin-top: 9px;
-  padding: 5px 0;
-  font-size: 10px;
+  margin-top: 8px;
+  padding: 6px 0;
+  font-size: 14px;
+  font-weight: 500;
   border: 0;
+  color: var(--ink);
+}
+.jobs-panel {
+  margin-top: 18px;
+}
+.jobs-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.jobs-title small {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.jobs-empty {
+  padding: 20px 18px;
   color: var(--muted);
 }
+.jobs-empty strong {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 500;
+}
+.jobs-empty p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  max-width: 85ch;
+}
+
 button {
   padding: 8px 10px;
   border: 1px solid var(--line);
   background: transparent;
   color: var(--ink);
   cursor: pointer;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 600;
 }
 button:hover {
   border-color: var(--acid);
@@ -465,7 +536,9 @@ button:hover {
 button:disabled {
   border-color: var(--line);
   background: transparent;
-  color: #737b6b;
+  color: #a1a995;
+  background: #151a12;
+  border-style: dashed;
   cursor: not-allowed;
 }
 button.case-start:disabled {
@@ -486,11 +559,11 @@ button.case-start:disabled {
 }
 .audit-row {
   display: grid;
-  grid-template-columns: 175px minmax(0, 1fr) 70px;
+  grid-template-columns: 220px minmax(0, 1fr) 90px;
   gap: 12px;
   padding: 10px 12px;
   border-top: 1px solid var(--line);
-  font-size: 11px;
+  font-size: 14px;
   color: var(--muted);
 }
 .audit-row b {
@@ -503,7 +576,7 @@ footer {
   gap: 16px;
   padding: 17px 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.04em;
 }
 /* Native modal geometry and nested backdrop behavior follow TRIAGE//BOX. */
@@ -547,7 +620,7 @@ dialog.nested-open::backdrop {
   padding: 12px 14px;
   border-bottom: 1px solid var(--line);
   color: var(--ink);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
   letter-spacing: 0.04em;
 }
@@ -565,7 +638,7 @@ dialog.nested-open::backdrop {
 .modal-body {
   display: grid;
   gap: 12px;
-  padding: 14px;
+  padding: 18px;
 }
 .action-body {
   display: grid;
@@ -587,7 +660,7 @@ dialog.nested-open::backdrop {
   padding-bottom: 7px;
   border-bottom: 1px dashed var(--line);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.06em;
 }
 .subhead span {
@@ -595,17 +668,17 @@ dialog.nested-open::backdrop {
   font-weight: 900;
 }
 .subhead small {
-  font-size: 10px;
+  font-size: 13px;
 }
 .case-field {
   display: block;
   margin: 11px 0 8px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.4;
 }
 .case-field > small {
-  font-size: 9px;
+  font-size: 12px;
 }
 .case-field input,
 .case-field select,
@@ -615,9 +688,9 @@ dialog.nested-open::backdrop {
   border: 1px solid var(--line);
   background: #090b08;
   color: var(--ink);
-  padding: 11px;
+  padding: 12px;
   outline: none;
-  font-size: 14px;
+  font-size: 16px;
   border-radius: 0;
 }
 .case-field input:focus,
@@ -626,7 +699,7 @@ dialog.nested-open::backdrop {
   box-shadow: 0 0 0 2px rgba(142, 150, 133, 0.1);
 }
 .case-profile-hint {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--muted);
 }
@@ -646,14 +719,14 @@ dialog.nested-open::backdrop {
   background: var(--acid);
   color: #111;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 950;
   text-transform: uppercase;
 }
 .case-start-message {
   margin: 0;
   color: var(--amber);
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .case-start-message.ready {
@@ -670,20 +743,20 @@ dialog.nested-open::backdrop {
   border: 1px solid var(--line);
   background: #090b08;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 800;
   text-transform: uppercase;
 }
 .case-archive-open small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 13px;
 }
 .archive-toolbar {
   padding: 10px 12px;
 }
 .archive-toolbar input {
   margin: 0;
-  font-size: 12px;
+  font-size: 14px;
 }
 .case-list {
   display: grid;
@@ -707,11 +780,11 @@ dialog.nested-open::backdrop {
   gap: 6px;
 }
 .case-list-copy strong {
-  font-size: 14px;
+  font-size: 16px;
   overflow-wrap: anywhere;
 }
 .case-list-copy span {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--muted);
   overflow-wrap: anywhere;
 }
@@ -719,7 +792,7 @@ dialog.nested-open::backdrop {
   flex-shrink: 0;
 }
 .context-line {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--acid);
   line-height: 1.6;
   overflow-wrap: anywhere;
@@ -736,7 +809,7 @@ dialog.nested-open::backdrop {
   padding: 15px 10px;
   border: 1px solid var(--line);
   background: var(--ground);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 .provider-options label:has(input:checked) {
@@ -753,7 +826,7 @@ fieldset {
 }
 legend {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 14px;
   padding: 0 0 12px;
 }
 .settings-tabs {
@@ -769,7 +842,7 @@ legend {
   border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -779,7 +852,7 @@ legend {
   background: rgba(201, 242, 82, 0.05);
 }
 .settings-pane {
-  padding: 14px;
+  padding: 18px;
 }
 .settings-actions {
   display: flex;
@@ -808,7 +881,7 @@ legend {
   gap: 12px;
 }
 .pane-heading h3 {
-  font-size: 12px;
+  font-size: 14px;
 }
 .table-wrap {
   overflow: auto;
@@ -822,25 +895,25 @@ table {
 th,
 td {
   padding: 12px;
-  font-size: 11px;
+  font-size: 14px;
   border-bottom: 1px solid var(--line);
 }
 th {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 13px;
 }
 #member-list p {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: center;
-  font-size: 11px;
+  font-size: 14px;
 }
 .dialog-message {
   padding: 10px 14px;
   margin: 0;
   color: var(--amber);
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -858,7 +931,7 @@ th {
   border: 1px solid var(--amber);
   padding: 12px;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 14px;
 }
 @media (max-width: 850px) {
   .masthead {
@@ -872,10 +945,11 @@ th {
   }
   .case-dock > button.secondary {
     grid-column: 1/-1;
-    padding: 8px;
+    justify-self: end;
   }
-  .case-dock > button {
-    min-width: 160px;
+  .case-dock > div {
+    display: grid;
+    gap: 2px;
   }
   .rulebar {
     grid-template-columns: 1fr auto auto;
@@ -908,17 +982,34 @@ th {
   }
   .rulebar {
     padding: 7px 9px;
-    font-size: 9px;
+    font-size: 12px;
     gap: 8px;
   }
   .rulebar #clock {
-    font-size: 9px;
+    font-size: 12px;
   }
   .case-dock {
     grid-template-columns: 1fr;
   }
+  .case-dock {
+    gap: 8px;
+  }
   .case-dock > button {
-    min-height: 44px;
+    min-height: 40px;
+  }
+  .case-dock > button.secondary {
+    justify-self: stretch;
+  }
+  .jobs-title {
+    align-items: start;
+    flex-direction: column;
+  }
+  .cloud-list {
+    padding: 12px;
+    gap: 12px;
+  }
+  .cloud-card {
+    padding: 14px;
   }
   .action-body {
     grid-template-columns: 1fr;
@@ -932,20 +1023,20 @@ th {
   .modal-head {
     padding: 10px;
     gap: 8px;
-    font-size: 11px;
+    font-size: 14px;
   }
   .modal-head button {
-    font-size: 10px;
+    font-size: 13px;
     padding: 8px;
   }
   .provider-options {
     grid-template-columns: 1fr;
   }
   .provider-options label {
-    padding: 11px;
+    padding: 12px;
   }
   .settings-tabs button {
-    font-size: 10px;
+    font-size: 13px;
     padding: 6px;
   }
   .settings-form {
@@ -963,11 +1054,11 @@ th {
     justify-content: space-between;
   }
   .device-title-actions button {
-    min-height: 34px;
+    min-height: 40px;
   }
   footer {
     flex-wrap: wrap;
-    font-size: 8px;
+    font-size: 12px;
   }
   .start-overlay-brand {
     font-size: 40px;
