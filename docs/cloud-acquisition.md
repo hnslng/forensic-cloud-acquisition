@@ -98,3 +98,7 @@ Eine praktische Anbieterabnahme benötigt ausdrücklich freigegebene Konten und,
 - [Microsoft Graph: Kalenderansicht](https://learn.microsoft.com/en-us/graph/api/calendar-list-calendarview?view=graph-rest-1.0)
 - [Microsoft Graph Drosselung](https://learn.microsoft.com/en-us/graph/throttling)
 - [rclone iCloud Drive/Fotos](https://rclone.org/iclouddrive/) – gepinnter Quellstand aus Phase 2 bleibt maßgeblich.
+
+## Bereitstellung und Nachweise
+
+Version 0.5.0 ist auf VM 105 bereitgestellt. **66 automatisierte Prüfungen und GitHub CI erfolgreich**, bestehende Daten/Dateien unverändert, alte und neue Datenbankversion sowie Dateiarchive tatsächlich getrennt wiederhergestellt. Einzelheiten, Ressourcen und synthetische Desktop-/Mobilaufnahmen: [Prüf- und Bereitstellungsnachweis](cloud-acquisition-validation.md). Für die tägliche Bedienung: [Kurzanleitung](kurzanleitung.md).

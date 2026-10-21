@@ -39,3 +39,9 @@ Noch offen sind sämtliche echten Cloud-Integrationen sowie die in Phase 6
 vorgesehenen Download-, Wiederanlauf-, Speichererschöpfungs- und Provider-
 Sitzungstests. Simulierte oder lokale Tests werden nicht als realer Cloud-Test
 gewertet. Keine Freigabe für echte Beweisdaten.
+
+## 0.5.0 – tatsächliche Cloud-Sicherungsverwaltung
+
+66 automatisierte Prüfungen erfolgreich (11 Infrastruktur, 40 PostgreSQL/API/Queue/Provider-Verträge, 6 Chromium, 9 netzlose rclone-Verträge). Bereitstellung auf VM 105, unveränderte bisherige Daten/Dateien, tatsächliche Restore-Prüfungen von Schema 5 und 6 sowie Dateiarchiv/Schlüssel. HTTPS und beide Anwendungsdienste geprüft. Anbieter-Echtkonto-Abnahmen bleiben offen.
+
+[Ausführlicher Nachweis, CI, Ressourcen und synthetische Screenshots](cloud-acquisition-validation.md).

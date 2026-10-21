@@ -18,7 +18,9 @@ parallele Übertragungen, Wiederaufnahme auf Dateiebene, SHA-256 und Sicherungsb
 Echtkonto-Abnahmen stehen aus; Google/Microsoft benötigen registrierte Anbieteranwendungen.
 Nicht verfügbare Kategorien und Bereichsgrenzen sind ausdrücklich dokumentiert.
 
-- [Cloud-Sicherungen: kurze Anleitung, Anbieterstatus und Grenzen](docs/cloud-acquisition.md)
+- [Kurzanleitung: Fall anlegen und sichern](docs/kurzanleitung.md)
+- [Prüfungen, Datenerhalt, Ressourcen und Bereitstellung 0.5.0](docs/cloud-acquisition-validation.md)
+- [Cloud-Sicherungen: Anbieterstatus und Grenzen](docs/cloud-acquisition.md)
 - [Abschlussbericht Phase 0 und Ressourcenverbrauch](docs/phase-0-completion.md)
 - [Umsetzung und Abnahme Phase 1](docs/phase-1-status.md)
 - [Phase 2: iCloud-Anmeldung, Grenzen und Abnahme](docs/phase-2-icloud.md)
