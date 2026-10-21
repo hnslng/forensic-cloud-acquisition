@@ -317,6 +317,7 @@ def test_outlook_calendar_view_uses_explicit_window_and_follows_pagination(monke
     records=list(provider.inventory('calendar','2020-01-01/2021-01-01'))
     assert len(records)==3 and 'occurrence' in records[1]['payload'] and 'exception' in records[2]['payload']
     assert 'startDateTime=2020-01-01T00%3A00%3A00Z' in calls[1]
+    assert 'endDateTime=2021-01-02T00%3A00%3A00Z' in calls[1]
     assert 'skiptoken=next' in calls[2]
     with pytest.raises(ProviderError):list(provider.inventory('calendar'))
 

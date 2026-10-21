@@ -149,7 +149,10 @@ class WebProvider:
                 events=self.base+('/calendar/v3/calendars/'+quote(cid,safe='')+'/events?maxResults=2500&singleEvents=false&showDeleted=true' if google else '/me/calendars/'+quote(cid,safe='')+'/events?$top=100')
                 if not google:
                     start,end=scope.split('/')
-                    events=self.base+'/me/calendars/'+quote(cid,safe='')+'/calendarView?'+urlencode({'startDateTime':start+'T00:00:00Z','endDateTime':end+'T23:59:59Z','$top':100})
+                    from datetime import date,timedelta
+                    try: exclusive_end=(date.fromisoformat(end)+timedelta(days=1)).isoformat()
+                    except (ValueError,OverflowError): raise ProviderError('Ungültiges Ende des Kalenderzeitraums.') from None
+                    events=self.base+'/me/calendars/'+quote(cid,safe='')+'/calendarView?'+urlencode({'startDateTime':start+'T00:00:00Z','endDateTime':exclusive_end+'T00:00:00Z','$top':100})
                 for page_no,items in enumerate(self.pages(events,'items' if google else 'value')):
                     raw=json.dumps(clean_metadata(items),ensure_ascii=False).encode()
                     yield {'id':cid+':page:'+str(page_no),'path':prefix+'Termine-'+str(page_no+1)+'.json','size':len(raw),'payload':raw.decode(),'metadata':{'calendar_id':cid,'format':'provider-json','page':page_no+1}}
