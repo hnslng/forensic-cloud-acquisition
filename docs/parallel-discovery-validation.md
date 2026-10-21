@@ -31,3 +31,8 @@ Der Übertragungspool besetzt freie Plätze fortlaufend nach; eine langsame Date
 Neue Prüfungen umfassen den Nachrücker hinter einer blockierten großen Datei, API-Werte während laufender Übertragung, rclone-Zwischenstände mit echter, gedrosselter Laufzeit und den sichtbaren Downloadzähler im Browser. Die Startseite verwendet nun einheitlich „Fall anlegen / öffnen“.
 
 Auf erneuten ausdrücklichen Benutzerwunsch wurde der nächste Laborfall samt Anmeldung, Inventar und Sicherungsdateien wieder entfernt. Benutzer und bestehende Audit-Zeilen blieben unverändert. Die geschützte Rückfallsicherung liegt unter `/var/backups/fca/user-requested-reset-current-20261021/` und gehört nicht zur aktiven Fallverwaltung.
+
+
+Die Bereitstellung für die Live-Anzeige (`de46683`) ist erfolgt: API und Worker gesund, ausgelieferte Startseite und Downloadanzeige über geprüftes HTTPS mit den Quellen identisch. 45 Backendtests, sechs Chromium-Workflows und zehn netzisolierte rclone-Prüfungen erfolgreich. Der ergänzte Browsertest weist zusätzlich einen sichtbaren positiven Geschwindigkeitswert während laufender Übertragung nach. Der inzwischen neu angelegte Fall wurde bei der Bereitstellung erhalten. Anwendungsdaten und Audit-Protokolle wurden über Fingerabdrücke geprüft; die Datenbank wurde nicht neu gestartet.
+
+Änderungen wurden auf GitHub veröffentlicht. Der aktuelle CI-Status konnte in dieser Sitzung nicht unabhängig abgerufen werden: GitHub-Connector nicht verfügbar, lokale Browsernutzung deaktiviert. Die genannten Testergebnisse stammen von der FCA-Test-VM mit separater Testdatenbank. Lokale Bereitstellungsnachweise: `/var/backups/fca/live-speed-20261021/`.
