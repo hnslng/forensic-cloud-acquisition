@@ -1089,6 +1089,13 @@ function updateCalendarPeriod(){
   const form=$("acquisition-form");
   const enabled=acquisitionContext?.provider === "microsoft" && form.elements.service.value === "calendar";
   $("calendar-period").hidden=!enabled;
+  const service=form.elements.service.value,provider=acquisitionContext?.provider;
+  $("acquisition-scope-note").textContent=service === "calendar"
+    ? (provider === "microsoft" ? "Kalenderexport für den gewählten Zeitraum. Anlagen werden nicht heruntergeladen." : "Kalender und zugängliche Termine als Datenexport. Anhänge werden nicht heruntergeladen.")
+    : provider === "google" ? "Gesichert wird „Meine Ablage“ mit Unterordnern. Geteilte Ablagen außerhalb dieses Bereichs sind nicht enthalten."
+    : provider === "microsoft" ? "Dateien und Ordner des Standard-OneDrive. Externe Verknüpfungen und weitere SharePoint-Sammlungen sind nicht enthalten."
+    : service === "photos" ? "Gesichert wird die zugängliche Fotoansicht. Weitere Bildvarianten und Gerätebackups sind nicht zugesichert."
+    : "Gesichert wird der gewählte Ordner mit Unterordnern. Ohne Ordnerangabe: der sichtbare iCloud-Drive-Bereich.";
   for(const name of ["calendar_start","calendar_end"]){form.elements[name].disabled=!enabled;form.elements[name].required=enabled;}
   const year=new Date().getUTCFullYear();
   if(enabled && !form.elements.calendar_start.value){form.elements.calendar_start.value=(year-5)+"-01-01";form.elements.calendar_end.value=(year+1)+"-12-31";}
