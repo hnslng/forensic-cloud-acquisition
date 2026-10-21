@@ -15,3 +15,10 @@ Der beobachtete Laborlauf war wegen „Arbeitsspeicher knapp“ automatisch paus
 ## Prüfung
 
 Separate PostgreSQL-Testdatenbank; keine produktiven Zugangsdaten oder echten Cloud-Inhalte im Test. Backendprüfungen decken MD5/SHA-256, getrennte Quellkennungen, gemeinsame Bereiche, Pause mit Wiederaufnahme und Speicher-/Cachebewertung ab. Chromium prüft den tatsächlichen Klickablauf Pause → Fortsetzen → Abschluss sowie die gemeinsame iCloud-Auswahl und kompakte Karte bei 1920, 1440 und 390 Pixeln.
+
+
+## Ergebnis und Bereitstellung
+
+**48 Backendprüfungen und acht Chromium-Workflows erfolgreich** (sechs bestehende und zwei ergänzte Abläufe). Desktop- und Mobilaufnahmen wurden geprüft. Die Bereitstellung auf VM 105 erfolgte mit Schema 8; API und Worker sind gesund, die ausgelieferte Oberfläche wurde über geprüftes HTTPS gegen die Quellen verglichen. Datenbankeinträge und vorhandene Sicherungsdateien wurden vor und nach der additiven Migration geprüft und sind unverändert erhalten. Die Datenbank wurde nicht neu gestartet. Lokale Rückfallsicherung und Nachweise: `/var/backups/fca/compact-md5-20261021/`.
+
+Der vorhandene Lauf mit 49 bereits fertigen Dateien bleibt pausiert. Bei Fortsetzung werden bestehende Dateien geprüft und fehlende MD5-Werte ergänzt; der ursprüngliche Drive-Umfang bleibt erhalten. Die kombinierte Drive-/Fotos-Auswahl wurde synthetisch, noch nicht mit einem vollständigen echten iCloud-Fotobestand abgenommen. Änderungen sind auf GitHub dokumentiert; der aktuelle GitHub-CI-Status war in dieser Sitzung nicht abrufbar.
