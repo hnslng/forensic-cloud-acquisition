@@ -1,21 +1,21 @@
 # Stufe B – Validierung und Ressourcen
 
-Stand: 22.10.2026 (Europe/Vienna). Entwicklungszweig; keine echte Google-/Microsoft-Anmeldung und keine Bereitstellung in die laufenden Laborcontainer.
+Stand: 22.10.2026 (Europe/Vienna). Entwicklungsstand mit kontrollierter Bereitstellung der geprüften Codeversion b8ac146 auf der Labor-VM. Keine echte Google-/Microsoft-Anmeldung.
 
 ## Automatisierte Prüfung
 
 | Prüfung | Ergebnis |
 |---|---|
-| PostgreSQL-/Backend einschließlich OAuth, Queue, Hashes und Migration 0009 | 72 Tests erfolgreich; abschließende Ergänzung der asynchronen Fehlerklassifizierung wird separat nachgeprüft |
+| PostgreSQL-/Backend einschließlich OAuth, Queue, Hashes und Migration 0009 | 73 Tests erfolgreich |
 | Chromium: vorhandene Bedienabläufe und je zwei Google-/Microsoft-Konten | 10 Tests erfolgreich |
 | Zusätzliche Rückkehr nach tatsächlich geladener fremder simulierten Anbieterseite | 2 Tests erfolgreich |
 | Pause-/Speichergrund und Berichtsbilanz nach letzter Ergänzung | 4 Tests erfolgreich |
 | Gepinnter Rclone/iCloud offline, ohne Netzwerk | 10 Tests erfolgreich |
 | Infrastruktur/Speicherkapazität | 11 Tests erfolgreich |
-| Neues Testimage mit gepinnten Abhängigkeiten | Build erfolgreich; zuvor 30 Offline-Tests erfolgreich |
-| GitHub CI | Wird nach Übertragung des endgültigen Commits geprüft; noch kein grünes Ergebnis behauptet |
+| Neues Testimage mit gepinnten Abhängigkeiten | Build erfolgreich; 31 Offline-Tests im neu gebauten Image erfolgreich |
+| GitHub CI | [b8ac146 erfolgreich, Run 39685332126](https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39685332126); weitere Prüfungen siehe [PR #1](https://github.com/hnslng/forensic-cloud-acquisition/pull/1/checks) |
 
-Die endgültigen Zahlen und CI-Verweise werden vor Abschluss ergänzt. Tests auf der VM verwenden ausschließlich getrennte Container und die wegwerfbare Datenbank `fca_test_phase1`. Bestehende Rollen werden genutzt; keine Produktionsdaten als Testfixture. Migrationen 1–9 werden in der Testdatenbank angewendet. Migration 0009 ändert nur Grenzwertbedingungen und behält bestehende Einstellwerte. Vier Transfers und zwei Konten gelten weiter.
+Ein früherer CI-Lauf zeigte einen unvollständig isolierten Testaufbau; dieser wurde korrigiert. Der oben verlinkte Lauf ist erfolgreich. Tests auf der VM verwenden ausschließlich getrennte Container und die wegwerfbare Datenbank `fca_test_phase1`. Bestehende Rollen werden genutzt; keine Produktionsdaten als Testfixture. Migrationen 1–9 werden in der Testdatenbank angewendet. Migration 0009 ändert nur Grenzwertbedingungen und behält bestehende Einstellwerte. Vier Transfers und zwei Konten gelten weiter.
 
 Rclone-Konfiguration, Unix-Authentifizierung, tatsächliche lokale Kopien, parallele Konten, Quellhashfehler und Erhalt erneuerter Tokens wurden mit echten Rclone-Prozessen geprüft. Google-ID-/OneDrive-Pfadabfragen nutzen simulierte Providerantworten; kein tatsächlicher Google-API-/Microsoft-Refresh-/Downloaddienst wurde verwendet. Gleichnamige Google-Dateien werden über ID adressiert. QuickXor wurde zusätzlich gegen 70 Vektoren der gepinnten Rclone-Referenz abgeglichen.
 
@@ -67,4 +67,4 @@ Systemdisk für Labor mindestens 32 GiB, empfohlen 64 GiB wegen Images/Updates/P
 
 Neue Sicherung vor Tests unter einem privaten rootgeschützten Backupverzeichnis: PostgreSQL-Dump, vollständiges Sicherungsverzeichnis und externe Zugangskonfiguration. Wiederherstellung in getrennte Prüfdatenbank: alle 16 Tabellen identisch. Nach den Tests erneut verglichen: Originaldatenbank vollständig identisch; Archivvergleich der Sicherungsdaten und Zugangskonfiguration identisch. Bestehender Lauf unverändert pausiert, 260 Objekte / 49 abgeschlossen / eines fehlgeschlagen / 210 wartend.
 
-Die laufenden Laborcontainer und Schema 8 bleiben bestehen. Der neue Code mit Schema 9 wird erst nach nachweislich erfolgreicher GitHub CI kontrolliert übernommen; vorher erneut Backup und Zustand prüfen. Keine echten Anmeldungen, DNS-/Zertifikatsänderungen oder Wiederaufnahme des iCloud-Laufs. Für Google sind konkrete Domain und externe App-Einrichtung später separat freizugeben.
+Die laufenden Laborcontainer wurden nach erfolgreicher CI kontrolliert auf den geprüften Code b8ac146 und Schema 9 umgestellt. Erneutes vollständiges Backup und Restore aller 16 Tabellen vor der Übernahme erfolgreich. Danach 15 bestehende Fachtabellen identisch; nur Schema-Migrationsstand ergänzt. Sicherungsdaten und Zugangskonfigurationen entsprechen weiterhin ihren Archiven. API/Worker gesund, Startseite/App/OAuth-Rückkehrskript über bestehendes privates HTTPS mit geprüftem Zertifikat erreichbar. Weitere Codekorrekturen erhalten vor Übernahme einen eigenen grünen CI-Nachweis im PR. Keine echten Anmeldungen, DNS-/Zertifikatsänderungen oder Wiederaufnahme des iCloud-Laufs. Für Google sind konkrete Domain und externe App-Einrichtung später separat freizugeben.

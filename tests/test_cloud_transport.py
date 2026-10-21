@@ -168,6 +168,9 @@ def test_rclone_permission_errors_are_permanent_and_sanitized():
         with pytest.raises(AccessDenied):transfer_error(provider,'403 accessDenied SYNTHETIC-SECRET')
         with pytest.raises(Retryable):transfer_error(provider,'429 too many requests')
         with pytest.raises(AuthenticationRequired):transfer_error(provider,'invalid_grant')
+        # Digits in filenames or IDs are not HTTP status codes.
+        with pytest.raises(ProviderError) as caught:transfer_error(provider,'failed to copy report401-429-503.txt: unknown error')
+        assert type(caught.value) is ProviderError
 
 
 def test_only_google_copyid_to_local_temporary_files_is_allowed(vault,tmp_path):

@@ -11,8 +11,8 @@
     "infrastructure/docker/Dockerfile": "4f821875e80839305bc3c4114706a2260fd785101a9ee1d57cb7a82488d71fda",
     "providers/acquisition.py": "3aa898be78d7ba30d50dc9f37c8a44927b68f05be237cc313a3917bbcfa6ae05",
     "providers/apple/adapter.py": "12700b501aa2ab6738288e124bdb1ab1fb9a8cd4861a9f85bfc4dac84fa0e63c",
-    "providers/google/README.md": "155b4a82b473e5d64533fd30a1eb07d3ff09d110100ea1231208cae2e9801191",
-    "providers/microsoft/README.md": "edae9aee956bfb75ee9934476d88d60cdf650887ad0a7b28766d571fbf519c3a",
+    "providers/google/README.md": "8d858ffeadb02f85bf14561426a344af0a69dfd30773a698d5de843ef296d8b7",
+    "providers/microsoft/README.md": "8f30d083812e690887543b099efc99772c243599890271721ba616515a6ab5e7",
     "scripts/configure_phase1_database.py": "f2613c49aae18a8f5723ee995fdd26feffb672a7e9e48e33606eb2ff080a01eb",
     "scripts/run_phase1_tests.sh": "029041d8b7d405cae1646caa9c59bded99dd26683421ea21add2f4d7227a86a6",
     "tests/test_acquisitions.py": "45a935a3b10fa9a0d490c07b4417fa4d6bca22fa52b6dc81e17fe9094e9deabc",
@@ -20,18 +20,22 @@
     "backend/runtime_limits.py": "5fd10310e64f229386162b50e97fcc82cf3803b8805ef7e829b2b33b1e65bfbe",
     "migrations/0009_parallelism_profiles.sql": "43357ac894f4db523280680b86265a03121c3e3f6f5acd6bdea33aaabdc68af6",
     "providers/integrity.py": "ad69beb1bf6e93553e2167a8f0f94ebe5935759d0f22e5c2a824f3c725bbc8b4",
-    "providers/rclone_files.py": "0c3d99ae521b7b0ef0a68de70ec37c90ec7b9836de52a1790c18d2bc1429cdc4",
+    "providers/rclone_files.py": "73983910a8e1a8145a0ee65592b7073ca82396b361cb455c5a910863a8981a55",
     "scripts/measure_synthetic_worker.py": "946538829392ce3521addf444ee088e2b8fdc238c57442e41cc58b4ed3d27867",
     "scripts/prepare_private_https.py": "ac3bbab46b01d01aada4126d5dc2945f8f1a2daaeacedf6b90f9285ae9bc513c",
-    "tests/test_cloud_transport.py": "1e3dad44f5cebea104a42a91f219bf146af01903873b496c56e3d84d7ca01b5c"
+    "tests/test_cloud_transport.py": "131f68e4cfe6fcacb46e1e28dc376145d47b8987691f5665cb68b063687b5277"
   },
   "synthetic_only": true,
   "real_provider_login_tested": false,
   "real_provider_speed_measured": false,
-  "production_deployed": false,
+  "production_deployed": true,
   "github_ci": {
-    "verified": false,
-    "reason": "GitHub connection now confirmed; final commit workflow must finish before deployment."
+    "verified": true,
+    "tested_code_commit": "b8ac146867be79601bff5fa23cbb84c8e88b3563",
+    "run_url": "https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39685332126",
+    "status": "completed",
+    "conclusion": "success",
+    "latest_pr_checks": "https://github.com/hnslng/forensic-cloud-acquisition/pull/1/checks"
   },
   "test_results": {
     "backend_full": 73,
@@ -39,7 +43,9 @@
     "icloud_offline": 10,
     "infrastructure": 11,
     "cross_site_oauth_targeted": 2,
-    "pause_and_report_targeted": 4
+    "pause_and_report_targeted": 4,
+    "built_image_offline": 31,
+    "final_classifier_contracts": 21
   },
   "https_plan": {
     "nginx_syntax_checked": true,
@@ -273,6 +279,35 @@
           "memory_bytes": 104423424
         }
       ]
+    }
+  },
+  "tested_code_commit": "b8ac146867be79601bff5fa23cbb84c8e88b3563",
+  "deployment": {
+    "first_tested_code_commit": "b8ac146867be79601bff5fa23cbb84c8e88b3563",
+    "schema": 9,
+    "api_worker_healthy": true,
+    "original_tables_unchanged": 15,
+    "evidence_unchanged": true,
+    "credential_configuration_unchanged": true,
+    "job_remains_paused": true,
+    "new_dns_or_certificates": false,
+    "private_https_smoke": {
+      "/api/health": {
+        "status": 200,
+        "sha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288"
+      },
+      "/": {
+        "status": 200,
+        "sha256": "d8a3fa9fd5d59a54941bf12a730cbd6effbe2689c8fd2d76d582f1d2cca1ee65"
+      },
+      "/app.js": {
+        "status": 200,
+        "sha256": "ce53bc8a8f6a2185e516ce482181a860056e8f9c0e6ffc7bd0e8125afdc470b9"
+      },
+      "/oauth-callback.js": {
+        "status": 200,
+        "sha256": "d15f9d47a0cc744376a46b1367cc589c8657d647c19f82d4119dde9906ad7340"
+      }
     }
   }
 }

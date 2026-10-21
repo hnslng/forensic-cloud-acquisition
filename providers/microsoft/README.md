@@ -6,6 +6,6 @@ Die Webanmeldung behält FCA-PKCE, einmaligen State sowie Benutzer-/Sitzungs-/Fa
 
 **Behoben:** pauschale Wiederholung von `accessDenied` und fehlender Quellhashvergleich. SHA1, QuickXorHash und CRC32 werden soweit geliefert geprüft; fehlende unterstützte Werte ausdrücklich ausgewiesen. Lokale SHA-256 bleibt erhalten.
 
-**Getestet:** synthetische Personal-/Business-Konfiguration, echte lokale Rclone-Kopien mit simulierten Anbieter-Metadaten, Hashfehler, Token-/Kontotrennung und Browser-Rücksprung. Bestehende Kalender- und Weiterleitungstests erhalten. **Offen:** reale Privat-/Geschäftskonten, tatsächlicher Microsoft-Download/Refresh und Mandantenrichtlinien. Weitere Drives und SharePoint werden noch nicht eigenständig inventarisiert. Noch keine Übernahme in laufende Laborcontainer.
+**Getestet:** synthetische Personal-/Business-Konfiguration, echte lokale Rclone-Kopien mit simulierten Anbieter-Metadaten, Hashfehler, Token-/Kontotrennung und Browser-Rücksprung. Bestehende Kalender- und Weiterleitungstests erhalten. **Offen:** reale Privat-/Geschäftskonten, tatsächlicher Microsoft-Download/Refresh und Mandantenrichtlinien. Weitere Drives und SharePoint werden noch nicht eigenständig inventarisiert. Geprüfte Codeversion b8ac146 nach erfolgreicher CI in die Laborcontainer übernommen; weitere Codekorrekturen nur nach ihrem eigenen grünen CI-Nachweis im PR.
 
 [Stufe-B-Status](../../docs/stufe-b-status.md) · [Privates HTTPS und erster Test](../../docs/private-https-oauth.md) · [Unterstützter Umfang](../../docs/cloud-acquisition.md).

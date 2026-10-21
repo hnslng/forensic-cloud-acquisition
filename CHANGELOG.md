@@ -9,7 +9,7 @@
 - Migration 0009 für begrenzte Serverprofile; Laborstandard bleibt 4 Dateien / 2 Konten.
 - Parametrisierter HTTPS-Prüfplan und Administrations-/Testanleitung, ohne DNS-/Zertifikatsänderungen.
 - Synthetische PostgreSQL-, Browser-, Rclone- und Ressourcenprüfungen; bestehender Lauf und Beweisdaten erhalten.
-- Noch keine Übernahme in laufende Laborcontainer und keine Echtkonto-Abnahme.
+- Geprüfte Codeversion b8ac146 nach erfolgreicher CI in die Laborcontainer übernommen; keine Echtkonto-Abnahme.
 
 ## Flachere Cloud-Karten – 2026-10-21
 

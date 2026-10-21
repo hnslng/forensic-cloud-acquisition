@@ -1,6 +1,6 @@
 # Architektur – implementierter Stand und freigabepflichtige Erweiterungen
 
-Stand 22.10.2026: Stufe-B-Entwicklungszweig mit Schema 9, isoliert getestet. Laufende Laborinstallation weiterhin Schema 8; Echtkonto-Abnahme und Übernahme stehen aus. [Stufe-B-Status](stufe-b-status.md).
+Stand 22.10.2026: Stufe-B-Entwicklungszweig mit Schema 9, isoliert getestet und nach erfolgreicher CI auf der Laborinstallation bereitgestellt. Echtkonto-Abnahme steht aus. [Stufe-B-Status](stufe-b-status.md).
 
 ## Komponenten
 

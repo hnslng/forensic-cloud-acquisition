@@ -20,13 +20,16 @@ from providers.integrity import verify_source
 def transfer_error(provider, message):
     """Classify upstream errors without exposing text, URLs or signed links."""
     message=message.lower()
-    if any(code in message for code in ('invalid_grant','invalidauthenticationtoken','401','token has expired')):
+    def status(code):
+        return bool(re.search(r'\b(?:error\s+|http(?: error)?[: ]+|status(?: code)?[: =]+)'+str(code)+r'\b',message)
+                    or re.search(r'\b'+str(code)+r'\s+(?:unauthorized|forbidden|not found|too many|bad gateway|service unavailable|gateway timeout|internal server)\b',message))
+    if status(401) or any(code in message for code in ('invalid_grant','invalidauthenticationtoken','token has expired')):
         raise AuthenticationRequired('Cloud-Anmeldung ist abgelaufen. Bitte erneut anmelden.')
-    throttled=('429' in message or (provider=='google' and any(code in message for code in ('ratelimitexceeded','userratelimitexceeded'))))
+    throttled=(status(429) or (provider=='google' and any(code in message for code in ('ratelimitexceeded','userratelimitexceeded'))))
     if throttled: raise Retryable(30,True)
-    if any(code in message for code in ('403','404','accessdenied','permission denied','insufficientpermissions','object not found','file not found','directory not found')):
+    if status(403) or status(404) or any(code in message for code in ('accessdenied','permission denied','insufficientpermissions','object not found','file not found','directory not found')):
         raise AccessDenied('Cloud-Datei ist nicht zugänglich oder nicht freigegeben.')
-    if any(code in message for code in ('timeout','timed out','connection reset','unexpected eof','503','502','504','500 internal','temporarily unavailable')):
+    if any(status(code) for code in (500,502,503,504)) or any(code in message for code in ('timeout','timed out','connection reset','unexpected eof','temporarily unavailable')):
         raise Retryable()
     raise ProviderError('Rclone konnte die Datei nicht sicher übertragen. Umfang und Anmeldung prüfen.')
 

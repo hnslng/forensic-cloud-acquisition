@@ -1,6 +1,6 @@
 # Cloud-Sicherungen – Version 0.5.0
 
-**Aktueller Entwicklungszweig:** [Stufe B](stufe-b-status.md) ergänzt Rclone-Dateitransport, Quellhashvergleich, Fehlerklassifizierung und sitzungsgebundene Anmeldung. Isoliert getestet, noch nicht in laufende Laborcontainer übernommen. Domainlose Tunnelanmeldung bleibt eine Bewertung; DNS/TLS, Anbieterregistrierungen und echte Kontotests benötigen weiterhin Freigabe.
+**Aktueller Entwicklungszweig:** [Stufe B](stufe-b-status.md) ergänzt Rclone-Dateitransport, Quellhashvergleich, Fehlerklassifizierung und sitzungsgebundene Anmeldung. Isoliert getestet und als geprüfte Codeversion b8ac146 nach erfolgreicher CI in die Laborcontainer übernommen; weitere Codekorrekturen nur nach ihrem eigenen grünen CI-Nachweis im PR. Domainlose Tunnelanmeldung bleibt eine Bewertung; DNS/TLS, Anbieterregistrierungen und echte Kontotests benötigen weiterhin Freigabe.
 
 Stand: 21.10.2026. Implementierte Laborversion, keine Behauptung einer bereits erfolgten Echtkonto-Abnahme. Die freigegebene dunkelblaue Oberfläche und die breiten Cloud-Karten bleiben erhalten.
 

@@ -33,4 +33,4 @@ Die synthetischen Prüfungen ersetzen keine vollständige Abnahme der einzelnen 
 
 ## Geplante vereinfachte Google-/OneDrive-Anmeldung
 
-Der [Stufe-B-Entwicklungsstand](stufe-b-status.md) verwendet die bestehende Browseranmeldung und Rclone für Dateien; Kalender bleiben erhalten. Die Übernahme in die laufende Laboroberfläche steht noch aus. Die Adresse bleibt konfigurierbar. [Erster Google-/Microsoft-Test](private-https-oauth.md) beschreibt die persönlichen Schritte nach der einmaligen Administration und gesonderten Freigabe. Keine manuelle Tokenübertragung oder Befehle für Ermittler.
+Der [Stufe-B-Entwicklungsstand](stufe-b-status.md) verwendet die bestehende Browseranmeldung und Rclone für Dateien; Kalender bleiben erhalten. Die geprüfte Version ist in die laufende Laboroberfläche übernommen; echte Google-/Microsoft-Anmeldungen stehen aus. Die Adresse bleibt konfigurierbar. [Erster Google-/Microsoft-Test](private-https-oauth.md) beschreibt die persönlichen Schritte nach der einmaligen Administration und gesonderten Freigabe. Keine manuelle Tokenübertragung oder Befehle für Ermittler.

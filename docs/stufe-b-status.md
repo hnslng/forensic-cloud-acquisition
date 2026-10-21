@@ -32,7 +32,7 @@ Geteilte Bereiche erfordern zusätzliche Bereichsmodellierung und Testbestände;
 
 Nachweise werden nach dem abschließenden Testlauf unter [Stufe-B-Validierung](stufe-b-validierung.md) festgehalten. Getrennte PostgreSQL-Testdatenbank, isolierte Testcontainer, synthetische Browseranmeldungen und echte Rclone-Prozesse gegen lokale Daten. Ein solcher Test beweist keinen erfolgreichen Google-/Microsoft-Login und keine reale Providerleistung.
 
-Vor den Tests: neue Datenbank-, Sicherungsdaten- und Zugangskonfigurationsarchive; Wiederherstellung sämtlicher 16 öffentlicher Tabellen in einer separaten Datenbank identisch geprüft. Originale Sicherungsdaten und pausierter Lauf bleiben unangetastet. Keine Bereitstellung in den laufenden Laborcontainern, solange GitHub CI nicht nachweislich erfolgreich ist. Keine DNS-, TLS- oder Anbieteränderung ausgeführt.
+Vor den Tests: neue Datenbank-, Sicherungsdaten- und Zugangskonfigurationsarchive; Wiederherstellung sämtlicher 16 öffentlicher Tabellen in einer separaten Datenbank identisch geprüft. Originale Sicherungsdaten und pausierter Lauf bleiben unangetastet. Nach erfolgreicher [GitHub CI des Codes b8ac146](https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39685332126) kontrolliert auf der Test-VM bereitgestellt: Schema 9, gesunde API/Worker, privates HTTPS erreichbar. 15 bestehende Fachtabellen, Sicherungsdaten und Zugangskonfigurationen unverändert. Weitere Codekorrekturen werden ausschließlich nach ihrem eigenen erfolgreichen CI-Lauf übernommen; der aktuelle Nachweis steht unter [PR #1](https://github.com/hnslng/forensic-cloud-acquisition/pull/1/checks). Keine DNS-, TLS- oder Anbieteränderung ausgeführt.
 
 ## Nächster Freigabepunkt
 
