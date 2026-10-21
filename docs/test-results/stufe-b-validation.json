@@ -3,7 +3,7 @@
   "base_commit": "4553cc4527968a6e6c08a67dc044776ff6550f62",
   "branch": "codex/stage-b-cloud-acquisition",
   "source_sha256": {
-    "backend/acquisitions.py": "cedec37c7fad67a0f3323b00883522b6dac878d795a933e34872d411c73fd16a",
+    "backend/acquisitions.py": "23a8a7ca5d7636ae1f7aec749f9e90cd47984b639b197581c65364e871319be1",
     "backend/main.py": "f19019689fc7ba3c53adb723967816a1f7915c5dfe15477e787870ff48afbab5",
     "backend/oauth.py": "6af9133ed939d2dcd22f4f83bc598c3383dfee4cd05fa639b44c3486bfb60bff",
     "compose.yaml": "cc54f9a818e947925621c1a22297a54e1846b222c6585d3bcb60533d90fb723d",
@@ -15,7 +15,7 @@
     "providers/microsoft/README.md": "8f30d083812e690887543b099efc99772c243599890271721ba616515a6ab5e7",
     "scripts/configure_phase1_database.py": "f2613c49aae18a8f5723ee995fdd26feffb672a7e9e48e33606eb2ff080a01eb",
     "scripts/run_phase1_tests.sh": "029041d8b7d405cae1646caa9c59bded99dd26683421ea21add2f4d7227a86a6",
-    "tests/test_acquisitions.py": "45a935a3b10fa9a0d490c07b4417fa4d6bca22fa52b6dc81e17fe9094e9deabc",
+    "tests/test_acquisitions.py": "770fb804d8af61cf5bb519e5ea5a20a6d282dc2a0ca4cb5dc6a0d8868b3420fc",
     "tests/test_browser.py": "b2c94291db8aaf6cc35609ec37af669cca7b6bbc1750d0a8879b0a79c1f118ab",
     "backend/runtime_limits.py": "5fd10310e64f229386162b50e97fcc82cf3803b8805ef7e829b2b33b1e65bfbe",
     "migrations/0009_parallelism_profiles.sql": "43357ac894f4db523280680b86265a03121c3e3f6f5acd6bdea33aaabdc68af6",
@@ -45,7 +45,8 @@
     "cross_site_oauth_targeted": 2,
     "pause_and_report_targeted": 4,
     "built_image_offline": 31,
-    "final_classifier_contracts": 21
+    "final_classifier_contracts": 21,
+    "final_known_byte_ledger_targeted": 4
   },
   "https_plan": {
     "nginx_syntax_checked": true,
@@ -281,7 +282,7 @@
       ]
     }
   },
-  "tested_code_commit": "b8ac146867be79601bff5fa23cbb84c8e88b3563",
+  "tested_code_commit": "7af889fe32166b7eb0605bf21afe55d0fe4a1294",
   "deployment": {
     "first_tested_code_commit": "b8ac146867be79601bff5fa23cbb84c8e88b3563",
     "schema": 9,

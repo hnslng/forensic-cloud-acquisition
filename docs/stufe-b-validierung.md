@@ -9,7 +9,7 @@ Stand: 22.10.2026 (Europe/Vienna). Entwicklungsstand mit kontrollierter Bereitst
 | PostgreSQL-/Backend einschließlich OAuth, Queue, Hashes und Migration 0009 | 73 Tests erfolgreich |
 | Chromium: vorhandene Bedienabläufe und je zwei Google-/Microsoft-Konten | 10 Tests erfolgreich |
 | Zusätzliche Rückkehr nach tatsächlich geladener fremder simulierten Anbieterseite | 2 Tests erfolgreich |
-| Pause-/Speichergrund und Berichtsbilanz nach letzter Ergänzung | 4 Tests erfolgreich |
+| Pause-/Speichergrund und Berichtsbilanz einschließlich bekannter Inventar-/Fehlergrößen | 4 Tests erfolgreich |
 | Gepinnter Rclone/iCloud offline, ohne Netzwerk | 10 Tests erfolgreich |
 | Infrastruktur/Speicherkapazität | 11 Tests erfolgreich |
 | Neues Testimage mit gepinnten Abhängigkeiten | Build erfolgreich; 31 Offline-Tests im neu gebauten Image erfolgreich |
