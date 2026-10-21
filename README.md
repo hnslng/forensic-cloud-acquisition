@@ -18,6 +18,7 @@ parallele Übertragungen, Wiederaufnahme auf Dateiebene, SHA-256 und Sicherungsb
 Echtkonto-Abnahmen stehen aus; Google/Microsoft benötigen registrierte Anbieteranwendungen.
 Nicht verfügbare Kategorien und Bereichsgrenzen sind ausdrücklich dokumentiert.
 
+- [Stufe A: Google-/OneDrive-Machbarkeit und Freigabeentscheidung](docs/stufe-a-machbarkeit.md)
 - [Kurzanleitung: Fall anlegen und sichern](docs/kurzanleitung.md)
 - [Prüfungen, Datenerhalt, Ressourcen und Bereitstellung 0.5.0](docs/cloud-acquisition-validation.md)
 - [Cloud-Sicherungen: Anbieterstatus und Grenzen](docs/cloud-acquisition.md)
@@ -31,7 +32,7 @@ Nicht verfügbare Kategorien und Bereichsgrenzen sind ausdrücklich dokumentiert
 
 - [Prüfbericht und Freigabevorschlag](docs/phase-0-status.md)
 - [Installationsablauf und Abnahme](docs/installation.md)
-- [Architekturentwurf](docs/architecture.md)
+- [Aktuelle Architektur](docs/architecture.md)
 - [Analyse der TRIAGE//BOX](docs/triagebox-reference.md)
 - [Test- und Nachweisstand](docs/validation.md)
 - [Änderungen](CHANGELOG.md)

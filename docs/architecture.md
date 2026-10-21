@@ -1,78 +1,34 @@
-# Architektur – implementierter Kern und weitere Planung
+# Architektur – implementierter Stand und freigabepflichtige Erweiterungen
 
-Identitäts-, Berechtigungs-, Fall- und Auditkern sind mit Phase 1 umgesetzt.
-Queue, Worker und Cloud-Sicherung in diesem Dokument beschreiben weiterhin
-die Planung für die nachfolgenden Phasen, keine vorhandene Cloud-Integration.
+Stand 21.10.2026, Schema 8. Diese Übersicht beschreibt die vorhandene Implementierung; eine neue Rclone-Anbindung für Google/OneDrive ist noch nicht umgesetzt. [Stufe A](stufe-a-machbarkeit.md) endet vor der Integration.
 
 ## Komponenten
 
-Privater Browser → HTTPS-Reverse-Proxy → separates Frontend und FastAPI-API.
-PostgreSQL speichert Fälle, Identitäten, Berechtigungen, Konten, den freigegebenen
-Zugriffsumfang, Aufträge, Dateiinventare und Auditereignisse. Separate
-Worker-Prozesse beanspruchen persistente Aufträge über Transaktionen und
-`FOR UPDATE SKIP LOCKED`, mit Lease, Heartbeat, Retry und Wiederanlauf.
-Die konkrete Implementierung samt Konkurrenz- und Absturztests folgt in Phase 3.
+Privater Browser → Nginx/HTTPS → statisches Frontend und FastAPI-API. PostgreSQL speichert Benutzer, Sitzungen, Fälle, Mitgliedschaften, Konten, Inventare, Aufträge, Dateizustände und Audit-Protokolle. Ein separater Worker nutzt einen PostgreSQL-Advisory-Lock als Koordinator und einen begrenzten Thread-Pool. Es gibt keinen Redis-Dienst und derzeit keine allgemeine Lease-/SKIP-LOCKED-Architektur.
 
-Für das kleine Labor entfällt zunächst ein zusätzlicher Redis-Dienst.
-Eine PostgreSQL-basierte Queue verringert den RAM-Bedarf und erlaubt atomare
-Auftragsanlage zusammen mit Audit und Freigabe. Netzwerkaufrufe und Downloads
-laufen außerhalb von DB-Transaktionen. Verwaiste Leases werden kontrolliert
-zurückgewonnen; atomare temporäre Dateischreibvorgänge und idempotente Schritte
-verhindern, dass ein Retry unvollständige Dateien als fertig behandelt.
+Maximal zwei Konten und je vier Dateiübertragungen laufen gleichzeitig. Die Erfassung schreibt fortlaufend in die persistente Warteschlange; freie Downloadplätze werden nachbesetzt. Die Werte lassen sich innerhalb der Laborgrenzen reduzieren. Größere Serverprofile erfordern noch Änderungen an API-, Datenbank- und Poolgrenzen.
 
-## Trennung und Nachvollziehbarkeit
+## Anbieter und Anmeldung
 
-Technische Pfade verwenden unveränderliche Fall-, Konto- und Sicherungs-UUIDs.
-Anzeigenamen und Geschäftszahlen sind keine Pfadbestandteile. Jede API-Abfrage
-prüft Identität, Fallmitgliedschaft und Aktion serverseitig. Browser- oder
-Worker-übergreifende globale aktive Fälle sind ausgeschlossen. Ein Bearbeiter
-wird zusätzlich zur authentifizierten Identität je Sicherung festgehalten.
+- iCloud: gepinnter Rclone-Prozess je aktiver Kontositzung, verschlüsselte Konfiguration, privater authentifizierter Unix-Socket; Drive und Fotos einzeln oder gemeinsam.
+- Google/Microsoft: bestehender `WebProvider` über offizielle REST-Schnittstellen; Google-/Outlook-Kalender bleiben separate Datenkategorien. Noch keine Rclone-Dateiadapter für diese beiden Anbieter.
+- `oauth.py`: Authorization Code, PKCE S256, einmaliger zeitlich begrenzter State und Benutzer-/Fall-/Kontobindung. Tokens sind pro Konto verschlüsselt außerhalb der Datenbank abgelegt. Konkrete FCA-Sitzungsbindung und alternative Callback-Transporte gehören zur Bewertung von Stufe B.
+- Die vorhandene Webanmeldung setzt eine einmalige Administratorregistrierung voraus. Die aktuell nur per privater IP erreichbare FCA-Adresse genügt Googles normalem Web-Redirect nicht. Ein Desktop-/Loopback-Flow ist eine andere mögliche Variante und noch nicht integriert.
 
-Vor Providerzugriffen muss eine unveränderlich referenzierte Umfangsfreigabe
-vorliegen. Provideradapter dürfen nur den technisch erzwingbaren Teil anbieten.
-Kein Gesamtscan eines Kontos, wenn nur ein begrenzter Bereich freigegeben wurde.
-Providerfähigkeiten, Einschränkungen und fehlende Bereiche werden ausdrücklich
-erfasst; Übertragungsintegrität und Kontovollständigkeit bleiben getrennt.
+Keine Bestätigung von Kontoverfügbarkeit allein aus einer vorhandenen Implementierung ableiten. [Providerstatus und Grenzen](cloud-acquisition.md), [Stufe-A-Befunde](stufe-a-technik.md).
 
-Dateien werden gestreamt, in temporäre Dateien geschrieben, auf Größe und
-verfügbare Providerprüfsummen geprüft, atomar abgeschlossen und mit SHA-256
-versehen. Originalpfade bleiben Metadaten und dürfen weder `..`-Traversal noch
-Symlink-Zugriffe verursachen. Cloud-native Exporte werden als Konvertierungen
-dokumentiert. Ein erfolgreicher Hashlauf beweist keine Kontovollständigkeit.
+## Rechte, Ablage und Integrität
 
-## Identitätsmodelle
+Authentifizierte Benutzer und Fallrechte werden serverseitig geprüft; Bearbeiter und Auftraggeber werden im Lauf protokolliert. CSRF-/Origin-Schutz und HTTPS-Cookies schützen mutierende Webzugriffe. Benutzerverwaltung liegt getrennt vom Fallarbeitsbereich. Historische Audit-Fallreferenzen überleben eine ausdrücklich angeforderte administrative Falllöschung.
 
-| Modell | Vorteil | Grenze |
-|---|---|---|
-| A: geschützte Gerätesitzung + Kürzel | Geringste Bedienzeit | Gemeinsame Sicherheitsidentität; nur zusätzlich abgeschottet zulässig |
-| B: persönliche lokale Konten | Individuelle Rechte und Zuordnung | Benutzer- und Passwortpflege erforderlich |
-| C: zentraler Identitätsanbieter | Zentrale Sperren und Richtlinien | Verfügbarkeit und Behördenanbindung erforderlich |
+Fallpfade enthalten die sicher normalisierte Fallnummer und volle Fall-UUID. Kontenordner sind nummeriert, jeder Lauf besitzt eine eigene UUID. Frei gewählte Kontobezeichnungen gelangen nicht automatisch in Pfade. Die Cloud-Struktur wird mit sicheren, stabil nach Quell-ID ergänzten Dateinamen abgebildet; ursprüngliche Namen und Metadaten stehen im Manifest.
 
-Im Labor wird in Phase 1 zunächst ein lokaler Administrator mit sicherer
-Passwortableitung, serverseitiger Sitzung, CSRF-Schutz und sicherem Cookie
-eingerichtet. Keine Standardpasswörter. Authentifizierung wird über einen
-austauschbaren Identity-Provider von der fallbezogenen Autorisierung getrennt.
-OIDC ist ein möglicher späterer zentraler Einstieg; AD/LDAP benötigen eine
-bewusste Integrationsentscheidung. Vor dem produktiven Benutzerkonzept werden
-die Modelle dem Auftraggeber zur Entscheidung vorgestellt.
+Dateien werden temporär heruntergeladen, auf Größe und soweit implementiert auf Anbieterprüfsummen geprüft, lokal mit MD5 und SHA-256 erfasst und ohne Überschreiben atomar übernommen. Neue Prüfberichte enthalten beide lokalen Prüfsummen. Historische Dateien erhalten fehlende MD5-Werte nach erfolgreicher erneuter Prüfung bei Wiederaufnahme. Fertige Dateien bleiben erhalten; unvollständige Einzeldateien beginnen erneut bei Byte 0. Google-native Exporte sind abgeleitete Dateien.
 
-## Deployment und Geheimnisse
+Ein erfolgreicher Auftrag bezieht sich nur auf sein erfasstes Inventar. Nicht inventarisierte Bereiche, fehlende Rechte, nicht unterstützte Objekte und unverfügbare Quellhashes bleiben Einschränkungen. Die strukturierte Umfangsbilanz und der fehlende OneDrive-Quellhashabgleich sind offene Punkte; keine Gesamtkonto-Vollständigkeit zusichern.
 
-Docker Compose mit separatem API-/Worker-Container, PostgreSQL und TLS-Proxy.
-Nur der Proxy veröffentlicht HTTPS an einer privaten Adresse. Datenbank und
-API erhalten keine externen Ports. Docker-Firewallregeln sind gesondert zu
-prüfen, da veröffentlichte Ports übliche Host-Firewalls umgehen können.
-Keine Docker-Socket-Mounts, privilegierten Container oder Shellbefehle aus
-Benutzereingaben. Runtime- und Migrationsrollen werden getrennt.
+## Betrieb und Geheimnisse
 
-Tokens werden mit fallbezogenem Kontext authentifiziert verschlüsselt; der
-Hauptschlüssel liegt außerhalb von Datenbank, Backups und Git. Für einen Restore
-ist eine gesondert gesicherte Schlüsselkopie erforderlich. Keine Tokens in
-Prozessargumenten oder Logs. Bereinigung und erneute Authentifizierung werden
-auditiert. Das Entziehen der Worker-Zugangsdaten darf die bereits gesicherten
-Dateien und Prüfberichte nicht unzugänglich machen.
+Docker Compose trennt API, Worker und PostgreSQL. Die API ist nur an VM-Loopback gebunden; Nginx stellt HTTPS im erlaubten privaten Netz bereit. Rclone besitzt keinen öffentlichen Steuerport. Container laufen ohne Rootrechte, mit schreibgeschütztem System und begrenzten Ressourcen. Laufzustand und Sicherungsdatenträger sind getrennt eingebunden. Hauptschlüssel und Providergeheimnisse liegen außerhalb von Git und Datenbank; ihre gesonderte Sicherung ist für Wiederherstellung nötig.
 
-Updates verwenden geprüfte, festgeschriebene Images/Versionen, vorab gesicherte
-Datenbank und eine ausdrückliche Migrationsstrategie. Code-Rollback ersetzt
-keinen Datenbank-Restore. Im Labor werden zuerst kleine synthetische Aufträge
-und Neustarts geprüft. Behördliches Deployment bleibt gesondert freizugeben.
+Es existieren Labor-Bootstrap-, Datenbank-, HTTPS- und Validierungsskripte. Ein allgemeiner, nicht laborspezifischer Installations-/Updatepfad ist noch auszuarbeiten. Code-Rollback ersetzt keine Datenbankwiederherstellung. Stufe B umfasst nach Freigabe Rückwärtskompatibilität, Backup/Restore, Anbieterprüfungen und erst anschließend Bereitstellung. In Stufe A bleibt die VM unverändert.

@@ -1,0 +1,387 @@
+{
+  "synthetic_only": true,
+  "vm_access": "not used by this probe",
+  "rclone_version": "rclone v1.75.2",
+  "oauth": {
+    "flows": [
+      {
+        "provider": "drive",
+        "synthetic_exchange_passed": true,
+        "redirect_uri": "http://127.0.0.1:53682/",
+        "authorization_pkce_present": false,
+        "exchange_pkce_present": false,
+        "requested_scope": "https://www.googleapis.com/auth/drive.readonly"
+      },
+      {
+        "provider": "onedrive",
+        "synthetic_exchange_passed": true,
+        "redirect_uri": "http://localhost:53682/",
+        "authorization_pkce_present": false,
+        "exchange_pkce_present": false,
+        "requested_scope": "Files.Read offline_access"
+      }
+    ],
+    "wrong_state_rejected": true,
+    "fixed_port_conflict_observed": true,
+    "real_account_acceptance": false
+  },
+  "existing_fca": {
+    "fca_user_case_account_state_expiry_replay_checks_passed": true,
+    "encrypted_token_storage_passed": true,
+    "existing_provider_retry_after_seconds_parsed": 37,
+    "known_gap_403_accessDenied_retried": true,
+    "known_gap_onedrive_wrong_source_sha1_not_rejected": true
+  },
+  "transfers": {
+    "environment": "macOS ARM64 localhost HTTP, artificial 2ms per 64KiB, not FCA VM/cloud speed",
+    "fixture": {
+      "synthetic-0.bin": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "synthetic-1.bin": {
+        "size": 1024,
+        "sha256": "bff084a34dcfbeee62679cefa232363739ec9db94613464cd6d8d51d6168aee2"
+      },
+      "synthetic-2.bin": {
+        "size": 65536,
+        "sha256": "84e86b727a5b049e40e872012543abfc5d65d14fe1b3c046cbe89889f1cd2e98"
+      },
+      "synthetic-3.bin": {
+        "size": 1048576,
+        "sha256": "5758a4b84a15f3b89aaf3d0b901c5c5e108c178f63a7569ad899c037ef33664c"
+      },
+      "synthetic-4.bin": {
+        "size": 4194304,
+        "sha256": "b176c031f8a76f9cdc58da930a959641152cba1671406ad7e0818f79e9e79e09"
+      },
+      "synthetic-5.bin": {
+        "size": 8388608,
+        "sha256": "cfa2613c457d118922b92adaf323f7cbd0152dc27cec098ce1bc6aada0fae1fd"
+      },
+      "synthetic-6.bin": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "synthetic-7.bin": {
+        "size": 1024,
+        "sha256": "2892992029d457b4aabc0165695913ec1df865e4cf35a57567612cd9a9f60fbc"
+      },
+      "synthetic-8.bin": {
+        "size": 65536,
+        "sha256": "211574b505f35afc04289c6538967c989dd8a4e1d1ef83a855441212898e5c8f"
+      },
+      "synthetic-9.bin": {
+        "size": 1048576,
+        "sha256": "cc4b6b8e85ee0177edf5a150e0c7debe7838dd7904730892f748223c7b1bd6db"
+      },
+      "synthetic-10.bin": {
+        "size": 4194304,
+        "sha256": "5b68c19dc0b86eef4f1f1d3c4284891f259c093b9fa424c8039659d0d5333171"
+      },
+      "synthetic-11.bin": {
+        "size": 8388608,
+        "sha256": "8e82c958f6bf0807625890cf11e3c7ce475967438839b4cb1b46cbfa4e4af0a2"
+      },
+      "synthetic-12.bin": {
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "synthetic-13.bin": {
+        "size": 1024,
+        "sha256": "9a3a2be94b2b3cf906b302bcec180777b8420ac87b620ffe6720e477bbe6613d"
+      },
+      "synthetic-14.bin": {
+        "size": 65536,
+        "sha256": "1729fc25edc7e1fa876bff12c8778dfcd72ae9f12f92f8bcc2cdcb47488a7957"
+      },
+      "synthetic-15.bin": {
+        "size": 1048576,
+        "sha256": "e21042dabe64948a2e17315869f8f6eecadd6fbf9ee7a35341f40d2475d379e4"
+      },
+      "synthetic-16.bin": {
+        "size": 4194304,
+        "sha256": "e699ee8b10019b2f0085d93ad3c6e8389e3140a59511fa1265e287ac953f0d8c"
+      },
+      "synthetic-17.bin": {
+        "size": 8388608,
+        "sha256": "12f82ed3f66baf96e4330c71dcc53f16a2f1d8b732a14ba1e88a95c6330e4182"
+      }
+    },
+    "runs": [
+      {
+        "accounts": 1,
+        "transfers_per_account": 1,
+        "repeat": 0,
+        "faults_injected": false,
+        "seconds": 2.063,
+        "bytes": 41094144,
+        "mib_per_second": 19.0,
+        "child_cpu_seconds": 0.279,
+        "sampled_transfer_rss_bytes": 57245696,
+        "max_http_gets": 2,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 1,
+        "transfers_per_account": 1,
+        "repeat": 1,
+        "faults_injected": false,
+        "seconds": 2.059,
+        "bytes": 41094144,
+        "mib_per_second": 19.03,
+        "child_cpu_seconds": 0.269,
+        "sampled_transfer_rss_bytes": 58294272,
+        "max_http_gets": 3,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 1,
+        "transfers_per_account": 2,
+        "repeat": 0,
+        "faults_injected": false,
+        "seconds": 1.245,
+        "bytes": 41094144,
+        "mib_per_second": 31.48,
+        "child_cpu_seconds": 0.215,
+        "sampled_transfer_rss_bytes": 58376192,
+        "max_http_gets": 4,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 1,
+        "transfers_per_account": 2,
+        "repeat": 1,
+        "faults_injected": false,
+        "seconds": 1.264,
+        "bytes": 41094144,
+        "mib_per_second": 31.02,
+        "child_cpu_seconds": 0.221,
+        "sampled_transfer_rss_bytes": 58703872,
+        "max_http_gets": 3,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 1,
+        "transfers_per_account": 4,
+        "repeat": 0,
+        "faults_injected": false,
+        "seconds": 0.793,
+        "bytes": 41094144,
+        "mib_per_second": 49.41,
+        "child_cpu_seconds": 0.154,
+        "sampled_transfer_rss_bytes": 58245120,
+        "max_http_gets": 6,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 1,
+        "transfers_per_account": 4,
+        "repeat": 1,
+        "faults_injected": false,
+        "seconds": 0.793,
+        "bytes": 41094144,
+        "mib_per_second": 49.45,
+        "child_cpu_seconds": 0.151,
+        "sampled_transfer_rss_bytes": 59015168,
+        "max_http_gets": 6,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 1,
+        "transfers_per_account": 8,
+        "repeat": 0,
+        "faults_injected": false,
+        "seconds": 0.451,
+        "bytes": 41094144,
+        "mib_per_second": 86.95,
+        "child_cpu_seconds": 0.117,
+        "sampled_transfer_rss_bytes": 58294272,
+        "max_http_gets": 12,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 1,
+        "transfers_per_account": 8,
+        "repeat": 1,
+        "faults_injected": false,
+        "seconds": 0.446,
+        "bytes": 41094144,
+        "mib_per_second": 87.94,
+        "child_cpu_seconds": 0.12,
+        "sampled_transfer_rss_bytes": 58359808,
+        "max_http_gets": 12,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 2,
+        "transfers_per_account": 1,
+        "repeat": 0,
+        "faults_injected": false,
+        "seconds": 2.07,
+        "bytes": 82188288,
+        "mib_per_second": 37.86,
+        "child_cpu_seconds": 0.457,
+        "sampled_transfer_rss_bytes": 115130368,
+        "max_http_gets": 4,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 2,
+        "transfers_per_account": 1,
+        "repeat": 1,
+        "faults_injected": false,
+        "seconds": 2.09,
+        "bytes": 82188288,
+        "mib_per_second": 37.49,
+        "child_cpu_seconds": 0.454,
+        "sampled_transfer_rss_bytes": 115048448,
+        "max_http_gets": 5,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 2,
+        "transfers_per_account": 2,
+        "repeat": 0,
+        "faults_injected": false,
+        "seconds": 1.114,
+        "bytes": 82188288,
+        "mib_per_second": 70.36,
+        "child_cpu_seconds": 0.315,
+        "sampled_transfer_rss_bytes": 116899840,
+        "max_http_gets": 7,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 2,
+        "transfers_per_account": 2,
+        "repeat": 1,
+        "faults_injected": false,
+        "seconds": 0.983,
+        "bytes": 82188288,
+        "mib_per_second": 79.72,
+        "child_cpu_seconds": 0.231,
+        "sampled_transfer_rss_bytes": 116523008,
+        "max_http_gets": 8,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 2,
+        "transfers_per_account": 4,
+        "repeat": 0,
+        "faults_injected": false,
+        "seconds": 0.656,
+        "bytes": 82188288,
+        "mib_per_second": 119.57,
+        "child_cpu_seconds": 0.22,
+        "sampled_transfer_rss_bytes": 115802112,
+        "max_http_gets": 12,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 2,
+        "transfers_per_account": 4,
+        "repeat": 1,
+        "faults_injected": false,
+        "seconds": 0.869,
+        "bytes": 82188288,
+        "mib_per_second": 90.2,
+        "child_cpu_seconds": 0.247,
+        "sampled_transfer_rss_bytes": 115572736,
+        "max_http_gets": 12,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 2,
+        "transfers_per_account": 8,
+        "repeat": 0,
+        "faults_injected": false,
+        "seconds": 0.54,
+        "bytes": 82188288,
+        "mib_per_second": 145.04,
+        "child_cpu_seconds": 0.218,
+        "sampled_transfer_rss_bytes": 117555200,
+        "max_http_gets": 19,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 2,
+        "transfers_per_account": 8,
+        "repeat": 1,
+        "faults_injected": false,
+        "seconds": 0.44,
+        "bytes": 82188288,
+        "mib_per_second": 178.11,
+        "child_cpu_seconds": 0.198,
+        "sampled_transfer_rss_bytes": 117129216,
+        "max_http_gets": 19,
+        "responses_429": 0,
+        "disconnects": 0,
+        "all_sha256_verified": true
+      },
+      {
+        "accounts": 1,
+        "transfers_per_account": 4,
+        "repeat": 99,
+        "faults_injected": true,
+        "seconds": 0.86,
+        "bytes": 41094144,
+        "mib_per_second": 45.57,
+        "child_cpu_seconds": 0.127,
+        "sampled_transfer_rss_bytes": 59457536,
+        "max_http_gets": 7,
+        "responses_429": 1,
+        "disconnects": 1,
+        "all_sha256_verified": true
+      }
+    ],
+    "restart": {
+      "process_interrupted": true,
+      "final_sha256_verified": true,
+      "already_completed_files_preserved": 7,
+      "leftover_temporary_files": 0,
+      "scope": "rclone local HTTP fixture, not FCA PostgreSQL restart test"
+    }
+  },
+  "provenance": {
+    "recorded_at_utc": "2026-10-21T21:14:37.959798+00:00",
+    "production_base_commit": "e370290bf0bbd50507a6e9e320ff0af0552e4ded",
+    "probe_sha256": "a1e6fc5bec566ae9f30bedada3b9a1e889f949cdeb07da276e2e5a74fdbffebe",
+    "runtime": {
+      "version": "v1.75.2",
+      "os_arch": "macOS arm64",
+      "archive_sha256": "610ab7d48615135dfc60b763858b11a426a0d3d1160c1bb76fb0ae6011b02edd",
+      "checksum_source": "https://downloads.rclone.org/v1.75.2/SHA256SUMS"
+    }
+  }
+}
