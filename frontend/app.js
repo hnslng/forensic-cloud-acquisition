@@ -1,39 +1,86 @@
 "use strict";
-let currentUser = null,
-  caseList = [],
-  selectedCase = null,
-  currentView = "overview",
-  caseGeneration = 0;
 const $ = (id) => document.getElementById(id);
-const labels = {
+const providers = { apple: "iCloud", google: "Google", microsoft: "OneDrive" };
+const statuses = {
   active: "Aktiv",
   completed: "Abgeschlossen",
   archived: "Archiviert",
 };
-const events = {
+const eventNames = {
   case_created: "Fall angelegt",
   case_updated: "Fall aktualisiert",
   case_member_granted: "Fallzugriff erteilt",
   case_member_revoked: "Fallzugriff entzogen",
+  cloud_account_added: "Cloud-Konto hinzugefügt",
+  cloud_account_renamed: "Cloud-Bezeichnung geändert",
 };
-const csrf = () =>
-  decodeURIComponent(
-    document.cookie
-      .split("; ")
-      .find((x) => x.startsWith("__Host-fca_csrf="))
-      ?.split("=")[1] || "",
-  );
+let currentUser = null,
+  activeCase = null,
+  caseList = [],
+  cloudList = [],
+  authGeneration = 0,
+  caseGeneration = 0,
+  caseSubmitting = false;
+let dialogStack = [],
+  loginContinuation = null,
+  cloudContext = null;
+function node(tag, text, className) {
+  const el = document.createElement(tag);
+  if (text !== undefined) el.textContent = text;
+  if (className) el.className = className;
+  return el;
+}
+const formData = (form) => Object.fromEntries(new FormData(form));
+function clearMessages() {
+  $("message").hidden = true;
+  document.querySelectorAll(".dialog-message").forEach((el) => {
+    el.hidden = true;
+    el.textContent = "";
+  });
+}
 function message(text) {
-  $("message").textContent = text;
-  $("message").hidden = false;
+  const dialog = [...dialogStack]
+    .reverse()
+    .map($)
+    .find((el) => el.open);
+  const target = dialog?.querySelector(".dialog-message") || $("message");
+  target.textContent = text;
+  target.hidden = false;
+}
+function syncBackdrops() {
+  dialogStack = dialogStack.filter((id) => $(id).open);
+  for (const id of dialogStack)
+    $(id).classList.toggle("nested-open", id !== dialogStack.at(-1));
+}
+function openDialog(id) {
+  clearMessages();
+  const dialog = $(id);
+  if (!dialog.open) {
+    dialog.showModal();
+    dialogStack.push(id);
+  }
+  syncBackdrops();
+}
+function closeDialog(id) {
+  if ($(id).open) $(id).close();
+  syncBackdrops();
+}
+function closeDialogs() {
+  [...dialogStack].reverse().forEach(closeDialog);
 }
 async function api(path, options = {}) {
+  const csrf = decodeURIComponent(
+    document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("__Host-fca_csrf="))
+      ?.split("=")[1] || "",
+  );
   const response = await fetch("/api" + path, {
     credentials: "same-origin",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "X-CSRF-Token": csrf(),
+      "X-CSRF-Token": csrf,
       ...options.headers,
     },
   });
@@ -41,344 +88,615 @@ async function api(path, options = {}) {
     throw new Error("Server derzeit nicht verfügbar. Bitte erneut versuchen.");
   const result = await response.json();
   if (!response.ok) {
-    if (response.status === 401 && currentUser) signedOut();
+    if (response.status === 401 && currentUser) lockApplication();
     throw new Error(result.detail || "Anfrage fehlgeschlagen.");
   }
   return result;
 }
-const data = (form) => Object.fromEntries(new FormData(form));
-function node(tag, text, className) {
-  const el = document.createElement(tag);
-  if (text !== undefined) el.textContent = text;
-  if (className) el.className = className;
-  return el;
+function renderWorkspace() {
+  const ready = Boolean(activeCase && currentUser);
+  $("start-overlay").hidden = ready;
+  $("workspace-frame").inert = !ready;
+  $("active-case-display").classList.toggle("locked", !ready);
+  $("active-case-number").textContent = ready
+    ? activeCase.business_number
+    : "KEIN FALL";
+  $("active-operator").textContent = ready
+    ? "| " + activeCase.operator_initials
+    : "";
+  $("system-state").textContent = ready ? "FALL AKTIV" : "KEIN FALL AKTIV";
+  $("dock-case-name").textContent = ready
+    ? activeCase.name || "OHNE FALLBEZEICHNUNG"
+    : "KEIN FALL GESTARTET";
+  $("dock-case-note").textContent = ready
+    ? statuses[activeCase.status] + " · " + activeCase.business_number
+    : "Geschäftszahl und Bearbeiterkürzel eingeben, dann „Fall starten“.";
+  $("open-case-button").textContent = ready
+    ? "Fall wechseln / öffnen"
+    : "+ Fall anlegen / öffnen";
+  $("leave-case-button").hidden = !ready;
+  $("add-cloud-button").disabled = !ready || !activeCase.can_edit;
+  $("audit-panel").hidden = !ready;
+  renderClouds();
 }
-function signedOut() {
+function clearCase() {
   caseGeneration++;
-  document
-    .querySelectorAll("input[type=password]")
-    .forEach((i) => (i.value = ""));
+  activeCase = null;
+  cloudList = [];
+  cloudContext = null;
+  $("cloud-list").replaceChildren();
+  $("audit-list").replaceChildren();
+  $("member-list").replaceChildren();
+  $("member-user").replaceChildren();
+  $("audit-panel").open = false;
+  $("edit-case-form").reset();
+  ["edit-case-context", "rights-context", "cloud-case-context"].forEach(
+    (id) => ($(id).textContent = ""),
+  );
+  renderWorkspace();
+  updateSettingsIdentity();
+}
+function lockApplication() {
+  authGeneration++;
   currentUser = null;
   caseList = [];
-  selectedCase = null;
-  $("case-rows").replaceChildren();
-  $("audit-list").replaceChildren();
+  closeDialogs();
+  clearMessages();
+  clearCase();
+  $("case-list").replaceChildren();
+  $("case-search").value = "";
+  $("login-form").reset();
   $("user-rows").replaceChildren();
-  $("case-detail").hidden = true;
-  $("workspace").hidden = true;
-  $("login-panel").hidden = false;
-  $("identity-label").textContent = "";
-  document.querySelectorAll("dialog[open]").forEach((d) => d.close());
+  $("case-form").reset();
+  $("cloud-form").reset();
+  $("user-form").reset();
+  $("password-form").reset();
+  $("technical-status").textContent = "Zur Statusanzeige anmelden.";
+  document
+    .querySelectorAll("input[type=password]")
+    .forEach((input) => (input.value = ""));
+  updateCaseReadiness();
+}
+function updateSettingsIdentity() {
+  const logged = Boolean(currentUser),
+    admin = currentUser?.role === "admin";
+  $("settings-identity").textContent = logged
+    ? currentUser.username +
+      " / " +
+      currentUser.initials +
+      " · " +
+      (admin ? "Administrator" : "Bearbeiter")
+    : "NICHT ANGEMELDET";
+  $("settings-login").hidden = logged;
+  $("logout-button").hidden = !logged;
+  $("password-button").hidden = !logged;
+  $("users-tab").hidden = !admin;
+  $("rights-tab").hidden = !admin;
+  $("case-edit-section").hidden = !activeCase;
+  $("case-session-info").textContent = logged
+    ? "Angemeldet als " + currentUser.username
+    : "Geschützte Arbeitssitzung erforderlich.";
+  $("case-login-button").hidden = logged;
+  $("archive-count").textContent = logged
+    ? caseList.length + " FALLAKTEN"
+    : "ANMELDUNG ERFORDERLICH";
+  if (activeCase) {
+    const form = $("edit-case-form");
+    form.elements.version.value = activeCase.version;
+    form.elements.name.value = activeCase.name;
+    form.elements.status.value = activeCase.status;
+    form.elements.operator_initials.value = currentUser?.initials || "";
+    for (const el of form.elements) el.disabled = !activeCase.can_edit;
+    $("edit-case-context").textContent = activeCase.business_number;
+  }
+}
+function updateCaseReadiness() {
+  const ready = Boolean(currentUser && $("case-form").checkValidity());
+  $("case-start").disabled = !ready || caseSubmitting;
+  $("case-start-message").textContent = caseSubmitting
+    ? "FALL WIRD GESTARTET …"
+    : !currentUser
+      ? "BITTE ARBEITSSITZUNG ANMELDEN"
+      : ready
+        ? "BEREIT — FALL AUSDRÜCKLICH STARTEN"
+        : "GESCHÄFTSZAHL UND BEARBEITERKÜRZEL EINGEBEN";
+  $("case-start-message").classList.toggle("ready", ready && !caseSubmitting);
+}
+async function refreshIndex() {
+  const generation = authGeneration;
+  const rows = await api("/cases");
+  if (generation !== authGeneration || !currentUser) return;
+  caseList = rows;
+  updateSettingsIdentity();
+  renderArchive();
+}
+async function refreshTechnical() {
+  const generation = authGeneration;
+  const status = await api("/status");
+  if (generation !== authGeneration || !currentUser) return;
+  $("technical-status").textContent =
+    (status.evidence_mounted
+      ? "TESTDATENDISK EINGEHÄNGT"
+      : "TESTDATENDISK NICHT VERFÜGBAR") +
+    (status.free_bytes === null
+      ? ""
+      : " · " + (status.free_bytes / 1024 ** 3).toFixed(1) + " GiB frei");
 }
 async function signedIn(user) {
   currentUser = user;
-  $("login-panel").hidden = true;
-  $("workspace").hidden = false;
-  $("identity-label").textContent = user.username + " / " + user.initials;
-  $("users-nav").hidden = user.role !== "admin";
-  $("case-form").elements.operator_initials.value = user.initials;
-  await refresh();
-  showView("overview");
+  if (!$("case-form").elements.operator_initials.value)
+    $("case-form").elements.operator_initials.value = user.initials;
+  updateSettingsIdentity();
+  updateCaseReadiness();
+  await refreshIndex();
 }
-function showView(view) {
-  caseGeneration++;
-  currentView = view;
-  document
-    .querySelectorAll("[data-view]")
-    .forEach((b) => b.classList.toggle("selected", b.dataset.view === view));
-  $("page-title").textContent = {
-    overview: "Übersicht",
-    cases: "Fälle",
-    users: "Benutzer",
-  }[view];
-  $("overview").hidden = view !== "overview";
-  $("cases-panel").hidden = view === "users";
-  $("users-panel").hidden = view !== "users";
-  $("case-detail").hidden = true;
-  selectedCase = null;
-  $("new-case-button").hidden = view === "users";
-  if (view === "users") loadUsers().catch((e) => message(e.message));
+function openCaseForm() {
+  $("case-form").reset();
+  if (currentUser)
+    $("case-form").elements.operator_initials.value = currentUser.initials;
+  updateSettingsIdentity();
+  updateCaseReadiness();
+  openDialog("case-dialog");
 }
-async function refresh() {
-  caseList = await api("/cases");
-  renderCases();
-  const status = await api("/status");
-  $("disk-free").textContent =
-    status.free_bytes === null
-      ? "–"
-      : (status.free_bytes / 1024 ** 3).toFixed(1) + " GiB";
-  $("disk-state").textContent = status.evidence_mounted
-    ? "Separate Testdatendisk"
-    : "DATENDISK NICHT VERFÜGBAR";
-  $("stage-note").textContent = status.note;
-  $("connection").textContent = "ANGEMELDET / HTTPS";
+function openLogin(continuation = null) {
+  loginContinuation = continuation;
+  openDialog("login-dialog");
 }
-function renderCases() {
+async function openArchive() {
+  if (!currentUser) {
+    openLogin(openArchive);
+    return;
+  }
+  await refreshIndex();
+  if (!currentUser) return;
+  openDialog("archive-dialog");
+}
+function renderArchive() {
   const query = $("case-search").value.toLocaleLowerCase();
-  $("case-count").textContent = String(caseList.length);
-  $("active-count").textContent = String(
-    caseList.filter((c) => c.status === "active").length,
-  );
-  $("case-rows").replaceChildren();
-  const shown = caseList.filter((c) =>
+  $("case-list").replaceChildren();
+  const rows = caseList.filter((c) =>
     (c.business_number + " " + c.name).toLocaleLowerCase().includes(query),
   );
-  $("case-empty").hidden = shown.length > 0;
-  $("case-empty").firstElementChild.textContent = query
-    ? "Keine passenden Fälle"
-    : "Noch keine Fälle";
-  for (const c of shown) {
-    const tr = node("tr"),
-      title = node("td");
-    title.append(
-      node("strong", c.business_number),
-      node("small", c.name || "Ohne Fallnamen"),
+  if (!rows.length)
+    $("case-list").append(
+      node(
+        "p",
+        query ? "KEINE PASSENDEN FÄLLE" : "NOCH KEINE FÄLLE VORHANDEN",
+        "case-profile-hint",
+      ),
     );
-    const status = node("td");
-    status.append(node("span", labels[c.status], "tag " + c.status));
-    const action = node("td"),
+  for (const c of rows) {
+    const row = node("div", undefined, "case-list-row"),
+      copy = node("div", undefined, "case-list-copy"),
       button = node("button", "Fall öffnen →");
+    copy.append(
+      node("strong", c.business_number),
+      node(
+        "span",
+        (c.name || "Ohne Fallbezeichnung") + " · " + statuses[c.status],
+      ),
+    );
+    button.type = "button";
     button.addEventListener("click", () =>
-      openCase(c.id).catch((e) => message(e.message)),
+      activateCase(c.id).catch((e) => message(e.message)),
     );
-    action.append(button);
-    tr.append(
-      title,
-      status,
-      node("td", c.operator_initials),
-      node("td", new Date(c.created_at).toLocaleDateString("de-AT")),
-      action,
-    );
-    $("case-rows").append(tr);
+    row.append(copy, button);
+    $("case-list").append(row);
   }
 }
-async function openCase(id) {
-  const generation = ++caseGeneration;
-  $("case-detail").hidden = true;
-  selectedCase = null;
-  const [c, audit, users, members] = await Promise.all([
-    api("/cases/" + encodeURIComponent(id)),
-    api("/cases/" + encodeURIComponent(id) + "/audit"),
-    currentUser.role === "admin" ? api("/admin/users") : Promise.resolve([]),
-    currentUser.role === "admin"
-      ? api("/cases/" + encodeURIComponent(id) + "/members")
-      : Promise.resolve([]),
+async function activateCase(id) {
+  const generation = ++caseGeneration,
+    auth = authGeneration;
+  const [c, accounts, audit] = await Promise.all([
+    api("/cases/" + id),
+    api("/cases/" + id + "/cloud-accounts"),
+    api("/cases/" + id + "/audit"),
   ]);
-  if (generation !== caseGeneration || !currentUser) return;
-  selectedCase = c.id;
-  $("case-detail").hidden = false;
-  $("detail-title").textContent = "FALL / " + c.business_number;
-  $("detail-id").textContent = "Interne ID: " + c.id;
-  const form = $("edit-case-form");
-  form.elements.version.value = c.version;
-  for (const el of form.elements) el.disabled = !c.can_edit;
-  form.elements.name.value = c.name;
-  form.elements.status.value = c.status;
-  form.elements.operator_initials.value = currentUser.initials;
+  if (generation !== caseGeneration || auth !== authGeneration || !currentUser)
+    return;
+  activeCase = c;
+  cloudList = accounts;
+  closeDialogs();
+  clearMessages();
+  renderWorkspace();
+  renderAudit(audit);
+  updateSettingsIdentity();
+  $("add-cloud-button").focus();
+}
+function renderAudit(rows) {
   $("audit-list").replaceChildren();
-  for (const a of audit) {
-    const row = node("div", undefined, "audit");
+  for (const a of rows) {
+    const row = node("div", undefined, "audit-row");
     row.append(
       node("time", new Date(a.occurred_at).toLocaleString("de-AT")),
       node(
         "b",
-        (events[a.event_type] || a.event_type) + " / " + (a.actor || "System"),
+        (eventNames[a.event_type] || a.event_type) +
+          " / " +
+          (a.actor || "System"),
       ),
       node("span", a.operator_initials || "–"),
     );
     $("audit-list").append(row);
   }
-  $("membership-panel").hidden = currentUser.role !== "admin";
-  $("member-user").replaceChildren();
-  for (const u of users.filter((u) => u.active)) {
-    const opt = node("option", u.username + " / " + u.initials);
-    opt.value = u.id;
-    $("member-user").append(opt);
-  }
-  $("member-list").replaceChildren();
-  for (const member of members) {
-    const row = node(
-      "p",
-      member.username +
-        " / " +
-        (member.access === "editor" ? "Bearbeiten" : "Lesen") +
-        " ",
+}
+async function refreshActive(id) {
+  if (activeCase?.id !== id) return;
+  const generation = ++caseGeneration,
+    auth = authGeneration;
+  const [c, accounts, audit] = await Promise.all([
+    api("/cases/" + id),
+    api("/cases/" + id + "/cloud-accounts"),
+    api("/cases/" + id + "/audit"),
+  ]);
+  if (
+    generation !== caseGeneration ||
+    auth !== authGeneration ||
+    !currentUser ||
+    activeCase?.id !== id
+  )
+    return;
+  activeCase = c;
+  cloudList = accounts;
+  renderWorkspace();
+  renderAudit(audit);
+  updateSettingsIdentity();
+}
+function renderClouds() {
+  $("cloud-list").replaceChildren();
+  $("cloud-count").textContent = cloudList.length + " KONTEN";
+  $("cloud-empty").hidden = cloudList.length > 0;
+  $("cloud-empty-title").textContent = activeCase
+    ? "NOCH KEINE CLOUD-KONTEN"
+    : "KEIN FALL AKTIV";
+  $("cloud-empty-copy").textContent = activeCase
+    ? "Über „+ Cloud hinzufügen“ ein Konto diesem Fall zuordnen."
+    : "Zuerst einen Fall starten. Cloud-Konten werden ausschließlich diesem Fall zugeordnet.";
+  for (const account of cloudList) {
+    const card = node("article", undefined, "cloud-card");
+    card.dataset.accountId = account.id;
+    card.setAttribute("aria-label", account.label);
+    const top = node("div", undefined, "cloud-card-top");
+    top.append(
+      node("b", providers[account.provider]),
+      node("span", "VORBEREITET"),
     );
-    const button = node("button", "Zugriff entziehen");
-    button.addEventListener("click", async () => {
-      try {
-        await api("/cases/" + c.id + "/members/" + member.id, {
-          method: "DELETE",
-        });
-        if (selectedCase === c.id) await openCase(c.id);
-        message("Fallzugriff entzogen: " + c.business_number);
-      } catch (e) {
-        message(e.message);
-      }
-    });
-    row.append(button);
-    $("member-list").append(row);
+    const actions = node("div", undefined, "cloud-actions");
+    for (const text of ["Authentifizieren", "Sicherung starten"]) {
+      const button = node("button", text);
+      button.type = "button";
+      button.disabled = true;
+      button.title = "Noch nicht implementiert";
+      actions.append(button);
+    }
+    const rename = node("button", "Bezeichnung bearbeiten", "cloud-rename");
+    rename.type = "button";
+    rename.disabled = !activeCase?.can_edit;
+    rename.addEventListener("click", () => openCloud(account));
+    card.append(
+      top,
+      node("h3", account.label, "cloud-name"),
+      node("p", "ANBINDUNG UND SICHERUNG NOCH NICHT VERFÜGBAR", "cloud-state"),
+      actions,
+      rename,
+    );
+    $("cloud-list").append(card);
   }
-  $("case-detail").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function openCloud(account = null) {
+  if (!activeCase?.can_edit) return;
+  cloudContext = {
+    caseId: activeCase.id,
+    businessNumber: activeCase.business_number,
+    account,
+  };
+  const form = $("cloud-form");
+  form.reset();
+  $("provider-choices").disabled = Boolean(account);
+  if (account) {
+    form.elements.provider.value = account.provider;
+    form.elements.label.value = account.label;
+  }
+  $("cloud-title").textContent = account
+    ? "CLOUD-BEZEICHNUNG BEARBEITEN"
+    : "CLOUD HINZUFÜGEN";
+  $("cloud-submit").textContent = account
+    ? "Bezeichnung speichern"
+    : "Cloud hinzufügen";
+  $("cloud-case-context").textContent = "FALL / " + activeCase.business_number;
+  openDialog("cloud-dialog");
+  if (account) form.elements.label.focus();
+}
+async function selectPane(pane) {
+  if (["users", "rights"].includes(pane) && currentUser?.role !== "admin")
+    return;
+  document
+    .querySelectorAll("[data-pane]")
+    .forEach((button) =>
+      button.setAttribute("aria-pressed", String(button.dataset.pane === pane)),
+    );
+  document
+    .querySelectorAll("[data-settings-pane]")
+    .forEach(
+      (section) => (section.hidden = section.dataset.settingsPane !== pane),
+    );
+  if (pane === "users") await loadUsers();
+  if (pane === "rights") await loadRights();
+  if (pane === "technical" && currentUser) await refreshTechnical();
+}
+function openSettings() {
+  updateSettingsIdentity();
+  openDialog("settings-dialog");
+  selectPane("session").catch((e) => message(e.message));
 }
 async function loadUsers() {
+  const auth = authGeneration;
   const users = await api("/admin/users");
+  if (auth !== authGeneration || currentUser?.role !== "admin") return;
   $("user-rows").replaceChildren();
   for (const u of users) {
-    const tr = node("tr"),
+    const row = node("tr"),
       action = node("td");
     if (u.id !== currentUser.id) {
       const button = node("button", u.active ? "Deaktivieren" : "Aktivieren");
       button.addEventListener("click", async () => {
+        button.disabled = true;
         try {
           await api("/admin/users/" + u.id, {
             method: "PATCH",
             body: JSON.stringify({ active: !u.active }),
           });
           await loadUsers();
-          message("Benutzerstatus aktualisiert.");
         } catch (e) {
           message(e.message);
+          button.disabled = false;
         }
       });
       action.append(button);
     }
-    tr.append(
+    row.append(
       node("td", u.username),
       node("td", u.initials),
       node("td", u.role === "admin" ? "Administrator" : "Bearbeiter"),
       node("td", u.active ? "Aktiv" : "Deaktiviert"),
       action,
     );
-    $("user-rows").append(tr);
+    $("user-rows").append(row);
+  }
+}
+async function loadRights() {
+  const c = activeCase,
+    auth = authGeneration;
+  $("membership-panel").hidden = !c;
+  $("rights-context").textContent = c
+    ? "FALL / " + c.business_number
+    : "Zuerst einen Fall öffnen.";
+  $("member-list").replaceChildren();
+  $("member-user").replaceChildren();
+  if (!c) return;
+  const [users, members] = await Promise.all([
+    api("/admin/users"),
+    api("/cases/" + c.id + "/members"),
+  ]);
+  if (
+    auth !== authGeneration ||
+    activeCase?.id !== c.id ||
+    currentUser?.role !== "admin"
+  )
+    return;
+  for (const u of users.filter((u) => u.active)) {
+    const opt = node("option", u.username + " / " + u.initials);
+    opt.value = u.id;
+    $("member-user").append(opt);
+  }
+  for (const m of members) {
+    const row = node(
+        "p",
+        m.username +
+          " / " +
+          (m.access === "editor" ? "Bearbeiten" : "Lesen") +
+          " ",
+      ),
+      button = node("button", "Zugriff entziehen");
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        await api("/cases/" + c.id + "/members/" + m.id, { method: "DELETE" });
+        if (activeCase?.id === c.id) {
+          await loadRights();
+          await refreshActive(c.id);
+        }
+      } catch (e) {
+        message(e.message);
+        button.disabled = false;
+      }
+    });
+    row.append(button);
+    $("member-list").append(row);
   }
 }
 function formAction(id, action) {
   $(id).addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget,
-      button =
-        form.querySelector('button[type="submit"],button.primary') ||
-        form.querySelector(":scope > button");
+      button = form.querySelector('button[type="submit"]');
+    if (button?.disabled) return;
     if (button) button.disabled = true;
-    $("message").hidden = true;
+    clearMessages();
     try {
       await action(form);
-    } catch (error) {
-      message(error.message);
+    } catch (e) {
+      message(e.message);
     } finally {
       if (button) button.disabled = false;
+      if (id === "case-form") updateCaseReadiness();
     }
   });
 }
-formAction("login-form", async (f) => {
-  const body = data(f);
+formAction("login-form", async (form) => {
+  const generation = ++authGeneration;
   try {
-    await signedIn(
-      await api("/auth/login", { method: "POST", body: JSON.stringify(body) }),
-    );
+    const user = await api("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(formData(form)),
+    });
+    if (generation !== authGeneration) return;
+    const continuation = loginContinuation;
+    await signedIn(user);
+    closeDialog("login-dialog");
+    if (continuation) await continuation();
   } finally {
-    f.elements.password.value = "";
+    form.elements.password.value = "";
   }
 });
-formAction("case-form", async (f) => {
-  const c = await api("/cases", {
-    method: "POST",
-    body: JSON.stringify(data(f)),
-  });
-  $("case-dialog").close();
-  f.reset();
-  f.elements.operator_initials.value = currentUser.initials;
-  await refresh();
-  showView("cases");
-  await openCase(c.id);
-  message("Fall angelegt.");
+formAction("case-form", async (form) => {
+  caseSubmitting = true;
+  updateCaseReadiness();
+  const auth = authGeneration;
+  try {
+    const c = await api("/cases", {
+      method: "POST",
+      body: JSON.stringify(formData(form)),
+    });
+    if (auth !== authGeneration || !currentUser) return;
+    closeDialog("case-dialog");
+    await refreshIndex();
+    await activateCase(c.id);
+  } finally {
+    caseSubmitting = false;
+    updateCaseReadiness();
+  }
 });
-formAction("edit-case-form", async (f) => {
-  await api("/cases/" + selectedCase, {
+formAction("cloud-form", async (form) => {
+  const context = cloudContext,
+    auth = authGeneration;
+  if (!context || !currentUser) return;
+  const label = form.elements.label.value;
+  const path =
+    "/cases/" +
+    context.caseId +
+    "/cloud-accounts" +
+    (context.account ? "/" + context.account.id : "");
+  const body = context.account
+    ? { label, version: context.account.version }
+    : { label, provider: form.elements.provider.value };
+  await api(path, {
+    method: context.account ? "PATCH" : "POST",
+    body: JSON.stringify(body),
+  });
+  if (auth !== authGeneration) return;
+  closeDialog("cloud-dialog");
+  await refreshActive(context.caseId);
+});
+formAction("edit-case-form", async (form) => {
+  const id = activeCase?.id;
+  if (!id) return;
+  await api("/cases/" + id, {
     method: "PATCH",
     body: JSON.stringify({
-      ...data(f),
-      version: Number(f.elements.version.value),
+      ...formData(form),
+      version: Number(form.elements.version.value),
     }),
   });
-  await refresh();
-  await openCase(selectedCase);
-  message("Fall aktualisiert.");
+  await refreshIndex();
+  await refreshActive(id);
 });
-formAction("member-form", async (f) => {
-  await api("/cases/" + selectedCase + "/members", {
+formAction("member-form", async (form) => {
+  const id = activeCase?.id;
+  if (!id) return;
+  await api("/cases/" + id + "/members", {
     method: "PUT",
-    body: JSON.stringify(data(f)),
+    body: JSON.stringify(formData(form)),
   });
-  await openCase(selectedCase);
-  message("Fallzugriff gespeichert.");
+  if (activeCase?.id === id) {
+    await loadRights();
+    await refreshActive(id);
+  }
 });
-formAction("user-form", async (f) => {
+formAction("user-form", async (form) => {
   try {
     await api("/admin/users", {
       method: "POST",
-      body: JSON.stringify(data(f)),
+      body: JSON.stringify(formData(form)),
     });
-    $("user-dialog").close();
-    f.reset();
+    closeDialog("user-dialog");
+    form.reset();
     await loadUsers();
-    message("Benutzer angelegt.");
   } finally {
-    f.elements.password.value = "";
+    form.elements.password.value = "";
   }
 });
-formAction("password-form", async (f) => {
+formAction("password-form", async (form) => {
   try {
     await api("/auth/password", {
       method: "POST",
-      body: JSON.stringify(data(f)),
+      body: JSON.stringify(formData(form)),
     });
-    signedOut();
+    lockApplication();
     message("Passwort geändert. Bitte erneut anmelden.");
   } finally {
-    f.reset();
+    form.reset();
   }
 });
+$("start-open-case").addEventListener("click", openCaseForm);
+$("open-case-button").addEventListener("click", openCaseForm);
+$("open-archive").addEventListener("click", () =>
+  openArchive().catch((e) => message(e.message)),
+);
+$("case-login-button").addEventListener("click", () => openLogin());
+$("settings-login").addEventListener("click", () => openLogin());
+$("start-settings").addEventListener("click", openSettings);
+$("open-settings").addEventListener("click", openSettings);
+$("leave-case-button").addEventListener("click", clearCase);
+$("home-button").addEventListener("click", () =>
+  window.scrollTo({ top: 0, behavior: "smooth" }),
+);
+$("add-cloud-button").addEventListener("click", () => openCloud());
+$("add-user-button").addEventListener("click", () => openDialog("user-dialog"));
+$("password-button").addEventListener("click", () =>
+  openDialog("password-dialog"),
+);
 $("logout-button").addEventListener("click", async () => {
   try {
     await api("/auth/logout", { method: "POST", body: "{}" });
-    signedOut();
+    lockApplication();
   } catch (e) {
     message(e.message);
   }
 });
-$("new-case-button").addEventListener("click", () =>
-  $("case-dialog").showModal(),
-);
-$("add-user-button").addEventListener("click", () =>
-  $("user-dialog").showModal(),
-);
-$("password-button").addEventListener("click", () =>
-  $("password-dialog").showModal(),
-);
-$("close-case").addEventListener("click", () => {
-  caseGeneration++;
-  $("case-detail").hidden = true;
-  selectedCase = null;
-});
-$("case-search").addEventListener("input", renderCases);
-document
-  .querySelectorAll("[data-view]")
-  .forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
+$("case-form").addEventListener("input", updateCaseReadiness);
+$("case-search").addEventListener("input", renderArchive);
 document
   .querySelectorAll("[data-close]")
-  .forEach((b) =>
-    b.addEventListener("click", () => $(b.dataset.close).close()),
+  .forEach((button) =>
+    button.addEventListener("click", () => closeDialog(button.dataset.close)),
   );
-api("/auth/me")
-  .then(signedIn)
-  .catch(() => signedOut());
-
 document
-  .querySelectorAll("dialog")
-  .forEach((d) =>
-    d.addEventListener("close", () =>
-      d.querySelectorAll("input[type=password]").forEach((i) => (i.value = "")),
+  .querySelectorAll("[data-pane]")
+  .forEach((button) =>
+    button.addEventListener("click", () =>
+      selectPane(button.dataset.pane).catch((e) => message(e.message)),
     ),
   );
+document.querySelectorAll("dialog").forEach((dialog) =>
+  dialog.addEventListener("close", () => {
+    dialog
+      .querySelectorAll('input[type="password"]')
+      .forEach((input) => (input.value = ""));
+    if (dialog.id === "login-dialog") loginContinuation = null;
+    syncBackdrops();
+  }),
+);
+function clock() {
+  $("clock").textContent = "LOKAL " + new Date().toLocaleTimeString("de-AT");
+}
+clock();
+setInterval(clock, 1000);
+renderWorkspace();
+updateCaseReadiness();
+const initialAuth = authGeneration;
+api("/auth/me")
+  .then((user) => {
+    if (initialAuth === authGeneration) return signedIn(user);
+  })
+  .catch(() => {});

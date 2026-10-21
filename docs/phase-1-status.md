@@ -21,7 +21,9 @@
   Schreibversuch wird mit Konfliktmeldung abgewiesen.
 - API-Datenbankrolle ohne Schema-/Migrationsrechte und ohne Änderungs-/Löschrecht
   auf dem Audit-Protokoll. Migrations- und Bootstrap-Zugänge sind getrennt.
-- Ressourcenanzeige und deutliche Kennzeichnung fehlender Cloud-Funktionen.
+- Ressourcenanzeige im Einstellungsbereich und deutliche Kennzeichnung fehlender Cloud-Funktionen.
+- Originalnaher TRIAGE//BOX-Start-/Fallablauf mit Cloud-Katalog je Fall; Details
+  und aktuelle UI-Abnahme unter [UI-Vergleich](ui-triagebox-comparison.md).
 
 Die Providerabstraktion für Identitäten ist von der Fallautorisierung getrennt.
 Gerätemodell A und zentrale Anmeldung C sind weiterhin Architekturvarianten,
@@ -91,7 +93,7 @@ und tatsächlicher Providerlasttest verbindlich. Siehe Phase-0-Abschlussbericht.
 
 ## Noch nicht implementiert
 
-Cloud-Konten, Provider-Authentifizierung, Sicherungsaufträge, Queue/Worker,
+Provider-Authentifizierung, Sicherungsaufträge, Queue/Worker,
 Cloud-Dateimanifeste und Cloud-Berichte folgen in den Phasen 2–4. Es gibt keine
 simulierten Cloud-Erfolge oder erfundenen Downloadfortschritte. LDAP/AD/OIDC,
 produktives Secret-Management, unabhängiges verschlüsseltes Backupziel und

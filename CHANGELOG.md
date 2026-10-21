@@ -1,5 +1,16 @@
 # Änderungen
 
+## 0.3.0 – 2026-10-21 – TRIAGE//BOX-Bedienkonzept
+
+- Tatsächliches TRIAGE//BOX alpha 82 vor dem Umbau mit FCA verglichen.
+- Verschwommener Startbildschirm, Fallmodal, direkter Fallstart und Fallarchiv.
+- Originalnahe Kopfzeile, Statusleiste, Falldock, Panels und verschachtelte Dialoge.
+- Cloud-Katalog je Fall mit drei Anbietern, freien Namen, mehreren gleichartigen
+  Konten und versionsgeprüfter Umbenennung; Anbieteraktionen bleiben deaktiviert.
+- Benutzer, Rechte, Sitzung und Technik in separate Einstellungen verschoben.
+- Ausschließlich additive Migration; Sicherheitsprüfungen bleiben erhalten.
+- Browserabläufe gegen echte API und isolierte PostgreSQL-Datenbank ergänzt.
+
 ## 0.2.0 – 2026-10-21 – Phase 1
 
 - Persönliche Anmeldung mit Argon2id, persistenten Sitzungen, CSRF und Rate-Limits.

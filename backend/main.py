@@ -16,7 +16,7 @@ from psycopg.errors import UniqueViolation
 from backend.db import connect, audit
 from backend.identity import identity_provider, verify_password, hash_password, BusyAuthentication
 
-app = FastAPI(title='FORENSIC CLOUD ACQUISITION', version='0.2.0', docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title='FORENSIC CLOUD ACQUISITION', version='0.3.0', docs_url=None, redoc_url=None, openapi_url=None)
 COOKIE = '__Host-fca_session'
 CSRF_COOKIE = '__Host-fca_csrf'
 USER_FIELDS = 'id,username,initials,role,active,identity_provider,created_at'
@@ -78,6 +78,16 @@ class Membership(Input):
 
 class UserActivity(Input):
     active: bool
+
+
+class CloudAccountInput(Input):
+    provider: Literal['apple', 'google', 'microsoft']
+    label: str = Field(min_length=1, max_length=160)
+
+
+class CloudAccountRename(Input):
+    label: str = Field(min_length=1, max_length=160)
+    version: int = Field(ge=1)
 
 
 @app.exception_handler(RequestValidationError)
@@ -293,3 +303,33 @@ def status(user=Depends(identity)):
     return {'phase': 1, 'acquisition_available': False, 'evidence_mounted': ready,
             'free_bytes': disk.free if disk else None, 'total_bytes': disk.total if disk else None,
             'note': 'Cloud-Anmeldung und Sicherungen folgen ab Phase 2. Nur Testlabor.'}
+
+
+@app.get('/api/cases/{case_id}/cloud-accounts')
+def cloud_accounts(case_id: UUID, user=Depends(identity), conn=Depends(connection, scope='function')):
+    case_access(conn, user, case_id)
+    return conn.execute('SELECT * FROM cloud_accounts WHERE case_id=%s ORDER BY created_at,id', (case_id,)).fetchall()
+
+
+@app.post('/api/cases/{case_id}/cloud-accounts', status_code=201)
+def add_cloud_account(case_id: UUID, body: CloudAccountInput, user=Depends(identity), conn=Depends(connection, scope='function')):
+    case_access(conn, user, case_id, write=True)
+    account = conn.execute('INSERT INTO cloud_accounts(case_id,provider,label,created_by) VALUES (%s,%s,%s,%s) RETURNING *',
+                           (case_id, body.provider, body.label, user['id'])).fetchone()
+    audit(conn, user, 'cloud_account_added', case_id,
+          details={'account_id': str(account['id']), 'provider': body.provider, 'label': body.label})
+    return account
+
+
+@app.patch('/api/cases/{case_id}/cloud-accounts/{account_id}')
+def rename_cloud_account(case_id: UUID, account_id: UUID, body: CloudAccountRename, user=Depends(identity), conn=Depends(connection, scope='function')):
+    case_access(conn, user, case_id, write=True)
+    existing = conn.execute('SELECT id FROM cloud_accounts WHERE id=%s AND case_id=%s', (account_id, case_id)).fetchone()
+    if not existing:
+        raise HTTPException(404, 'Cloud-Konto nicht gefunden.')
+    account = conn.execute('UPDATE cloud_accounts SET label=%s,version=version+1 WHERE id=%s AND case_id=%s AND version=%s RETURNING *',
+                           (body.label, account_id, case_id, body.version)).fetchone()
+    if not account:
+        raise HTTPException(409, 'Cloud-Konto wurde zwischenzeitlich geändert. Bitte aktualisieren.')
+    audit(conn, user, 'cloud_account_renamed', case_id, details={'account_id': str(account_id), 'label': body.label})
+    return account

@@ -43,14 +43,22 @@ ssh -F .local/fca-ssh-config fca-lab 'sudo cat /etc/fca/secrets/initial_admin_pa
 
 ## Bedienung
 
-1. Persönlich anmelden und Fall über die Geschäftszahl öffnen oder anlegen.
-2. Bearbeiterkürzel je Fallhandlung prüfen; es dient ausschließlich dem Protokoll.
-3. Änderungen und Status im eindeutig beschrifteten Fallbereich speichern.
-4. Administratoren können unter „Benutzer“ Konten anlegen/deaktivieren und
-   im Fall Lese-/Bearbeitungszugriff erteilen oder entziehen.
-5. Bei Konfliktmeldung den Fall neu öffnen und den aktuellen Stand prüfen.
-6. Abmelden beendet die aktuelle serverseitige Sitzung. Ein bloßes Schließen
-   des Browsers ersetzt die Abmeldung nicht; Sitzungen enden nach acht Stunden.
+1. Der Startbildschirm zeigt „Fall anlegen“ über dem verschwommenen Arbeitsbereich.
+2. „Fall anlegen“ öffnet Geschäftszahl, Fallbezeichnung und Bearbeiterkürzel.
+   Bei Bedarf „Arbeitssitzung anmelden“ öffnen; die Falldaten bleiben erhalten.
+3. „Fall starten“ legt den Fall an und öffnet unmittelbar seinen Arbeitsbereich.
+   Bestehende Fälle über „Fallarchiv öffnen“ auswählen.
+4. „+ Cloud hinzufügen“ öffnet die Auswahl iCloud, Google oder OneDrive und die
+   freie Kontobezeichnung. Mehrere Konten auch desselben Anbieters sind möglich.
+   „Bezeichnung bearbeiten“ ändert den Namen unter Beibehaltung der Konto-ID.
+   Anmeldung beim Anbieter und Sicherung sind sichtbar deaktiviert.
+5. Das Zahnrad öffnet den getrennten Einstellungsbereich: Sitzung/Passwort,
+   Fallbezeichnung/Status, administrative Benutzer- und Fallrechte sowie Technik.
+   Bearbeiter sehen keine administrativen Reiter; Viewer können nur lesen.
+6. „Arbeitsbereich verlassen“ kehrt zum Start zurück und verändert den Fall nicht.
+   Abmelden beendet die serverseitige Sitzung. Ein geschlossenes Browserfenster
+   ersetzt die Abmeldung nicht; Sitzungen enden nach acht Stunden.
+7. Bei Konfliktmeldung den Fall neu öffnen und den aktuellen Stand prüfen.
 
 Die Fallübersicht liefert derzeit höchstens 500 zugeordnete Fälle; eine
 serverseitige Suche/Paginierung folgt vor größeren Beständen.
@@ -83,7 +91,12 @@ direkte Anforderungen und vollständig aufgelöste Python-Locks liegen unter
 sudo bash /opt/fca/scripts/run_phase1_tests.sh
 ```
 
-Das erzeugt und entfernt ausschließlich `fca_test_phase1`; keine Anwendungstests
+Das führt API-Integrationstests und echte Chromium-Browserabläufe aus. Der
+Browser läuft ausschließlich im begrenzten Testcontainer gegen Loopback und
+synthetische Daten. Produktives HTTPS und sichere Cookies bleiben unverändert.
+Synthetische Bildschirmnachweise liegen unter `/var/lib/fca/validation/browser`
+außerhalb des Repositories. Der Test erzeugt und entfernt ausschließlich
+`fca_test_phase1`; keine Anwendungstests
 gegen echte Arbeitsdaten ausführen. Die einmalige Phase-0-Erstabnahme darf
 nicht erneut als Bootstrap über die bestehende Datenbank ausgeführt werden.
 `validate_phase0_after_reboot.sh` ist dagegen eine lesende Persistenzprüfung

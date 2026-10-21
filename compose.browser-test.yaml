@@ -1,0 +1,14 @@
+services:
+  api:
+    image: fca-lab-browser-test:local
+    build:
+      target: browser-test
+    environment:
+      FCA_PUBLIC_ORIGIN: http://localhost:8766
+      FCA_TEST_ARTIFACT_DIR: /artifacts
+    volumes:
+      - /var/lib/fca/validation/browser:/artifacts
+    mem_limit: 768m
+    pids_limit: 256
+    shm_size: 128m
+    init: true

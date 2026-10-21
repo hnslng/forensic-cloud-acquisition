@@ -9,11 +9,14 @@ ausdrücklich freigegebenen Testkonten. Keine Freigabe für echte Beweismittel.
 Phase 0 ist nach Freigabe erfolgreich auf VM 105 umgesetzt und praktisch
 abgenommen, einschließlich VM-Neustart, PostgreSQL-Persistenz und Restore.
 **Phase 1 ist umgesetzt:** privates HTTPS, persönliche Anmeldung, Benutzer- und
-Fallverwaltung mit serverseitigen Rechten und Audit. Cloud-Adapter und echte
+Fallverwaltung mit serverseitigen Rechten und Audit. Die Oberfläche folgt dem
+tatsächlichen TRIAGE//BOX-Start-/Fallablauf und verwaltet mehrere benannte
+Cloud-Konten je Fall. Cloud-Adapter und echte
 Sicherungen sind noch nicht implementiert.
 
 - [Abschlussbericht Phase 0 und Ressourcenverbrauch](docs/phase-0-completion.md)
 - [Umsetzung und Abnahme Phase 1](docs/phase-1-status.md)
+- [Vergleich mit dem tatsächlichen TRIAGE//BOX-Frontend](docs/ui-triagebox-comparison.md)
 - [Laborzugang und Administration](docs/operation.md)
 
 - [Prüfbericht und Freigabevorschlag](docs/phase-0-status.md)
@@ -41,7 +44,8 @@ und sind durch `.gitignore` ausgeschlossen.
 `compose.yaml` stellt PostgreSQL und über das Profil `application` die API
 bereit. Nur der API-Port wird an Loopback der VM gebunden. Der Debian-nginx-
 Dienst liefert das getrennte Frontend über privates HTTPS. Reale VM- und
-Restoretests sowie 15 isolierte PostgreSQL-Anwendungstests sind bestanden.
+Restoretests sind dokumentiert. Der isolierte Anwendungstestlauf umfasst
+PostgreSQL-Integration und echte Chromium-Bedienabläufe.
 
 ## Projektstruktur
 

@@ -8,4 +8,7 @@ Fallrechte werden unabhängig von eingegebenen Bearbeiterkürzeln geprüft.
 
 Direkte Anforderungen stehen in `requirements*.txt`, aufgelöste Versionen in
 `requirements*.lock`. API-Container läuft ohne Root und mit schreibgeschütztem
-Root-Dateisystem. Cloud-Funktionen sind noch nicht implementiert.
+Root-Dateisystem. Der Cloud-Katalog speichert Anbieter und freie Bezeichnungen
+fallbezogen mit UUID, Versionsprüfung und Audit. Provider-Anmeldung und
+Sicherungsfunktionen sind noch nicht implementiert. Die Chromium-Abhängigkeiten
+werden ausschließlich im separaten Testziel installiert.

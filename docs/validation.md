@@ -1,6 +1,6 @@
 # Test- und Nachweisstand
 
-Stand 21.10.2026: **11 Infrastrukturtests und 15 PostgreSQL-Integrationstests bestanden**.
+Stand 21.10.2026: **11 Infrastrukturtests, 17 PostgreSQL-Integrationstests und 4 Chromium-Browsertests bestanden**.
 
 ```sh
 python3 -m unittest discover -s tests -p test_infrastructure.py -v
@@ -9,19 +9,27 @@ python3 -m unittest discover -s tests -p test_infrastructure.py -v
 Die Anwendungstests werden auf der VM oder einem isolierten CI-Runner über
 `scripts/run_phase1_tests.sh` ausgeführt. Sie erstellen ausschließlich
 `fca_test_phase1`, verwenden synthetische Daten und entfernen die Testdatenbank.
-Der Compose-Testcontainer enthält die festgeschriebenen Testabhängigkeiten.
+Getrennte Compose-Testcontainer enthalten festgeschriebene API- und Browser-
+Abhängigkeiten. Die vier Browserprüfungen umfassen den vollständigen Ablauf mit
+nativer Dialogverschachtelung, erhaltenen Feldern bei Anmeldung, direktem
+Fallstart, vier Cloud-Konten (zweimal iCloud), Umbenennung/Persistenz nach
+Neuladen, deaktivierten Anbieteraktionen, separaten Admin-Einstellungen,
+Logout-Datenbereinigung, Viewer-Sperren und Tastaturbedienung bei 390 px.
+Sie sprechen die unveränderte echte API über Chromium auf vertrauenswürdigem
+Loopback im Testcontainer an; keine API-Mocks und keine Arbeitsdaten.
 
 - [Phase-0-Abnahme, Restore und Ressourcen](phase-0-completion.md)
 - [Phase-1-Tests, HTTPS, Rechte und Neustart](phase-1-status.md)
 - [GitHub Actions](https://github.com/hnslng/forensic-cloud-acquisition/actions)
 
-Die GitHub-Pipeline prüft Infrastruktur, Migrationen, isolierte Anwendungstests
+Die GitHub-Pipeline prüft Infrastruktur, Migrationen, isolierte API- und Browsertests
 und den tatsächlichen Loopback-Zugriff auf die bereitgestellte API. Ein Erfolg
 auf GitHub ersetzt keine reale VM-Abnahme; diese wurde gesondert durchgeführt.
 
 Die reale HTTPS-Abnahme lief mit explizit vertrauter Labor-CA, ohne Ausschalten
 der Zertifikatsprüfung. Die Anmeldeseite wurde zusätzlich in einer statischen
-Layoutvorschau auf Desktop- und Mobilbreite geprüft. Ein angemeldeter Browser-
+Layoutvorschau auf Desktop- und Mobilbreite geprüft. Die neue Oberfläche wird
+zusätzlich automatisiert mit echtem Chromium und PostgreSQL geprüft. Ein angemeldeter Browser-
 End-to-End-Test gegen das echte HTTPS-Ziel steht bis zur gezielten Einrichtung
 des CA-Vertrauens im Laborbrowser aus.
 

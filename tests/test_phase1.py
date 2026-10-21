@@ -168,3 +168,45 @@ def test_password_whitespace_is_significant():
     r = c.post('/api/auth/login', json={'username': 'alice', 'password': password.strip()})
     assert r.status_code == 401
     assert c.post('/api/auth/login', json={'username': 'alice', 'password': password}).status_code == 200
+
+
+def test_cloud_catalog_multiple_providers_rename_and_audit():
+    c = client(); case = new_case(c)
+    path = '/api/cases/' + case['id'] + '/cloud-accounts'
+    accounts = []
+    for provider in ['apple', 'apple', 'google', 'microsoft']:
+        r = c.post(path, json={'provider': provider, 'label': 'Synthetisch / ' + provider})
+        assert r.status_code == 201, r.text
+        accounts.append(r.json())
+    assert len({a['id'] for a in accounts}) == 4
+    assert len(c.get(path).json()) == 4
+    assert all(a['authentication_status'] == a['acquisition_status'] == 'unavailable' for a in accounts)
+    rename_path = path + '/' + accounts[0]['id']
+    r = c.patch(rename_path, json={'label': 'Neue freie Bezeichnung', 'version': 1})
+    assert r.status_code == 200 and r.json()['version'] == 2
+    assert r.json()['id'] == accounts[0]['id'] and r.json()['provider'] == 'apple'
+    assert c.patch(rename_path, json={'label': 'Veraltet', 'version': 1}).status_code == 409
+    events = c.get('/api/cases/' + case['id'] + '/audit').json()
+    assert sum(a['event_type'] == 'cloud_account_added' for a in events) == 4
+    assert sum(a['event_type'] == 'cloud_account_renamed' for a in events) == 1
+
+
+def test_cloud_catalog_case_access_csrf_and_immutable_capabilities():
+    alice, bob, admin = client(), client('bob'), client('admin')
+    case, other = new_case(alice), new_case(alice, 'SYNTHETIC-OTHER')
+    path = '/api/cases/' + case['id'] + '/cloud-accounts'
+    payload = {'provider': 'apple', 'label': 'Synthetisches Konto'}
+    account = alice.post(path, json=payload).json()
+    assert bob.get(path).status_code == bob.post(path, json=payload).status_code == 404
+    user_id = bob.get('/api/auth/me').json()['id']
+    admin.put('/api/cases/' + case['id'] + '/members', json={'user_id': user_id, 'access': 'viewer'})
+    assert len(bob.get(path).json()) == 1
+    assert bob.post(path, json=payload).status_code == 404
+    assert bob.patch(path + '/' + account['id'], json={'label': 'Forbidden', 'version': 1}).status_code == 404
+    assert alice.patch('/api/cases/' + other['id'] + '/cloud-accounts/' + account['id'], json={'label': 'Wrong case', 'version': 1}).status_code == 404
+    for extra in [{'authentication_status': 'ready'}, {'password': 'never-store-this'}, {'case_id': other['id']}]:
+        assert alice.post(path, json={**payload, **extra}).status_code == 422
+    assert alice.post(path, json={**payload, 'provider': 'unknown'}).status_code == 422
+    assert alice.post(path, json={**payload, 'label': '   '}).status_code == 422
+    del alice.headers['X-CSRF-Token']
+    assert alice.post(path, json=payload).status_code == 403

@@ -14,3 +14,18 @@ RUN pip install --no-cache-dir --root-user-action=ignore -r /app/backend/require
 COPY tests /app/tests
 USER 10001:10001
 CMD ["python","-m","pytest","-q","-p","no:cacheprovider","tests/test_phase1.py"]
+
+# Isolated browser validation only; never used by the application service.
+FROM runtime AS browser-dependencies
+USER root
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+COPY backend/requirements-browser.lock /app/backend/requirements-browser.lock
+RUN pip install --no-cache-dir --root-user-action=ignore -r /app/backend/requirements-browser.lock && python -m playwright install --with-deps --only-shell chromium
+
+FROM browser-dependencies AS browser-test
+COPY backend/requirements-test.lock /app/backend/requirements-test.lock
+RUN pip install --no-cache-dir --root-user-action=ignore -r /app/backend/requirements-test.lock
+COPY tests /app/tests
+COPY frontend /app/frontend
+USER 10001:10001
+CMD ["python","-m","pytest","-q","-p","no:cacheprovider","tests/test_browser.py"]

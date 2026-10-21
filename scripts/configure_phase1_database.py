@@ -33,6 +33,8 @@ def main():
         sql('SET ROLE fca_migrate;\n' + Path('migrations/0002_identity_cases.sql').read_text())
     if sql('SELECT max(version) FROM schema_migrations;').strip() == '2':
         sql('SET ROLE fca_migrate;\n' + Path('migrations/0003_revoke_case_members.sql').read_text())
+    if sql('SELECT max(version) FROM schema_migrations;').strip() == '3':
+        sql('SET ROLE fca_migrate;\n' + Path('migrations/0004_cloud_account_catalog.sql').read_text())
     initial = ROOT / 'initial_admin_password'
     if not initial.exists() and sql("SELECT count(*) FROM users WHERE role='admin';").strip() == '0':
         with initial.open('x') as handle:

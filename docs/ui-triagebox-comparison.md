@@ -55,3 +55,22 @@ und anschließend der Erhalt sämtlicher vorhandener Zeilen überprüft.
   Dialoge, Formularfehler, schmale Bildschirmbreite und DOM-Datenbereinigung.
 - PostgreSQL: Persistenz, Konten-/Falltrennung, Viewer-/Fremdfall-Verweigerung,
   CSRF, stabile IDs, Audit und unveränderte bisherige Sicherheitsregressionen.
+
+## Umsetzung und Browserabnahme
+
+Die beschriebenen Änderungen sind als Version 0.3.0 umgesetzt. Native Dialoge,
+Originalfarben/-abstände, Wortmarkenproportionen, Start-Overlay und Falldock
+wurden anhand des tatsächlichen Quellstands übernommen und an Cloud-Karten
+angepasst. Anmeldung und persönliche Fallrechte bleiben Voraussetzung.
+
+11 Infrastruktur-, 17 PostgreSQL- und 4 echte Chromium-Browsertests bestanden.
+Die Browserabnahme verwendet echte API/DB mit ausschließlich synthetischen
+Konten in `fca_test_phase1`. Desktop 1440 × 1000 und Mobil 390 × 844 wurden
+visuell geprüft; Bildschirmnachweise liegen außerhalb von Git auf der VM.
+Ein angemeldeter Browser-Test gegen das reale HTTPS-Laborziel wird dadurch
+nicht behauptet; hierfür muss der Laborbrowser der eigenen CA vertrauen.
+
+Vor der additiven Migration wurde ein geschütztes vollständiges Datenbank-
+Backup angelegt und erfolgreich in einer separaten Wegwerf-Datenbank
+wiederhergestellt. Zeilenprüfsummen sämtlicher vorhandener öffentlicher
+Datentabellen dienen der Kontrolle des unveränderten Bestands bei Bereitstellung.

@@ -17,5 +17,10 @@ ALTER TABLE schema_migrations OWNER TO fca_migrate;
 SQL
 { printf 'SET ROLE fca_migrate;\n'; cat migrations/0002_identity_cases.sql; } | compose exec -T database psql -v ON_ERROR_STOP=1 -U fca_bootstrap -d fca_test_phase1
 { printf 'SET ROLE fca_migrate;\n'; cat migrations/0003_revoke_case_members.sql; } | compose exec -T database psql -v ON_ERROR_STOP=1 -U fca_bootstrap -d fca_test_phase1
+{ printf 'SET ROLE fca_migrate;\n'; cat migrations/0004_cloud_account_catalog.sql; } | compose exec -T database psql -v ON_ERROR_STOP=1 -U fca_bootstrap -d fca_test_phase1
 testcompose build api
 testcompose run --rm --no-deps api
+install -d -o 10001 -g 10001 -m 0750 /var/lib/fca/validation/browser
+browsercompose() { docker compose --env-file /etc/fca/compose.env -f compose.yaml -f compose.test.yaml -f compose.browser-test.yaml --profile application "$@"; }
+browsercompose build api
+browsercompose run --rm --no-deps api
