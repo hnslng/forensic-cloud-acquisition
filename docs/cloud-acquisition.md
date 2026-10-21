@@ -1,6 +1,6 @@
 # Cloud-Sicherungen – Version 0.5.0
 
-**Neue Freigabegrenze:** [Stufe A – Google/OneDrive-Machbarkeit](stufe-a-machbarkeit.md). Domainlose Loopback-/Tunnelanmeldung und Rclone-Dateiadapter für diese Anbieter sind geprüft/bewertet, noch nicht integriert. Stufe B und echte Kontotests benötigen eine separate Freigabe.
+**Aktueller Entwicklungszweig:** [Stufe B](stufe-b-status.md) ergänzt Rclone-Dateitransport, Quellhashvergleich, Fehlerklassifizierung und sitzungsgebundene Anmeldung. Isoliert getestet, noch nicht in laufende Laborcontainer übernommen. Domainlose Tunnelanmeldung bleibt eine Bewertung; DNS/TLS, Anbieterregistrierungen und echte Kontotests benötigen weiterhin Freigabe.
 
 Stand: 21.10.2026. Implementierte Laborversion, keine Behauptung einer bereits erfolgten Echtkonto-Abnahme. Die freigegebene dunkelblaue Oberfläche und die breiten Cloud-Karten bleiben erhalten.
 
@@ -37,7 +37,7 @@ Die Anwendung enthält absichtlich keine fremden Client-IDs oder mitgelieferten 
 - Google: Drive API und Calendar API aktivieren. Einwilligungsbildschirm/Testnutzer einrichten; delegierte Scopes `drive.readonly` und `calendar.readonly`, Offline-Zugriff. Für dauerhaften/breiten Betrieb gelten Googles Veröffentlichungs-/Prüfanforderungen; im Testmodus können Refresh-Tokens befristet sein. Im hier implementierten Webflow erlaubt Google eine private IP-Adresse wie `10.0.1.189` nicht als normale Web-Redirect-URI. Ein eigener Desktop-Client mit Loopback-Rückkehradresse ist eine andere offiziell unterstützte Variante; die sichere Verbindung vom Ermittler-PC zur FCA-VM ist dafür noch nicht integriert. Dafür ist eine vom Anbieter zugelassene HTTPS-Domain mit passendem Zertifikat und exakter FCA-Origin-Konfiguration erforderlich. Keine öffentliche Portfreigabe ist für ausgehende API-Anfragen nötig; DNS/TLS/Origin müssen vor einer echten Google-Abnahme abgestimmt werden.
 - Microsoft: Webanwendung für die gewünschten Kontoarten registrieren, Client-Geheimnis, exakt passende HTTPS-Rückkehradresse; delegierte Scopes `offline_access Files.Read Calendars.Read User.Read`. Mandantenrichtlinien/Administratorzustimmung können erforderlich sein. Keine SPA-/Implicit-Konfiguration verwenden.
 - Rückkehradresse: `<FCA_HTTPS_ORIGIN>/api/oauth/callback`. Die bestehende private Laboradresse wird nicht eigenmächtig verändert.
-- Anmeldungen nutzen zufälligen einmaligen State, PKCE S256, Benutzer-/Fall-/Kontobindung und zehn Minuten Ablauf. Die Rückkehrseite entfernt Code/State aus der sichtbaren URL und tauscht sie per geschütztem POST aus. Nginx protokolliert `/api/` einschließlich Rückkehradresse nicht; Uvicorn-Zugriffslogs sind aus.
+- Anmeldungen nutzen zufälligen einmaligen State, PKCE S256, Benutzer-/Sitzungs-/Fall-/Kontobindung und zehn Minuten Ablauf. Die Rückkehrseite entfernt Code/State aus der sichtbaren URL und tauscht sie per geschütztem POST aus. Nginx protokolliert `/api/` einschließlich Rückkehradresse nicht; Uvicorn-Zugriffslogs sind aus.
 
 ## Verzeichnisse und Unveränderlichkeit
 

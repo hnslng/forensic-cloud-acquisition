@@ -12,7 +12,8 @@ from psycopg.types.json import Jsonb
 
 from backend.db import connect, audit
 from backend import evidence
-from providers.acquisition import open_provider, Retryable
+from backend.runtime_limits import ceilings
+from providers.acquisition import open_provider, Retryable, AuthenticationRequired
 from providers.apple.adapter import ProviderError
 
 STOP=threading.Event()
@@ -39,12 +40,22 @@ def resources():
     except (OSError,ValueError): pass
     return data
 
-def memory_pressure():
-    value=resources()
+def memory_pressure(value=None):
+    value=resources() if value is None else value
     return (value.get('available_memory_bytes',1024**3)<150*1024**2
             or max(0,value.get('container_memory_bytes',0)-value.get('container_inactive_file_bytes',0))>value.get('container_limit_bytes',1024**3)*.85)
 
-def settings(conn): return conn.execute('SELECT * FROM acquisition_settings WHERE singleton').fetchone()
+def require_memory():
+    value=resources()
+    if memory_pressure(value):
+        error=evidence.StorageError('Arbeitsspeicher knapp. Sicherung pausiert.')
+        error.resource_observation=value
+        raise error
+
+def settings(conn):
+    value=conn.execute('SELECT * FROM acquisition_settings WHERE singleton').fetchone()
+    for key,maximum in ceilings().items():value[key]=min(maximum,value[key])
+    return value
 
 def enqueue(conn,case,account,user,category,scope):
     if category not in CATEGORIES[account['provider']]: raise ProviderError('Dieser Datenbereich ist nicht verfügbar.')
@@ -74,8 +85,7 @@ def run_file(job, row, adapter, reserve, cancel):
         if STOP.is_set() or cancel.is_set(): raise evidence.StorageError('Sicherung unterbrochen; Wiederaufnahme möglich.')
         now=time.monotonic()
         if now-progress_time[0]>=1:
-            if memory_pressure():
-                raise evidence.StorageError('Arbeitsspeicher knapp. Sicherung pausiert.')
+            require_memory()
             if not job_active(job['id']): raise evidence.StorageError('Sicherung pausiert oder Berechtigung entzogen.')
             with connect() as conn: conn.execute('UPDATE acquisition_files SET bytes_done=%s WHERE id=%s',(count,row['id']))
             progress_time[0]=now
@@ -108,7 +118,8 @@ def run_file(job, row, adapter, reserve, cancel):
             fd=os.open(final.parent,os.O_RDONLY|os.O_DIRECTORY)
             try: os.fsync(fd)
             finally: os.close(fd)
-            with connect() as conn: conn.execute("UPDATE acquisition_files SET status='completed',reason=NULL WHERE id=%s",(row['id'],))
+            record['metadata'].pop('_fca_outcome',None)
+            with connect() as conn: conn.execute("UPDATE acquisition_files SET status='completed',reason=NULL,metadata=%s WHERE id=%s",(Jsonb(record['metadata']),row['id']))
             return
         except Retryable as error:
             # Reduce the next wave to one transfer after throttling/transient errors.
@@ -134,6 +145,7 @@ def report(job,status,reason=None):
         case=conn.execute('SELECT business_number,name FROM cases WHERE id=%s',(job['case_id'],)).fetchone()
         account=conn.execute('SELECT provider,label FROM cloud_accounts WHERE id=%s',(job['account_id'],)).fetchone()
         current=conn.execute('SELECT * FROM acquisitions WHERE id=%s',(job['id'],)).fetchone()
+        ledger=conn.execute("SELECT count(*) AS discovered,count(*) FILTER (WHERE status='completed') AS completed,coalesce(sum(bytes_done) FILTER (WHERE status='completed'),0) AS secured_bytes,count(*) FILTER (WHERE status='failed' AND coalesce(metadata->>'_fca_outcome','')!='inaccessible') AS failed,count(*) FILTER (WHERE metadata->>'_fca_outcome'='inaccessible' AND status!='completed') AS inaccessible,count(*) FILTER (WHERE status IN ('queued','running','pausing')) AS pending,count(*) FILTER (WHERE size<0) AS unknown_size FROM acquisition_files WHERE acquisition_id=%s",(job['id'],)).fetchone()
         manifest=directory/'Dateien.jsonl'; temp=directory/'Dateien.jsonl.tmp'
         if temp.is_symlink(): raise evidence.StorageError('Unsicheres Prüfprotokoll.')
         with open(temp,'w',encoding='utf-8') as handle:
@@ -142,18 +154,36 @@ def report(job,status,reason=None):
                 cursor.execute('SELECT source_id,relative_path,size,bytes_done,status,md5,sha256,attempts,reason,metadata FROM acquisition_files WHERE acquisition_id=%s ORDER BY id',(job['id'],))
                 for row in cursor:
                     metadata=dict(row['metadata']); metadata.pop('payload',None); row['metadata']=metadata
+                    metadata.setdefault('_fca_source_verification',{'status':'not_recorded','algorithms':[],
+                                        'note':'Kein Quellhashvergleich für diesen Datensatz dokumentiert.'})
                     handle.write(json.dumps(row,ensure_ascii=False,default=str)+'\n')
             handle.flush(); os.fsync(handle.fileno())
         os.replace(temp,manifest)
         value={'sicherungs_id':str(job['id']),'fall':case,'bearbeiter':job['operator_initials'],
                'konto':dict(account,account_id=str(job['account_id']),kennung=current['account_identity']), 'ressourcen':current['resource_observations'], 'beginn':current['started_at'],'ende':current['ended_at'],
-               'methode':'rclone '+('v1.75.2 iCloud-Webschnittstelle (nicht öffentliche Apple-API)' if account['provider']=='apple' else 'nicht verwendet') if account['provider']=='apple' else 'Offizielle OAuth-2.0- und Anbieter-REST-API (nur lesend)',
+               'methode':('Rclone v1.75.2 iCloud-Webschnittstelle (nicht öffentliche Apple-API)' if account['provider']=='apple' else ('Offizielle Kalender-REST-API und OAuth 2.0 (lesend)' if job['category']=='calendar' else 'Offizielle REST-Inventarisierung, FCA OAuth 2.0/PKCE, Rclone v1.75.2 Dateitransport (lesend)')),
                'kategorien':['drive','photos'] if job['category']=='both' else [job['category']],'kategorie':job['category'],'umfang':job['scope_path'] or 'zugänglicher Standardbereich laut Anbieterdefinition',
-               'status':status,'grund':reason,'dateien':current['files_done'],'bytes':current['bytes_done'],
+               'status':status,'grund':reason,'dateien':ledger['completed'],'bytes':ledger['secured_bytes'],
+               'uebertragene_bytes_einschliesslich_teiluebertragungen':current['bytes_done'],
+               'umfangsbilanz':dict(ledger,inventory_complete=current['inventory_complete'],entire_account_complete=False,
+                                    provider_inventory=current['resource_observations'].get('provider_inventory',{})),
+               'datenbereiche':coverage(account['provider'],job['category'],current['inventory_complete']),
                'inventar_abgeschlossen':current['inventory_complete'],'einschraenkungen':current['limitations'],
                'manifest_sha256':evidence.sha256(manifest),'pruefung':'MD5 und SHA-256 lokal (historische Dateien ohne MD5 bis zur erneuten Prüfung gekennzeichnet), Größenprüfung; Anbieterprüfsumme sofern verfügbar. Keine kryptografische Herkunftsbestätigung.',
                'hinweis':'Lebendes Cloud-System, keine atomare Momentaufnahme. Nicht zugängliche oder außerhalb des gewählten Bereichs liegende Kategorien sind nicht enthalten.'}
+        if account['provider']!='apple':
+            from backend import oauth
+            authorization=oauth.load(job['case_id'],job['account_id'])
+            value['zugriffsrechte']={'angefordert':authorization.get('requested_scopes',[]),
+                                    'vom_anbieter_gemeldet':authorization.get('scope','Nicht gemeldet; kein Nachweis vollständiger Rechte.')}
         evidence.atomic_json(directory/'Sicherungsbericht.json',value)
+
+def coverage(provider,category,inventory_complete):
+    selected='inventar_abgeschlossen' if inventory_complete else 'inventar_offen'
+    if category=='calendar': return [{'bereich':'Kalender im gewählten Zeitraum' if provider=='microsoft' else 'Zugängliche Kalender','status':selected}]
+    if provider=='google': return [{'bereich':'Meine Ablage','status':selected},{'bereich':'Mit mir geteilt','status':'nicht_untersucht'},{'bereich':'Shared Drives','status':'nicht_untersucht'},{'bereich':'Gelöschte Dateien und Versionshistorie','status':'nicht_unterstuetzt'}]
+    if provider=='microsoft': return [{'bereich':'OneDrive-Standardlaufwerk','status':selected},{'bereich':'Weitere Drives und SharePoint-Bibliotheken','status':'nicht_untersucht'},{'bereich':'Verknüpfte und Paketobjekte sowie Versionshistorie','status':'nicht_unterstuetzt'}]
+    return [{'bereich':name,'status':selected} for name in (['iCloud Drive','iCloud Fotos'] if category=='both' else ['iCloud Fotos' if category=='photos' else 'iCloud Drive'])]
 
 def discover_files(job, adapter, config, cancel):
     identifier=job['id']
@@ -165,7 +195,7 @@ def discover_files(job, adapter, config, cancel):
                 yield {**entry,'id':category+':'+entry['id'],'path':prefix+'/'+entry['path'],
                        'metadata':{**entry['metadata'],'_fca_category':category,'_fca_source_id':entry['id']}}
     for entry in entries():
-        if memory_pressure(): raise evidence.StorageError('Arbeitsspeicher knapp. Sicherung pausiert.')
+        require_memory()
         evidence.space(config['reserve_bytes'])
         if cancel.is_set() or not job_active(identifier) or STOP.is_set(): raise evidence.StorageError('Sicherung pausiert.')
         if entry.get('directory'):
@@ -193,7 +223,7 @@ def run_job(identifier):
             claimed=conn.execute("UPDATE acquisitions SET status='running',started_at=coalesce(started_at,now()),ended_at=NULL,reason=NULL,heartbeat=now() WHERE id=%s AND status='queued' RETURNING id",(identifier,)).fetchone()
             if not claimed: return
         evidence.space(config['reserve_bytes'])
-        with open_provider(job['provider'],job['case_id'],job['account_id']) as adapter:
+        with open_provider(job['provider'],job['case_id'],job['account_id'],job['category']) as adapter:
             identity=adapter.identity()
             with connect() as conn: conn.execute('UPDATE acquisitions SET account_identity=%s,resource_observations=%s WHERE id=%s',(Jsonb(identity),Jsonb(resources()),identifier))
             # Revalidate completed files too: a restart cannot silently skip damaged evidence.
@@ -219,7 +249,7 @@ def run_job(identifier):
             # Exhausting the queue is only final after the producer has succeeded.
             with ThreadPoolExecutor(max_workers=1) as discovery_pool:
                 inventory=discovery_pool.submit(discover_files,job,adapter,config,cancel) if not job['inventory_complete'] else None
-                with ThreadPoolExecutor(max_workers=4) as transfer_pool:
+                with ThreadPoolExecutor(max_workers=16) as transfer_pool:
                     futures={};previous_limit=None
                     try:
                         while True:
@@ -231,11 +261,14 @@ def run_job(identifier):
                                 row=futures.pop(future)
                                 try: future.result()
                                 except evidence.StorageError: raise
+                                except AuthenticationRequired: raise
                                 except Exception as error:
                                     reason=str(error) if isinstance(error,ProviderError) else 'Datei konnte nicht sicher übernommen werden.'
-                                    with connect() as conn: conn.execute("UPDATE acquisition_files SET status='failed',reason=%s WHERE id=%s",(reason,row['id']))
+                                    with connect() as conn: conn.execute("UPDATE acquisition_files SET status='failed',reason=%s,metadata=metadata || %s WHERE id=%s",(reason,Jsonb({'_fca_outcome':getattr(error,'outcome','transfer_failed')}),row['id']))
                             with connect() as conn:
                                 config=settings(conn)
+                                if hasattr(adapter,'coverage'):
+                                    conn.execute('UPDATE acquisitions SET resource_observations=resource_observations || %s WHERE id=%s',(Jsonb({'provider_inventory':adapter.coverage}),identifier))
                                 limited=time.monotonic()<max(cancel.throttled_until,getattr(adapter,'throttled_until',0))
                                 limit=1 if limited else config['file_parallelism']
                                 if limit!=previous_limit:
@@ -270,10 +303,16 @@ def run_job(identifier):
         reason=str(error) if isinstance(error,(evidence.StorageError,ProviderError)) else 'Sicherung fehlgeschlagen. Fallprotokoll und Datenträger prüfen.'
         with connect() as conn:
             current=conn.execute('SELECT status FROM acquisitions WHERE id=%s FOR UPDATE',(identifier,)).fetchone()
+            if isinstance(error,evidence.StorageError) and current['status']=='pausing':
+                reason='Pause vom Benutzer angefordert.'
             if status=='paused' and STOP.is_set() and current['status']=='running' and allowed(conn,job):
                 status='queued'
                 reason='Wird nach Neustart fortgesetzt.'
             totals(conn,identifier,last)
+            if hasattr(error,'resource_observation'):
+                conn.execute('UPDATE acquisitions SET resource_observations=resource_observations || %s WHERE id=%s',(Jsonb({'last_memory_pressure':error.resource_observation}),identifier))
+            if 'adapter' in locals() and hasattr(adapter,'coverage'):
+                conn.execute('UPDATE acquisitions SET resource_observations=resource_observations || %s WHERE id=%s',(Jsonb({'provider_inventory':adapter.coverage}),identifier))
             conn.execute("UPDATE acquisitions SET status=%s,reason=%s,ended_at=CASE WHEN %s='queued' THEN NULL ELSE now() END,speed=0 WHERE id=%s",(status,reason,status,identifier))
             if job: audit(conn,None,'acquisition_'+status,job['case_id'],job['operator_initials'],{'acquisition_id':str(identifier),'reason':reason})
         if job:
@@ -291,7 +330,7 @@ def main():
         with connect() as conn:
             conn.execute("UPDATE acquisitions SET status=CASE WHEN status='pausing' THEN 'paused' ELSE 'queued' END,speed=0 WHERE status IN ('running','pausing')")
             conn.execute("UPDATE acquisition_files SET status='queued' WHERE status IN ('running','pausing')")
-        with ThreadPoolExecutor(max_workers=2) as pool:
+        with ThreadPoolExecutor(max_workers=8) as pool:
             active={}
             while not STOP.is_set():
                 leader.execute('SELECT 1'); leader.commit()

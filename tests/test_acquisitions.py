@@ -275,6 +275,58 @@ def test_official_oauth_api_permissions_pkce_and_no_secret_audit(storage,monkeyp
     for secret in ['SYNTHETIC-ACCESS','SYNTHETIC-REFRESH','SYNTHETIC-CLIENT-SECRET','SYNTHETIC-CODE',pending['state']]:assert secret not in events
 
 
+def test_oauth_rejects_another_session_of_same_user(storage,monkeypatch):
+    c=client();case=new_case(c)
+    account=c.post('/api/cases/'+case['id']+'/cloud-accounts',json={'provider':'google','label':'Synthetic'}).json()
+    oauth.save_configuration('google','synthetic','synthetic','https://fca.test/api/oauth/callback')
+    prefix='/api/cases/'+case['id']+'/cloud-accounts/'+account['id']
+    assert c.post(prefix+'/oauth/begin',json={}).status_code==200
+    state=oauth.load(case['id'],account['id'])['pending']['state']
+    another=client()
+    called=[]
+    monkeypatch.setattr(oauth,'exchange',lambda *_:called.append(True))
+    assert another.post('/api/oauth/complete',json={'case_id':case['id'],'account_id':account['id'],'state':state,'code':'SYNTHETIC'}).status_code==409
+    assert not called
+
+
+def test_report_separates_secured_bytes_failures_inaccessible_and_open_inventory(storage,monkeypatch):
+    from providers.acquisition import AccessDenied
+    c=client();case,account,url=setup(c);job=enqueue(c,url)
+    class Inaccessible(Synthetic):
+        def download(self,record,*args):
+            if record['source_id']=='4':raise AccessDenied('Synthetisch nicht zugänglich.')
+            super().download(record,*args)
+    adapter(monkeypatch,Inaccessible());acquisitions.run_job(UUID(job['id']))
+    current=row(job);assert current['status']=='incomplete'
+    report=json.loads((evidence.directory(current['directory']+'/_FCA')/'Sicherungsbericht.json').read_text())
+    ledger=report['umfangsbilanz']
+    assert ledger['completed']==7 and ledger['inaccessible']==1 and ledger['failed']==0
+    assert report['bytes']==ledger['secured_bytes'] and ledger['inventory_complete']
+    assert ledger['entire_account_complete'] is False
+
+
+def test_memory_pause_records_trigger_values_without_auto_resume(storage,monkeypatch):
+    c=client();case,account,url=setup(c);job=enqueue(c,url)
+    adapter(monkeypatch,Synthetic())
+    observation={'available_memory_bytes':100*1024**2,'container_limit_bytes':512*1024**2,'container_memory_bytes':50*1024**2}
+    monkeypatch.setattr(acquisitions,'resources',lambda:observation)
+    acquisitions.run_job(UUID(job['id']))
+    current=row(job)
+    assert current['status']=='paused' and current['resource_observations']['last_memory_pressure']==observation
+    assert current['inventory_complete'] is False
+
+
+def test_server_profile_migration_and_runtime_ceiling(storage,monkeypatch):
+    admin=client('admin')
+    monkeypatch.setenv('FCA_MAX_FILE_PARALLELISM','8');monkeypatch.setenv('FCA_MAX_ACCOUNT_PARALLELISM','4')
+    assert admin.put('/api/admin/acquisition-settings',json={'file_parallelism':8,'account_parallelism':4,'reserve_bytes':2147483648}).status_code==200
+    config=admin.get('/api/admin/acquisition-settings').json()
+    assert config['file_parallelism']==8 and config['ceilings']['account_parallelism']==4
+    monkeypatch.setenv('FCA_MAX_FILE_PARALLELISM','4');monkeypatch.setenv('FCA_MAX_ACCOUNT_PARALLELISM','2')
+    assert admin.get('/api/admin/acquisition-settings').json()['file_parallelism']==4
+    assert admin.put('/api/admin/acquisition-settings',json={'file_parallelism':8,'account_parallelism':4,'reserve_bytes':2147483648}).status_code==422
+
+
 def test_disk_reserve_is_enforced_before_and_during_write(monkeypatch):
     from collections import namedtuple
     usage=namedtuple('usage','total used free')
@@ -525,6 +577,7 @@ def test_real_pause_then_resume_retains_files_and_rechecks_hashes(storage,monkey
     assert c.post(base+'/pause',json={}).status_code==200
     worker.join(15);assert not worker.is_alive() and not errors
     assert row(job)['status']=='paused'
+    assert row(job)['reason']=='Pause vom Benutzer angefordert.'
     assert c.post(base+'/resume',json={}).status_code==200
     adapter(monkeypatch,Synthetic());acquisitions.run_job(UUID(job['id']))
     assert row(job)['status']=='completed' and row(job)['files_done']==8

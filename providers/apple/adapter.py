@@ -1,8 +1,9 @@
-"""Phase-2 iCloud test adapter. Not wired to the application or acquisition queue.
+"""Pinned isolated Rclone session, also used by the acquisition queue.
 
 Uses pinned upstream rclone, authenticated private Unix IPC, an encrypted config
-per case/account, and explicit single-directory read scope. No remote writes or
-recursive scans are exposed. Real Apple acceptance requires an approved account.
+per case/account. This base class exposes local configuration and one-level
+reads; the acquisition subclass traverses only the case-authorized job scope.
+No provider mutation API is exposed. Real Apple acceptance requires approval.
 """
 from __future__ import annotations
 
@@ -83,8 +84,8 @@ class _UnixHTTP(http.client.HTTPConnection):
 class ICloudSession:
     """One serialized session; caller supplies an external per-account encryption key.
 
-    Development/test tool only. Case authorization and persistent audit must be
-    added at the application boundary before exposing this through the web API.
+    Case authorization and persistent audit are enforced by FCA's API and queue.
+    Standalone development callers must supply their explicitly approved scope.
     """
     _ENDPOINTS = frozenset(('core/version', 'config/providers', 'config/unlock',
                             'config/listremotes', 'config/create', 'config/update',
@@ -142,7 +143,9 @@ class ICloudSession:
             self._process = subprocess.Popen(
                 [self.binary, 'rcd', '--rc-addr', 'unix://' + str(self._socket),
                  '--config', str(self.config_path), '--cache-dir', str(runtime / 'cache'),
-                 '--ask-password=false', '--log-level', 'EMERGENCY'],
+                 '--ask-password=false', '--log-level', 'EMERGENCY',
+                 '--buffer-size', '256k', '--multi-thread-streams', '0',
+                 '--max-stats-groups', '32'],
                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 env=environment, start_new_session=True, umask=0o077)
             for _ in range(100):
@@ -174,16 +177,26 @@ class ICloudSession:
                                {'Content-Type': 'application/json', 'Authorization': self._authorization})
             response = connection.getresponse()
             body = response.read(16 * 1024 * 1024 + 1)
-            if response.status != 200 or len(body) > 16 * 1024 * 1024:
-                raise ProviderError('iCloud adapter request failed; verify connection, credentials and 2FA.')
+            if len(body) > 16 * 1024 * 1024:
+                raise ProviderError('Anbieterantwort überschreitet die Sicherheitsgrenze.')
             result = json.loads(body)
-            if not isinstance(result, dict) or result.get('error'):
+            if response.status != 200:
+                self._request_failed(result)
+            # job/status uses an error field as data for a finished failed job;
+            # the acquisition adapter must classify it, not lose its retry kind.
+            if not isinstance(result, dict) or (result.get('error') and endpoint!='job/status'):
                 raise ProviderError('iCloud adapter returned an unsuccessful response.')
             return result
-        except (OSError, http.client.HTTPException, ValueError):
-            raise ProviderError('iCloud adapter communication failed.') from None
+        except (OSError, http.client.HTTPException, ValueError) as error:
+            self._communication_failed(error)
         finally:
             connection.close()
+
+    def _request_failed(self, result):
+        raise ProviderError('Anbieterabfrage fehlgeschlagen. Verbindung und Anmeldung prüfen.')
+
+    def _communication_failed(self,error):
+        raise ProviderError('Anbieterkommunikation fehlgeschlagen.') from None
 
     def _check_encrypted(self, allow_empty=False):
         data = self.config_path.read_bytes()

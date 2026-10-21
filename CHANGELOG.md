@@ -1,5 +1,16 @@
 # Änderungen
 
+## Stufe B – Entwicklungszweig – 2026-10-22
+
+- Vorhandenen OAuth-/PKCE-Ablauf zusätzlich an Sitzung, Anbieter, Client und Rückkehradresse gebunden.
+- Google-/OneDrive-Dateitransport über isoliertes Rclone mit getrennten verschlüsselten Konfigurationen und Erhalt erneuerter Tokens; REST-Inventar und Kalender weiterverwendet.
+- Google-ID-Download für gleichnamige Dateien; OneDrive-ID-, Versions- und verfügbare Quellhashprüfung.
+- Berechtigungsfehler von API-Drosselung getrennt; genauere Umfangs- und Bytebilanz, eindeutige Benutzerpause und künftige Speicher-Auslösewerte.
+- Migration 0009 für begrenzte Serverprofile; Laborstandard bleibt 4 Dateien / 2 Konten.
+- Parametrisierter HTTPS-Prüfplan und Administrations-/Testanleitung, ohne DNS-/Zertifikatsänderungen.
+- Synthetische PostgreSQL-, Browser-, Rclone- und Ressourcenprüfungen; bestehender Lauf und Beweisdaten erhalten.
+- Noch keine Übernahme in laufende Laborcontainer und keine Echtkonto-Abnahme.
+
 ## Flachere Cloud-Karten – 2026-10-21
 
 - Status und Pausengrund rechts im Kartenkopf; alle Mengen- und Fortschrittsangaben unter dem Balken.

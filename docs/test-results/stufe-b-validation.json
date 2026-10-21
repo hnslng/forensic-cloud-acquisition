@@ -1,0 +1,278 @@
+{
+  "recorded_at_utc": "2026-10-21T22:07:44.857289+00:00",
+  "base_commit": "4553cc4527968a6e6c08a67dc044776ff6550f62",
+  "branch": "codex/stage-b-cloud-acquisition",
+  "source_sha256": {
+    "backend/acquisitions.py": "cedec37c7fad67a0f3323b00883522b6dac878d795a933e34872d411c73fd16a",
+    "backend/main.py": "f19019689fc7ba3c53adb723967816a1f7915c5dfe15477e787870ff48afbab5",
+    "backend/oauth.py": "6af9133ed939d2dcd22f4f83bc598c3383dfee4cd05fa639b44c3486bfb60bff",
+    "compose.yaml": "cc54f9a818e947925621c1a22297a54e1846b222c6585d3bcb60533d90fb723d",
+    "frontend/app.js": "ce53bc8a8f6a2185e516ce482181a860056e8f9c0e6ffc7bd0e8125afdc470b9",
+    "infrastructure/docker/Dockerfile": "4f821875e80839305bc3c4114706a2260fd785101a9ee1d57cb7a82488d71fda",
+    "providers/acquisition.py": "3aa898be78d7ba30d50dc9f37c8a44927b68f05be237cc313a3917bbcfa6ae05",
+    "providers/apple/adapter.py": "12700b501aa2ab6738288e124bdb1ab1fb9a8cd4861a9f85bfc4dac84fa0e63c",
+    "providers/google/README.md": "155b4a82b473e5d64533fd30a1eb07d3ff09d110100ea1231208cae2e9801191",
+    "providers/microsoft/README.md": "edae9aee956bfb75ee9934476d88d60cdf650887ad0a7b28766d571fbf519c3a",
+    "scripts/configure_phase1_database.py": "f2613c49aae18a8f5723ee995fdd26feffb672a7e9e48e33606eb2ff080a01eb",
+    "scripts/run_phase1_tests.sh": "029041d8b7d405cae1646caa9c59bded99dd26683421ea21add2f4d7227a86a6",
+    "tests/test_acquisitions.py": "45a935a3b10fa9a0d490c07b4417fa4d6bca22fa52b6dc81e17fe9094e9deabc",
+    "tests/test_browser.py": "b2c94291db8aaf6cc35609ec37af669cca7b6bbc1750d0a8879b0a79c1f118ab",
+    "backend/runtime_limits.py": "5fd10310e64f229386162b50e97fcc82cf3803b8805ef7e829b2b33b1e65bfbe",
+    "migrations/0009_parallelism_profiles.sql": "43357ac894f4db523280680b86265a03121c3e3f6f5acd6bdea33aaabdc68af6",
+    "providers/integrity.py": "ad69beb1bf6e93553e2167a8f0f94ebe5935759d0f22e5c2a824f3c725bbc8b4",
+    "providers/rclone_files.py": "0c3d99ae521b7b0ef0a68de70ec37c90ec7b9836de52a1790c18d2bc1429cdc4",
+    "scripts/measure_synthetic_worker.py": "946538829392ce3521addf444ee088e2b8fdc238c57442e41cc58b4ed3d27867",
+    "scripts/prepare_private_https.py": "ac3bbab46b01d01aada4126d5dc2945f8f1a2daaeacedf6b90f9285ae9bc513c",
+    "tests/test_cloud_transport.py": "1e3dad44f5cebea104a42a91f219bf146af01903873b496c56e3d84d7ca01b5c"
+  },
+  "synthetic_only": true,
+  "real_provider_login_tested": false,
+  "real_provider_speed_measured": false,
+  "production_deployed": false,
+  "github_ci": {
+    "verified": false,
+    "reason": "GitHub connection now confirmed; final commit workflow must finish before deployment."
+  },
+  "test_results": {
+    "backend_full": 73,
+    "browser_full": 10,
+    "icloud_offline": 10,
+    "infrastructure": 11,
+    "cross_site_oauth_targeted": 2,
+    "pause_and_report_targeted": 4
+  },
+  "https_plan": {
+    "nginx_syntax_checked": true,
+    "service_pid_unchanged": true,
+    "existing_certificate_files_read_only": true,
+    "issued_certificates": 0,
+    "dns_changes": 0,
+    "deployed_configuration": false
+  },
+  "preservation": {
+    "evidence_archive_content_matches": true,
+    "credentials_archive_content_matches": true,
+    "database_tables_checked": 16,
+    "database_unchanged": true,
+    "changed_tables": [],
+    "job_summary": {
+      "jobs": [
+        {
+          "status": "paused",
+          "inventory_complete": false,
+          "files_done": 49,
+          "bytes_done": 352360291
+        }
+      ],
+      "files": [
+        {
+          "status": "failed",
+          "count": 1
+        },
+        {
+          "status": "completed",
+          "count": 49
+        },
+        {
+          "status": "queued",
+          "count": 210
+        }
+      ]
+    }
+  },
+  "measurements": {
+    "matrix-1-1": {
+      "synthetic_only": true,
+      "scope": "local streamed aliases, artificial 8MiB/s per process cap; no cloud/FCA queue",
+      "accounts": 1,
+      "transfers_per_account": 1,
+      "seconds": 15.487,
+      "completed_files": 32,
+      "verified_sha256_files": 32,
+      "bytes": 33554432,
+      "mib_per_second": 2.07,
+      "peak_memory_bytes": 49356800,
+      "initial_memory_bytes": 44339200,
+      "final_memory_bytes": 48304128,
+      "cpu_percent_of_one_core": 4.05,
+      "memory_events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "checkpoints": []
+    },
+    "matrix-1-2": {
+      "synthetic_only": true,
+      "scope": "local streamed aliases, artificial 8MiB/s per process cap; no cloud/FCA queue",
+      "accounts": 1,
+      "transfers_per_account": 2,
+      "seconds": 15.235,
+      "completed_files": 70,
+      "verified_sha256_files": 70,
+      "bytes": 73400320,
+      "mib_per_second": 4.59,
+      "peak_memory_bytes": 54005760,
+      "initial_memory_bytes": 42610688,
+      "final_memory_bytes": 51879936,
+      "cpu_percent_of_one_core": 8.73,
+      "memory_events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "checkpoints": []
+    },
+    "matrix-1-4": {
+      "synthetic_only": true,
+      "scope": "local streamed aliases, artificial 8MiB/s per process cap; no cloud/FCA queue",
+      "accounts": 1,
+      "transfers_per_account": 4,
+      "seconds": 15.061,
+      "completed_files": 112,
+      "verified_sha256_files": 112,
+      "bytes": 117440512,
+      "mib_per_second": 7.44,
+      "peak_memory_bytes": 60354560,
+      "initial_memory_bytes": 44924928,
+      "final_memory_bytes": 56152064,
+      "cpu_percent_of_one_core": 14.37,
+      "memory_events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "checkpoints": []
+    },
+    "matrix-2-1": {
+      "synthetic_only": true,
+      "scope": "local streamed aliases, artificial 8MiB/s per process cap; no cloud/FCA queue",
+      "accounts": 2,
+      "transfers_per_account": 1,
+      "seconds": 15.164,
+      "completed_files": 60,
+      "verified_sha256_files": 60,
+      "bytes": 62914560,
+      "mib_per_second": 3.96,
+      "peak_memory_bytes": 76873728,
+      "initial_memory_bytes": 63451136,
+      "final_memory_bytes": 72781824,
+      "cpu_percent_of_one_core": 8.01,
+      "memory_events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "checkpoints": []
+    },
+    "matrix-2-2": {
+      "synthetic_only": true,
+      "scope": "local streamed aliases, artificial 8MiB/s per process cap; no cloud/FCA queue",
+      "accounts": 2,
+      "transfers_per_account": 2,
+      "seconds": 15.282,
+      "completed_files": 112,
+      "verified_sha256_files": 112,
+      "bytes": 117440512,
+      "mib_per_second": 7.33,
+      "peak_memory_bytes": 81694720,
+      "initial_memory_bytes": 63819776,
+      "final_memory_bytes": 77217792,
+      "cpu_percent_of_one_core": 13.51,
+      "memory_events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "checkpoints": []
+    },
+    "matrix-2-4": {
+      "synthetic_only": true,
+      "scope": "local streamed aliases, artificial 8MiB/s per process cap; no cloud/FCA queue",
+      "accounts": 2,
+      "transfers_per_account": 4,
+      "seconds": 15.075,
+      "completed_files": 200,
+      "verified_sha256_files": 200,
+      "bytes": 209715200,
+      "mib_per_second": 13.27,
+      "peak_memory_bytes": 91168768,
+      "initial_memory_bytes": 58093568,
+      "final_memory_bytes": 82718720,
+      "cpu_percent_of_one_core": 23.53,
+      "memory_events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "checkpoints": []
+    },
+    "soak-180": {
+      "synthetic_only": true,
+      "scope": "local streamed aliases, artificial 8MiB/s per process cap; no cloud/FCA queue",
+      "accounts": 2,
+      "transfers_per_account": 4,
+      "seconds": 180.001,
+      "completed_files": 2496,
+      "verified_sha256_files": 2496,
+      "bytes": 2617245696,
+      "mib_per_second": 13.87,
+      "peak_memory_bytes": 112873472,
+      "initial_memory_bytes": 62238720,
+      "final_memory_bytes": 104423424,
+      "cpu_percent_of_one_core": 23.47,
+      "memory_events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "checkpoints": [
+        {
+          "elapsed": 30.109,
+          "memory_bytes": 90304512
+        },
+        {
+          "elapsed": 59.761,
+          "memory_bytes": 95481856
+        },
+        {
+          "elapsed": 90.074,
+          "memory_bytes": 102391808
+        },
+        {
+          "elapsed": 120.163,
+          "memory_bytes": 102846464
+        },
+        {
+          "elapsed": 149.939,
+          "memory_bytes": 103198720
+        },
+        {
+          "elapsed": 180.0,
+          "memory_bytes": 104423424
+        }
+      ]
+    }
+  }
+}

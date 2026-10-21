@@ -1075,6 +1075,8 @@ async function loadDownloadSettings(){
   if(currentUser?.role!=="admin")return;
   const result=await api("/admin/acquisition-settings");
   const form=$("download-settings");form.elements.file_parallelism.value=result.file_parallelism;form.elements.account_parallelism.value=result.account_parallelism;
+  form.elements.file_parallelism.max=result.ceilings?.file_parallelism || 4;
+  form.elements.account_parallelism.max=result.ceilings?.account_parallelism || 2;
   if(result.resources?.available_memory_bytes) $("technical-status").textContent += " · " + formatBytes(result.resources.available_memory_bytes) + " RAM verfügbar";
   $("oauth-configured").textContent="Anmeldung eingerichtet: Google "+(result.providers.google?"ja":"nein")+" · Microsoft "+(result.providers.microsoft?"ja":"nein");
   $("oauth-settings").hidden=false;$("oauth-settings").elements.redirect_uri.value=location.origin+"/api/oauth/callback";

@@ -1,5 +1,7 @@
 # Stufe A – Machbarkeit von Google Drive und OneDrive
 
+> Historischer Befund aus Commit `4553cc4`. Der aktuelle Entwicklungsstand steht unter [Stufe B](stufe-b-status.md). Die damaligen Befundprüfungen sind mit dem damaligen Code zu reproduzieren; behobene Fehler müssen heute nicht mehr reproduzierbar sein.
+
 Stand: 21.10.2026. **Stufe B ist nicht freigegeben und wurde nicht begonnen.**
 
 Geprüft wurden das bestehende Repository, die gepinnte Rclone-Version 1.75.2, aktuelle Anbieterunterlagen und die Test-VM ausschließlich lesend. Lokale Versuche verwenden synthetische Dateien und einen simulierten OAuth-Anbieter. Es erfolgten keine echten Cloud-Anmeldungen, keine Bereitstellung und keine Änderung an Beweisdaten oder anderen Systemen.

@@ -47,6 +47,8 @@ services:
     environment:
       FCA_DB_PASSWORD_FILE: /run/secrets/api_password
       FCA_PUBLIC_ORIGIN: ${FCA_PUBLIC_ORIGIN:?Set HTTPS origin}
+      FCA_MAX_FILE_PARALLELISM: ${FCA_MAX_FILE_PARALLELISM:-4}
+      FCA_MAX_ACCOUNT_PARALLELISM: ${FCA_MAX_ACCOUNT_PARALLELISM:-2}
       FCA_EVIDENCE_ROOT: /evidence
       FCA_ICLOUD_ENABLED: "1"
       FCA_CLOUD_AUTH_ROOT: /cloud-auth
@@ -90,6 +92,8 @@ services:
     security_opt: [no-new-privileges:true]
     environment:
       FCA_DB_PASSWORD_FILE: /run/secrets/api_password
+      FCA_MAX_FILE_PARALLELISM: ${FCA_MAX_FILE_PARALLELISM:-4}
+      FCA_MAX_ACCOUNT_PARALLELISM: ${FCA_MAX_ACCOUNT_PARALLELISM:-2}
       FCA_EVIDENCE_ROOT: /evidence
       FCA_ICLOUD_ENABLED: "1"
       FCA_CLOUD_AUTH_ROOT: /cloud-auth

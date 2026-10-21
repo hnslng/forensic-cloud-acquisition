@@ -92,6 +92,43 @@ def add_cloud(page, provider, label):
     expect(page.locator('.cloud-name').filter(has_text=label)).to_be_visible()
 
 
+@pytest.mark.parametrize('provider',['google','microsoft'])
+def test_synthetic_oauth_browser_return_and_two_separate_accounts(page,monkeypatch,tmp_path,provider):
+    """Browser/CSRF flow only; simulated provider, no DNS/TLS or real login claim."""
+    from backend import oauth
+    from urllib.parse import urlsplit,parse_qs,urlencode
+    key=tmp_path/'key';key.write_text('SYNTHETIC-'+('x'*64))
+    root=tmp_path/'auth';root.mkdir(mode=0o700)
+    monkeypatch.setenv('FCA_CLOUD_MASTER_KEY_FILE',str(key));monkeypatch.setenv('FCA_CLOUD_AUTH_ROOT',str(root))
+    monkeypatch.setattr(oauth,'configuration',lambda *_:{'client_id':'SYNTHETIC','client_secret':'SYNTHETIC','redirect_uri':URL+'/api/oauth/callback'})
+    monkeypatch.setattr(oauth,'exchange',lambda _provider,values:{'access_token':'SYNTHETIC-ACCESS-'+values['code'],'refresh_token':'SYNTHETIC-REFRESH-'+values['code'],'expires_in':3600})
+    observed=[]
+    def authorize(route):
+        query=parse_qs(urlsplit(route.request.url).query)
+        assert query['code_challenge_method']==['S256']
+        observed.append(query['state'][0])
+        destination=URL+'/api/oauth/callback?'+urlencode({'code':'SYNTHETIC-'+str(len(observed)),'state':query['state'][0]})
+        # Commit a real cross-site document before returning, exercising Strict
+        # cookies with the anonymous callback page and same-origin CSRF POST.
+        route.fulfill(status=200,content_type='text/html',body='<script>location.replace('+__import__('json').dumps(destination)+')</script>')
+    page.route('https://accounts.google.com/**',authorize)
+    page.route('https://login.microsoftonline.com/**',authorize)
+    create_case(page)
+    for index in (1,2):
+        label='SYNTHETIC '+provider+' '+str(index)
+        add_cloud(page,provider,label)
+        card=page.locator('.cloud-card').filter(has=page.locator('.cloud-name',has_text=label))
+        card.get_by_role('button',name='Anmelden',exact=True).click()
+        expect(card.locator('.status-badge')).to_have_text('Verbunden')
+        expect(page.locator('#start-overlay')).not_to_be_visible()
+        expect(card.get_by_role('button',name='Sicherung starten',exact=True)).to_be_enabled()
+        assert page.url==URL+'/'
+        assert page.evaluate("sessionStorage.getItem('fca-oauth')") is None
+        assert 'SYNTHETIC-ACCESS' not in page.evaluate('JSON.stringify(localStorage)')
+    assert len(set(observed))==2
+    assert len(list(root.rglob('oauth.enc')))==2
+
+
 def test_start_nested_login_case_and_multi_cloud_persistence(page):
     expect(page.locator('#start-overlay')).to_be_visible()
     assert page.locator('#workspace-frame').evaluate('(el) => el.inert')
