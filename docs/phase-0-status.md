@@ -83,6 +83,7 @@ ist angelegt; noch nicht entwickelte Module sind ausdrücklich so gekennzeichnet
 - [x] Proxmox-Zugriff, Ressourcen, Gäste, Storage und Bridge lesend geprüft.
 - [x] GitHub-Repository privat angelegt und SSH-Zugriff geprüft.
 - [x] Lokale Struktur, Dokumentation, Tests und CI-Konfiguration vorbereitet.
+- [x] 11 lokale Tests und erste Compose-/PostgreSQL-CI-Abnahme bestanden.
 - [ ] VM-Erstellung freigegeben und durchgeführt.
 - [ ] Debian-Boot, DHCP/DNS, SSH, Zeitsynchronisierung geprüft.
 - [ ] Firewall und private Erreichbarkeit einschließlich IPv6 geprüft.

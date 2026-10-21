@@ -29,6 +29,14 @@ Docker ist auf dem lokalen Entwicklungsrechner nicht im verfügbaren Pfad;
 es wird für diese Vorbereitung kein bestehender lokaler Containerdienst verändert.
 Ein erfolgreicher CI-Lauf ist separat vom noch offenen VM-Nachweis zu benennen.
 
+Der erste [GitHub-Actions-Lauf](https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39618375109)
+bestand am 21.10.2026: lokale Tests auf dem Runner, Compose-Validierung,
+realer PostgreSQL-Containerstart, Bootstrap-Migration und erwartete Ablehnung
+einer wiederholten Bootstrap-Migration. Laufzeit 31 Sekunden. Die dabei
+angezeigte Node-20-Abkündigung wurde durch Umstellung auf den festgeschriebenen
+aktuellen Checkout-v6-Stand behoben. Dieser CI-Test erfolgte auf einem
+GitHub-Runner und weist weder die FCA-VM noch eine Cloud-Integration nach.
+
 ## Spätere Abdeckung
 
 Phasen 1–6 ergänzen Fälle und Fallrechte, mehrere gleiche Providerkonten,
