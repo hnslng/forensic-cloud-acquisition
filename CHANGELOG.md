@@ -1,5 +1,10 @@
 # Änderungen
 
+## Live-Downloads – 2026-10-21
+
+- Echte iCloud-Zwischenstände während großer Dateiübertragungen und geglättete Gesamtgeschwindigkeit.
+- Freie Downloadplätze werden fortlaufend nachbesetzt; Anzeige der belegten und konfigurierten Plätze sowie vorübergehender Drosselung.
+
 ## Laborbereinigung – 2026-10-21
 
 - Historische Fallreferenzen bleiben unabhängig von der aktiven Fallverwaltung erhalten. Eine ausdrücklich angeforderte administrative Entfernung von Testfällen verändert bestehende Audit-Einträge nicht.

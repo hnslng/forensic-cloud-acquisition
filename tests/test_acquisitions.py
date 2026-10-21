@@ -413,3 +413,64 @@ def test_graceful_shutdown_requeues_discovery_without_losing_inventory(storage,m
     finally: acquisitions.STOP.clear()
     adapter(monkeypatch,Synthetic());acquisitions.run_job(UUID(job['id']))
     assert row(job)['status']=='completed' and row(job)['files_done']==8
+
+
+def test_refills_slots_while_large_transfer_is_running_and_exposes_live_speed(storage,monkeypatch):
+    c=client();case,account,url=setup(c);job=enqueue(c,url)
+    release=threading.Event();started=threading.Event();later=threading.Event();errors=[]
+    class Continuous(Synthetic):
+        def inventory(self,*args):
+            for i in range(12):
+                yield {'id':str(i),'path':'file'+str(i),'size':4096,'metadata':{}}
+        def download(self,record,target,reserve,progress):
+            if record['source_id']=='0':
+                target.write_bytes(b'x'*2048);progress(2048);started.set()
+                assert release.wait(20)
+                target.write_bytes(b'x'*4096);progress(4096)
+            else:
+                if int(record['source_id'])>=4:later.set()
+                target.write_bytes(b'x'*4096);progress(4096)
+    adapter(monkeypatch,Continuous())
+    def work():
+        try:acquisitions.run_job(UUID(job['id']))
+        except BaseException as error:errors.append(error)
+    worker=threading.Thread(target=work);worker.start()
+    try:
+        assert started.wait(10)
+        assert later.wait(10), 'Free slots were not refilled while the large file was active'
+        deadline=time.monotonic()+5
+        while time.monotonic()<deadline:
+            public=c.get('/api/cases/'+case['id']+'/cloud-accounts').json()[0]['acquisition']
+            if public['speed']>0 and public['files_active']>=1:break
+            time.sleep(.05)
+        assert 1<=public['files_active']<=4 and public['speed']>0
+        assert public['configured_limit']==4 and public['transfer_limit']==4
+        assert public['bytes_done']>=2048 and public['status']=='running'
+    finally:
+        release.set();worker.join(20)
+    assert not errors and not worker.is_alive()
+    assert row(job)['files_done']==12 and row(job)['status']=='completed'
+
+
+def test_apple_live_bytes_use_job_stats_before_temporary_target_exists(monkeypatch,tmp_path):
+    from providers.acquisition import AppleDownload
+    from providers.apple.adapter import AccountContext
+    from uuid import uuid4
+    adapter=AppleDownload(tmp_path/'config','x'*48,AccountContext(uuid4(),uuid4()))
+    target=tmp_path/'test.part';calls=[];progress=[];checks=[False,False,True]
+    def rpc(endpoint,payload):
+        calls.append((endpoint,payload))
+        if endpoint=='operations/copyfile':return {'jobid':7}
+        if endpoint=='job/status':
+            finished=checks.pop(0)
+            if finished:target.write_bytes(b'x'*2048)
+            return {'finished':finished,'success':finished}
+        if endpoint=='core/stats':
+            assert payload=={'group':'job/7'}
+            return {'bytes':999999,'transferring':[{'bytes':1024 if len(progress)==0 else 2048}]}
+        if endpoint=='operations/stat':return {'item':{'Size':2048,'ModTime':'synthetic'}}
+        raise AssertionError(endpoint)
+    monkeypatch.setattr(adapter,'_rpc',rpc);monkeypatch.setattr('providers.acquisition.time.sleep',lambda _:None)
+    adapter.download({'category':'drive','source_id':'synthetic','metadata':{'Size':2048,'ModTime':'synthetic'}},target,0,progress.append)
+    assert progress[:2]==[1024,2048] and progress[-1]==2048
+    assert target.read_bytes()==b'x'*2048

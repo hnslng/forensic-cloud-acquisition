@@ -40,7 +40,7 @@ class WebProvider:
     def __init__(self, provider, case_id, account_id):
         self.provider,self.case_id,self.account_id=provider,case_id,account_id
         self.base = 'https://www.googleapis.com' if provider=='google' else 'https://graph.microsoft.com/v1.0'
-        self.limits=[]; self.throttled=False
+        self.limits=[]; self.throttled=False; self.throttled_until=0
     def identity(self):
         if self.provider=='google':
             return self.json(self.base+'/drive/v3/about?fields=user')['user']
@@ -69,6 +69,7 @@ class WebProvider:
                 try: delay=max(1,int(parsedate_to_datetime(error.headers['Retry-After']).timestamp()-time.time()))
                 except (ValueError,TypeError,KeyError): delay=30
             self.throttled=True
+            self.throttled_until=max(self.throttled_until,time.monotonic()+max(30,delay))
             raise Retryable(delay, error.code in (429,403)) from None
         raise ProviderError('Inhalt nicht zugänglich oder Anmeldung abgelaufen (HTTP '+str(error.code)+').') from None
     def json(self,url):
@@ -187,7 +188,7 @@ class WebProvider:
             raise ProviderError('Quelldatei wurde während der Sicherung verändert. Neuen Sicherungslauf starten.')
 
 class AppleDownload(ICloudSession):
-    _ENDPOINTS=ICloudSession._ENDPOINTS | frozenset(('operations/copyfile','operations/stat','job/status','job/stop'))
+    _ENDPOINTS=ICloudSession._ENDPOINTS | frozenset(('operations/copyfile','operations/stat','job/status','job/stop','core/stats'))
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs); self.limits=[]
     def identity(self):
@@ -217,15 +218,20 @@ class AppleDownload(ICloudSession):
         if target.parent.resolve()!=target.parent or not target.name.endswith('.part'): raise ProviderError('Unsicheres Übertragungsziel.')
         result=self._rpc('operations/copyfile',{'srcFs':fs,'srcRemote':record['source_id'],'dstFs':str(target.parent),'dstRemote':target.name,'_async':True,
                          '_config':{'Transfers':1,'MultiThreadStreams':0,'BufferSize':262144,'LowLevelRetries':3,'Retries':1}})
-        job=result['jobid']
+        job=result['jobid'];count=0
         try:
             while True:
                 evidence.space(reserve)
-                progress(target.stat().st_size if target.exists() else 0)
                 state=self._rpc('job/status',{'jobid':job})
                 if state.get('finished'):
                     if not state.get('success'): raise Retryable(30,True)
                     break
+                # rclone writes its own .partial file before publishing the .part target.
+                # Read only this job's live counters, never cumulative retry/global bytes.
+                stats=self._rpc('core/stats',{'group':'job/'+str(job)})
+                transferring=stats.get('transferring') or []
+                if transferring: count=max(0,sum(int(item.get('bytes',0)) for item in transferring))
+                progress(count)
                 time.sleep(.5)
             after=self._rpc('operations/stat',{'fs':fs,'remote':record['source_id']}).get('item',{})
             before=record['metadata']

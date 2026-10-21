@@ -413,8 +413,10 @@ function renderClouds() {
     const connectionStatus = account.connection_status;
     const job = account.acquisition;
     const busy = job && ["queued","running","pausing"].includes(job.status);
+    const activeFiles = busy ? Number(job.files_active ?? 0) : 0;
+    const downloading = activeFiles > 0;
     const discovering = job?.status === "running" && !job.inventory_complete;
-    const jobLabels = {queued:"Wartet", running:discovering ? (job.bytes_done > 0 || job.files_done > 0 ? "Erfassen und herunterladen" : "Dateien werden erfasst") : "Dateien werden heruntergeladen", pausing:"Wird pausiert", paused:"Pausiert", failed:"Fehlgeschlagen", incomplete:"Unvollständig", completed:"Abgeschlossen"};
+    const jobLabels = {queued:"Wartet", running:discovering ? (downloading || job.bytes_done > 0 || job.files_done > 0 ? "Erfassen und herunterladen" : "Dateien werden erfasst") : "Dateien werden heruntergeladen", pausing:"Wird pausiert", paused:"Pausiert", failed:"Fehlgeschlagen", incomplete:"Unvollständig", completed:"Abgeschlossen"};
     const connectionLabel =
       {
         connected: "Verbunden",
@@ -466,7 +468,8 @@ function renderClouds() {
     const metrics = node("div", undefined, "transfer-metrics");
     metrics.append(
       node("span", job ? "Datenmenge: " + formatBytes(job.bytes_done) : "Datenmenge: —"),
-      node("span", job?.speed ? formatBytes(job.speed) + "/s" : "Geschwindigkeit: —"),
+      node("span", job?.status === "running" ? activeFiles + " von " + job.configured_limit + " Downloads aktiv" + (job.transfer_limit < job.configured_limit ? " · vorübergehend gedrosselt" : "") : "Downloads: —"),
+      node("span", job?.status === "running" ? "Gesamtgeschwindigkeit: " + formatBytes(job.speed || 0) + "/s" : "Geschwindigkeit: —"),
       node("span", !discovering && job?.speed && job.total_known && job.bytes_total > job.bytes_done ? "Restzeit: ca. " + Math.ceil((job.bytes_total-job.bytes_done)/job.speed/60) + " Min." : "Restzeit: —"),
       node("span", job ? "SHA-256: " + job.files_done + " Dateien geprüft" : "Prüfsummen: noch nicht verfügbar"),
     );

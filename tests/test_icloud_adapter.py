@@ -185,3 +185,27 @@ def test_actual_async_copy_inventory_and_parallel_files_offline(tmp_path,monkeyp
             adapter.download({'source_id':record['id'],'metadata':record['metadata'],'category':'drive'},target,0,lambda _:None)
             assert target.read_bytes()==b'z'*record['size']
         with ThreadPoolExecutor(max_workers=4) as pool:list(pool.map(transfer,records))
+
+
+def test_real_rclone_live_stats_before_atomic_target_publication(tmp_path,monkeypatch):
+    from providers.acquisition import AppleDownload
+    from providers.apple.adapter import AccountContext
+    from backend import evidence
+    os.chmod(tmp_path,0o700)
+    config=tmp_path/'config';config.mkdir(mode=0o700)
+    source=tmp_path/'source';source.mkdir()
+    payload=b'z'*(4*1024*1024);(source/'large').write_bytes(payload)
+    destination=tmp_path/'destination';destination.mkdir();target=destination/'large.part'
+    monkeypatch.setattr(evidence,'space',lambda *_:None)
+    observed=[]
+    with AppleDownload(config/'rclone.conf',KEY,AccountContext(uuid4(),uuid4())) as adapter:
+        adapter._rpc('config/create',{'name':adapter.remote,'type':'alias','parameters':{'remote':str(source)},'opt':{'nonInteractive':True}})
+        record=next(adapter.inventory('drive'));rpc=adapter._rpc
+        def limited(endpoint,payload):
+            if endpoint=='operations/copyfile':payload={**payload,'_config':{**payload['_config'],'BwLimit':'1M'}}
+            return rpc(endpoint,payload)
+        monkeypatch.setattr(adapter,'_rpc',limited)
+        def progress(count):observed.append((count,target.exists()))
+        adapter.download({'source_id':record['id'],'metadata':record['metadata'],'category':'drive'},target,0,progress)
+    assert any(0<count<len(payload) and not exists for count,exists in observed)
+    assert target.read_bytes()==payload

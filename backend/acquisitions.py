@@ -1,4 +1,5 @@
 """Durable PostgreSQL queue. One worker coordinator, at most two account tasks."""
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 import json
 import os
@@ -17,7 +18,7 @@ from providers.apple.adapter import ProviderError
 STOP=threading.Event()
 CATEGORIES={'apple':('drive','photos'),'google':('drive','calendar'),'microsoft':('drive','calendar')}
 LABELS={'queued':'Wartet','running':'Läuft','pausing':'Wird pausiert','paused':'Pausiert','failed':'Fehlgeschlagen','incomplete':'Unvollständig','completed':'Abgeschlossen'}
-PUBLIC='id,case_id,account_id,category,scope_path,status,created_at,started_at,ended_at,bytes_done,bytes_total,files_done,speed,reason,inventory_complete,total_known,(SELECT count(*) FROM acquisition_files f WHERE f.acquisition_id=acquisitions.id) AS files_discovered'
+PUBLIC="id,case_id,account_id,category,scope_path,status,created_at,started_at,ended_at,bytes_done,bytes_total,files_done,speed,reason,inventory_complete,total_known,(SELECT count(*) FROM acquisition_files f WHERE f.acquisition_id=acquisitions.id) AS files_discovered,(SELECT count(*) FROM acquisition_files f WHERE f.acquisition_id=acquisitions.id AND f.status='running') AS files_active,(SELECT file_parallelism FROM acquisition_settings WHERE singleton) AS configured_limit,coalesce((resource_observations->>'transfer_limit')::integer,(SELECT file_parallelism FROM acquisition_settings WHERE singleton)) AS transfer_limit"
 
 def resources():
     data={}
@@ -107,7 +108,7 @@ def run_file(job, row, adapter, reserve, cancel):
             return
         except Retryable as error:
             # Reduce the next wave to one transfer after throttling/transient errors.
-            cancel.throttled=True
+            cancel.throttled_until=max(cancel.throttled_until,time.monotonic()+max(30,error.delay))
             if attempt==5: raise ProviderError('Übertragung nach fünf Versuchen fehlgeschlagen. Wiederaufnahme möglich.') from None
             deadline=time.monotonic()+max(error.delay,min(120,2**attempt))
             while time.monotonic()<deadline:
@@ -116,9 +117,12 @@ def run_file(job, row, adapter, reserve, cancel):
 
 def totals(conn,identifier,last):
     row=conn.execute("SELECT coalesce(sum(bytes_done),0) AS done,coalesce(sum(greatest(size,0)),0) AS total,count(*) FILTER(WHERE status='completed') AS files FROM acquisition_files WHERE acquisition_id=%s",(identifier,)).fetchone()
-    now=time.monotonic(); elapsed=max(.1,now-last[0]); speed=max(0,int((int(row['done'])-last[1])/elapsed))
+    now=time.monotonic();done=int(row['done'])
+    if not last: last.append((now,done))
+    last.append((now,done))
+    while len(last)>2 and last[1][0]<now-4: last.popleft()
+    elapsed=max(.1,now-last[0][0]);speed=max(0,int((done-last[0][1])/elapsed))
     conn.execute('UPDATE acquisitions SET bytes_done=%s,bytes_total=%s,files_done=%s,speed=%s,heartbeat=now() WHERE id=%s',(row['done'],row['total'],row['files'],speed,identifier))
-    last[:]=[now,int(row['done'])]
 
 def report(job,status,reason=None):
     directory=evidence.directory(job['directory']+'/_FCA')
@@ -167,12 +171,13 @@ def discover_files(job, adapter, config, cancel):
     with connect() as conn: conn.execute('UPDATE acquisitions SET inventory_complete=true,total_known=NOT EXISTS(SELECT 1 FROM acquisition_files WHERE acquisition_id=%s AND size<0),limitations=%s WHERE id=%s',(identifier,Jsonb(adapter.limits),identifier))
 
 def run_job(identifier):
-    last=[time.monotonic(),0]; cancel=threading.Event(); cancel.throttled=False
+    last=deque(); cancel=threading.Event(); cancel.throttled_until=0
     job=None
     try:
         with connect() as conn:
             job=conn.execute('SELECT j.*,a.provider FROM acquisitions j JOIN cloud_accounts a ON a.id=j.account_id WHERE j.id=%s',(identifier,)).fetchone()
             config=settings(conn)
+            last.append((time.monotonic(),int(job['bytes_done'])))
             if not allowed(conn,job): raise evidence.StorageError('Fallberechtigung wurde entzogen.')
             claimed=conn.execute("UPDATE acquisitions SET status='running',started_at=coalesce(started_at,now()),ended_at=NULL,reason=NULL,heartbeat=now() WHERE id=%s AND status='queued' RETURNING id",(identifier,)).fetchone()
             if not claimed: return
@@ -200,35 +205,40 @@ def run_job(identifier):
             # Exhausting the queue is only final after the producer has succeeded.
             with ThreadPoolExecutor(max_workers=1) as discovery_pool:
                 inventory=discovery_pool.submit(discover_files,job,adapter,config,cancel) if not job['inventory_complete'] else None
-                try:
-                    while True:
-                        inventory_finished=inventory is None or inventory.done()
-                        if inventory_finished and inventory is not None: inventory.result()
-                        if not job_active(identifier) or STOP.is_set(): raise evidence.StorageError('Sicherung unterbrochen.')
-                        with connect() as conn:
-                            config=settings(conn)
-                            rows=conn.execute("SELECT * FROM acquisition_files WHERE acquisition_id=%s AND status='queued' ORDER BY id LIMIT %s",(identifier,1 if cancel.throttled or getattr(adapter,'throttled',False) else config['file_parallelism'])).fetchall()
-                        if not rows:
-                            if inventory_finished: break
+                with ThreadPoolExecutor(max_workers=4) as transfer_pool:
+                    futures={};previous_limit=None
+                    try:
+                        while True:
+                            inventory_finished=inventory is None or inventory.done()
+                            if inventory_finished and inventory is not None: inventory.result()
+                            if not job_active(identifier) or STOP.is_set(): raise evidence.StorageError('Sicherung unterbrochen.')
+                            for future in list(futures):
+                                if not future.done(): continue
+                                row=futures.pop(future)
+                                try: future.result()
+                                except evidence.StorageError: raise
+                                except Exception as error:
+                                    reason=str(error) if isinstance(error,ProviderError) else 'Datei konnte nicht sicher übernommen werden.'
+                                    with connect() as conn: conn.execute("UPDATE acquisition_files SET status='failed',reason=%s WHERE id=%s",(reason,row['id']))
+                            with connect() as conn:
+                                config=settings(conn)
+                                limited=time.monotonic()<max(cancel.throttled_until,getattr(adapter,'throttled_until',0))
+                                limit=1 if limited else config['file_parallelism']
+                                if limit!=previous_limit:
+                                    conn.execute("UPDATE acquisitions SET resource_observations=resource_observations || %s WHERE id=%s",(Jsonb({'transfer_limit':limit}),identifier))
+                                    previous_limit=limit
+                                slots=max(0,limit-len(futures))
+                                pending=[row['id'] for row in futures.values()]
+                                rows=conn.execute("SELECT * FROM acquisition_files WHERE acquisition_id=%s AND status='queued' AND NOT (id=ANY(%s)) ORDER BY id LIMIT %s",(identifier,pending,slots)).fetchall() if slots else []
+                            for row in rows:
+                                futures[transfer_pool.submit(run_file,job,row,adapter,config['reserve_bytes'],cancel)]=row
+                            # A large file does not hold up refilling other available slots.
+                            if not futures and inventory_finished and not rows: break
+                            if futures: wait(futures,timeout=1,return_when=FIRST_COMPLETED)
+                            else: cancel.wait(.25)
                             with connect() as conn: totals(conn,identifier,last)
-                            cancel.wait(.25)
-                            continue
-                        with ThreadPoolExecutor(max_workers=len(rows)) as pool:
-                            futures={pool.submit(run_file,job,row,adapter,config['reserve_bytes'],cancel):row for row in rows}
-                            while futures:
-                                done,_=wait(futures,timeout=1,return_when=FIRST_COMPLETED)
-                                with connect() as conn: totals(conn,identifier,last)
-                                for future in done:
-                                    row=futures.pop(future)
-                                    try: future.result()
-                                    except evidence.StorageError:
-                                        cancel.set(); raise
-                                    except Exception as error:
-                                        reason=str(error) if isinstance(error,ProviderError) else 'Datei konnte nicht sicher übernommen werden.'
-                                        with connect() as conn: conn.execute("UPDATE acquisition_files SET status='failed',reason=%s WHERE id=%s",(reason,row['id']))
-                        if not job_active(identifier) or STOP.is_set(): raise evidence.StorageError('Sicherung unterbrochen.')
-                finally:
-                    cancel.set() # producer must exit before the shared provider session closes
+                    finally:
+                        cancel.set() # stop sibling transfers and producer before closing the provider
             with connect() as conn:
                 failed=conn.execute("SELECT count(*) AS n FROM acquisition_files WHERE acquisition_id=%s AND status!='completed'",(identifier,)).fetchone()['n']
                 current=conn.execute('SELECT limitations FROM acquisitions WHERE id=%s',(identifier,)).fetchone()

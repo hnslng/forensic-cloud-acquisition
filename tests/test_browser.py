@@ -288,13 +288,18 @@ def test_start_synthetic_acquisition_and_integrated_progress(page,monkeypatch):
     from test_acquisitions import Synthetic, adapter
     from uuid import UUID
     monkeypatch.setattr(cloud_auth,'status',lambda *_:{'connection_status':'connected','can_authenticate':True,'can_browse':True})
-    first=threading.Event();second=threading.Event()
+    first=threading.Event();second=threading.Event();download_release=threading.Event()
     class GrowingInventory(Synthetic):
         def inventory(self,*args):
             for i,entry in enumerate(super().inventory(*args)):
                 yield entry
                 if i==0: assert first.wait(20), 'First inventory gate timed out'
                 if i==1: assert second.wait(20), 'Second inventory gate timed out'
+        def download(self,record,target,reserve,progress):
+            if record['source_id']=='1':
+                target.write_bytes(b'x');progress(1)
+                assert download_release.wait(20)
+            return super().download(record,target,reserve,progress)
     source=GrowingInventory();adapter(monkeypatch,source)
     create_case(page);add_cloud(page,'apple','SYNTHETIC Sicherung')
     card=page.locator('.cloud-card').first
@@ -317,11 +322,15 @@ def test_start_synthetic_acquisition_and_integrated_progress(page,monkeypatch):
         page.set_viewport_size({'width':1440,'height':900})
         first.set()
         expect(card.locator('.progress-summary')).to_contain_text('2 Dateien erfasst',timeout=15000)
+        expect(card.locator('.transfer-metrics')).to_contain_text('1 von 4 Downloads aktiv',timeout=15000)
+        expect(card.locator('.transfer-metrics')).to_contain_text('Gesamtgeschwindigkeit:')
+        screenshot(page,'13-live-download-synthetic')
+        download_release.set()
         expect(card.locator('.progress-summary')).to_contain_text('2 Dateien geprüft',timeout=15000)
         expect(card.locator('.transfer-metrics')).to_contain_text('Restzeit: —')
         page.goto('about:blank')
     finally:
-        first.set();second.set();worker.join(timeout=20)
+        download_release.set();first.set();second.set();worker.join(timeout=20)
     assert not worker.is_alive()
     page.goto(URL)
     page.locator('#start-open-case').click()
