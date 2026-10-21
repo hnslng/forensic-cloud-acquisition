@@ -359,3 +359,57 @@ def test_unknown_source_size_is_not_a_known_total(storage,monkeypatch):
     current=row(job)
     assert current['status']=='completed' and current['bytes_done']==6 and not current['total_known']
     assert c.get('/api/cases/'+case['id']+'/cloud-accounts').json()[0]['acquisition']['total_known'] is False
+
+
+def test_downloads_during_discovery_and_inventory_failure_cannot_complete(storage,monkeypatch):
+    c=client();case,account,url=setup(c);job=enqueue(c,url)
+    assert job['files_discovered']==0
+    release=threading.Event();errors=[]
+    class PartialInventory(Synthetic):
+        def inventory(self,*args):
+            yield next(super().inventory(*args))
+            assert release.wait(15)
+            raise ProviderError('Synthetischer Fehler bei weiterer Dateierfassung.')
+    source=PartialInventory();adapter(monkeypatch,source)
+    def work():
+        try: acquisitions.run_job(UUID(job['id']))
+        except BaseException as error: errors.append(error)
+    worker=threading.Thread(target=work);worker.start()
+    try:
+        deadline=time.monotonic()+10
+        while time.monotonic()<deadline:
+            public=c.get('/api/cases/'+case['id']+'/cloud-accounts').json()[0]['acquisition']
+            if public['files_done']==1: break
+            time.sleep(.05)
+        assert public['status']=='running' and not public['inventory_complete']
+        assert public['files_discovered']==1 and public['files_done']==1
+        assert c.get('/api/cases/'+case['id']+'/acquisitions').json()[0]['files_discovered']==1
+    finally:
+        release.set();worker.join(timeout=20)
+    assert not worker.is_alive() and not errors
+    current=row(job)
+    assert current['status']=='failed' and not current['inventory_complete'] and current['files_done']==1
+    report=json.loads((evidence.directory(current['directory']+'/_FCA')/'Sicherungsbericht.json').read_text())
+    assert report['status']=='failed' and report['inventar_abgeschlossen'] is False
+    assert c.post('/api/cases/'+case['id']+'/acquisitions/'+job['id']+'/resume',json={}).status_code==200
+    source=Synthetic();adapter(monkeypatch,source);acquisitions.run_job(UUID(job['id']))
+    public=c.get('/api/cases/'+case['id']+'/cloud-accounts').json()[0]['acquisition']
+    assert public['status']=='completed' and public['inventory_complete']
+    assert public['files_discovered']==8 and public['files_done']==8
+    assert '0' not in source.calls # previously completed file was verified, not downloaded twice
+
+
+def test_graceful_shutdown_requeues_discovery_without_losing_inventory(storage,monkeypatch):
+    c=client();case,account,url=setup(c);job=enqueue(c,url)
+    class ShutdownInventory(Synthetic):
+        def inventory(self,*args):
+            for entry in super().inventory(*args):
+                yield entry
+                acquisitions.STOP.set()
+    adapter(monkeypatch,ShutdownInventory())
+    try:
+        acquisitions.run_job(UUID(job['id']))
+        assert row(job)['status']=='queued' and not row(job)['inventory_complete']
+    finally: acquisitions.STOP.clear()
+    adapter(monkeypatch,Synthetic());acquisitions.run_job(UUID(job['id']))
+    assert row(job)['status']=='completed' and row(job)['files_done']==8

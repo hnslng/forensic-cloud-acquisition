@@ -70,6 +70,8 @@ Zunächst wird ausschließlich in `.part` geschrieben. Nach erfolgreichem Anbiet
 
 ## Warteschlange, Parallelität und Ressourcen
 
+- Dateierfassung und Dateiübertragung laufen parallel. Die Erfassung schreibt einzeln bestätigte Dateien in die dauerhafte Warteschlange; die Übertragung verarbeitet bereits erfasste Dateien in Erfassungsreihenfolge. Eine zwischenzeitlich leere Warteschlange beendet den Auftrag nicht, solange noch Dateien gesucht werden. Fehler bei der Erfassung verhindern einen vollständigen Erfolgsstatus.
+- Die Cloud-Karte aktualisiert alle zwei Sekunden erfasste und geprüfte Dateianzahl, Datenmenge und Geschwindigkeit. Solange die Erfassung läuft, werden weder Gesamtprozent noch Restzeit vorgetäuscht.
 - PostgreSQL speichert Aufträge, Inventar, Dateizustand, Versuche, Hashes und Fortschritt dauerhaft. Ein separater Worker hat keinen öffentlichen Port.
 - Ein Datenbank-Leader-Lock verhindert doppelte Koordinatoren; pro Konto ist höchstens ein aktiver/pausierter Lauf zulässig. Gleichzeitig laufen auf der Test-VM höchstens zwei Konten, je maximal vier Dateien. Administratoren können innerhalb dieser Grenzen reduzieren. Änderungen greifen ab der nächsten Übertragungswelle bzw. Kontoaufnahme.
 - Kleine feste Übertragungswellen und 256-KiB-Puffer begrenzen den Speicherbedarf. Der Worker hat 512 MiB Speichergrenze und eine CPU; API/DB bleiben separat begrenzt. rclone verwendet pro Konto einen privaten Unix-Socket und keine öffentliche Steueradresse.

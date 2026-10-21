@@ -1,5 +1,11 @@
 # Änderungen
 
+## Ergänzung – 2026-10-21 – Erfassung und Übertragung parallel
+
+- Laufend aktualisierter Dateizähler und verständliche Unterscheidung zwischen Erfassung und Übertragung.
+- Bereits erfasste Dateien werden während der weiteren Suche heruntergeladen. Gesamtfortschritt erst bei abgeschlossenem Inventar.
+- Erfassungsfehler verhindern eine Erfolgsmeldung; Dienstneustarts erhalten Warteschlange und geprüfte Dateien.
+
 ## 0.5.0 – 2026-10-21 – Dauerhafte Cloud-Sicherungen
 
 - Separater Worker mit PostgreSQL-Warteschlange; maximal zwei Konten und vier Dateien je Konto, konfigurierbar innerhalb der VM-Grenzen.

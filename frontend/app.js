@@ -413,7 +413,8 @@ function renderClouds() {
     const connectionStatus = account.connection_status;
     const job = account.acquisition;
     const busy = job && ["queued","running","pausing"].includes(job.status);
-    const jobLabels = {queued:"Wartet", running:"Läuft", pausing:"Wird pausiert", paused:"Pausiert", failed:"Fehlgeschlagen", incomplete:"Unvollständig", completed:"Abgeschlossen"};
+    const discovering = job?.status === "running" && !job.inventory_complete;
+    const jobLabels = {queued:"Wartet", running:discovering ? (job.bytes_done > 0 || job.files_done > 0 ? "Erfassen und herunterladen" : "Dateien werden erfasst") : "Dateien werden heruntergeladen", pausing:"Wird pausiert", paused:"Pausiert", failed:"Fehlgeschlagen", incomplete:"Unvollständig", completed:"Abgeschlossen"};
     const connectionLabel =
       {
         connected: "Verbunden",
@@ -437,18 +438,18 @@ function renderClouds() {
       node("strong", job ? jobLabels[job.status] + " · " + ({drive:"Dateien",photos:"Fotos",calendar:"Kalender"}[job.category]) : "Noch keine Sicherung gestartet"),
       node(
         "p",
-        job?.reason || (account.can_authenticate
+        job?.reason || (discovering ? "Dateierfassung läuft noch. Bereits erfasste Dateien werden parallel heruntergeladen." : busy ? "Die Sicherung läuft im Hintergrund weiter." : (account.can_authenticate
           ? connectionStatus === "connected"
             ? "Bereit zur Sicherung. Datenbereich auswählen und starten."
             : "Nächster Schritt: Cloud-Konto anmelden."
-          : "Anmeldung muss in den Einstellungen eingerichtet werden."),
+          : "Anmeldung muss in den Einstellungen eingerichtet werden.")),
       ),
     );
     const progress = node("div", undefined, "acquisition-progress");
     const summary = node("div", undefined, "progress-summary");
     summary.append(
       node("span", job ? formatBytes(job.bytes_done) + " übertragen · " + job.files_done + " Dateien geprüft" : "Noch keine Daten übertragen"),
-      node("span", job?.inventory_complete && job.total_known && job.bytes_total > 0 ? formatBytes(job.bytes_total) + " erfasst" : ""),
+      node("span", job ? Number(job.files_discovered ?? 0).toLocaleString("de-DE") + (job.inventory_complete ? " Dateien insgesamt · Erfassung abgeschlossen" : " Dateien erfasst · Dateierfassung noch offen") : ""),
     );
     const track = node("div", undefined, "progress-track unavailable");
     track.setAttribute("role", "img");
@@ -456,7 +457,7 @@ function renderClouds() {
     if (job) {
       track.classList.remove("unavailable");
       const fill = node("div", undefined, "progress-fill");
-      const percent = job.status === "completed" ? 100 : (job.total_known && job.bytes_total > 0 ? Math.min(99, 100 * job.bytes_done / job.bytes_total) : 0);
+      const percent = job.status === "completed" ? 100 : (job.inventory_complete && job.total_known && job.bytes_total > 0 ? Math.min(99, 100 * job.bytes_done / job.bytes_total) : 0);
       fill.style.width = percent + "%";
       if (job.status === "completed") fill.style.background = "#47B881";
       track.replaceChildren(fill);
@@ -466,7 +467,7 @@ function renderClouds() {
     metrics.append(
       node("span", job ? "Datenmenge: " + formatBytes(job.bytes_done) : "Datenmenge: —"),
       node("span", job?.speed ? formatBytes(job.speed) + "/s" : "Geschwindigkeit: —"),
-      node("span", job?.speed && job.total_known && job.bytes_total > job.bytes_done ? "Restzeit: ca. " + Math.ceil((job.bytes_total-job.bytes_done)/job.speed/60) + " Min." : "Restzeit: —"),
+      node("span", !discovering && job?.speed && job.total_known && job.bytes_total > job.bytes_done ? "Restzeit: ca. " + Math.ceil((job.bytes_total-job.bytes_done)/job.speed/60) + " Min." : "Restzeit: —"),
       node("span", job ? "SHA-256: " + job.files_done + " Dateien geprüft" : "Prüfsummen: noch nicht verfügbar"),
     );
     progress.append(summary, track, metrics);

@@ -10,6 +10,7 @@
 
 ## Fortschritt und Berichte
 
+- Die Anzahl **Dateien erfasst** steigt während der Suche laufend. Bereits erfasste Dateien werden parallel heruntergeladen. **Dateierfassung läuft noch** bedeutet, dass der Gesamtumfang noch offen ist. Erst nach Ende der Erfassung erscheinen Gesamtfortschritt und gegebenenfalls Restzeit.
 - Die Cloud-Karte zeigt Status, übertragene Daten, Geschwindigkeit und geprüfte Dateien. Eine Restzeit erscheint nur bei bekanntem Gesamtumfang.
 - **Pausieren** hält eine Sicherung an. Nach Ende der laufenden Verarbeitung wird **Fortsetzen** angeboten. Nach einem Dienst-/VM-Neustart werden zuvor laufende Aufträge automatisch wieder aufgenommen.
 - Bereits fertig geprüfte Dateien bleiben erhalten. Unfertige Einzeldateien werden erneut vollständig übertragen.

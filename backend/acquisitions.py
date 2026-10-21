@@ -17,7 +17,7 @@ from providers.apple.adapter import ProviderError
 STOP=threading.Event()
 CATEGORIES={'apple':('drive','photos'),'google':('drive','calendar'),'microsoft':('drive','calendar')}
 LABELS={'queued':'Wartet','running':'Läuft','pausing':'Wird pausiert','paused':'Pausiert','failed':'Fehlgeschlagen','incomplete':'Unvollständig','completed':'Abgeschlossen'}
-PUBLIC='id,case_id,account_id,category,scope_path,status,created_at,started_at,ended_at,bytes_done,bytes_total,files_done,speed,reason,inventory_complete,total_known'
+PUBLIC='id,case_id,account_id,category,scope_path,status,created_at,started_at,ended_at,bytes_done,bytes_total,files_done,speed,reason,inventory_complete,total_known,(SELECT count(*) FROM acquisition_files f WHERE f.acquisition_id=acquisitions.id) AS files_discovered'
 
 def resources():
     data={}
@@ -147,6 +147,25 @@ def report(job,status,reason=None):
                'hinweis':'Lebendes Cloud-System, keine atomare Momentaufnahme. Nicht zugängliche oder außerhalb des gewählten Bereichs liegende Kategorien sind nicht enthalten.'}
         evidence.atomic_json(directory/'Sicherungsbericht.json',value)
 
+def discover_files(job, adapter, config, cancel):
+    identifier=job['id']
+    for entry in adapter.inventory(job['category'],job['scope_path']):
+        if memory_pressure(): raise evidence.StorageError('Arbeitsspeicher knapp. Sicherung pausiert.')
+        evidence.space(config['reserve_bytes'])
+        if cancel.is_set() or not job_active(identifier) or STOP.is_set(): raise evidence.StorageError('Sicherung pausiert.')
+        if entry.get('directory'):
+            evidence.file_path(evidence.directory(job['directory']+'/Daten'),entry['path']+'/.fca-directory-check').parent.mkdir(exist_ok=True)
+            # Directory metadata represented by the inventory sidecar below.
+            d=evidence.directory(job['directory']+'/_FCA/Ordner')
+            evidence.atomic_json(d/(__import__('hashlib').sha256(entry['id'].encode()).hexdigest()+'.json'),{'source_id':entry['id'],'path':entry['path'],'metadata':entry['metadata']})
+            continue
+        metadata=entry['metadata']
+        if 'payload' in entry: metadata={**metadata,'payload':entry['payload']}
+        with connect() as conn:
+            conn.execute('INSERT INTO acquisition_files(acquisition_id,source_id,relative_path,metadata,size) VALUES (%s,%s,%s,%s,%s) ON CONFLICT(acquisition_id,source_id) DO NOTHING',
+                         (identifier,entry['id'],entry['path'],Jsonb(metadata),entry['size']))
+    with connect() as conn: conn.execute('UPDATE acquisitions SET inventory_complete=true,total_known=NOT EXISTS(SELECT 1 FROM acquisition_files WHERE acquisition_id=%s AND size<0),limitations=%s WHERE id=%s',(identifier,Jsonb(adapter.limits),identifier))
+
 def run_job(identifier):
     last=[time.monotonic(),0]; cancel=threading.Event(); cancel.throttled=False
     job=None
@@ -161,23 +180,6 @@ def run_job(identifier):
         with open_provider(job['provider'],job['case_id'],job['account_id']) as adapter:
             identity=adapter.identity()
             with connect() as conn: conn.execute('UPDATE acquisitions SET account_identity=%s,resource_observations=%s WHERE id=%s',(Jsonb(identity),Jsonb(resources()),identifier))
-            if not job['inventory_complete']:
-                for entry in adapter.inventory(job['category'],job['scope_path']):
-                    if memory_pressure(): raise evidence.StorageError('Arbeitsspeicher knapp. Sicherung pausiert.')
-                    evidence.space(config['reserve_bytes'])
-                    if not job_active(identifier) or STOP.is_set(): raise evidence.StorageError('Sicherung pausiert.')
-                    if entry.get('directory'):
-                        evidence.file_path(evidence.directory(job['directory']+'/Daten'),entry['path']+'/.fca-directory-check').parent.mkdir(exist_ok=True)
-                        # Directory metadata represented by the inventory sidecar below.
-                        d=evidence.directory(job['directory']+'/_FCA/Ordner')
-                        evidence.atomic_json(d/(__import__('hashlib').sha256(entry['id'].encode()).hexdigest()+'.json'),{'source_id':entry['id'],'path':entry['path'],'metadata':entry['metadata']})
-                        continue
-                    metadata=entry['metadata']
-                    if 'payload' in entry: metadata={**metadata,'payload':entry['payload']}
-                    with connect() as conn:
-                        conn.execute('INSERT INTO acquisition_files(acquisition_id,source_id,relative_path,metadata,size) VALUES (%s,%s,%s,%s,%s) ON CONFLICT(acquisition_id,source_id) DO NOTHING',
-                                     (identifier,entry['id'],entry['path'],Jsonb(metadata),entry['size']))
-                with connect() as conn: conn.execute('UPDATE acquisitions SET inventory_complete=true,total_known=NOT EXISTS(SELECT 1 FROM acquisition_files WHERE acquisition_id=%s AND size<0),limitations=%s WHERE id=%s',(identifier,Jsonb(adapter.limits),identifier))
             # Revalidate completed files too: a restart cannot silently skip damaged evidence.
             with connect() as conn:
                 conn.execute("UPDATE acquisition_files SET status='queued' WHERE acquisition_id=%s AND status IN ('running','failed')",(identifier,))
@@ -194,26 +196,39 @@ def run_job(identifier):
                             totals(conn,identifier,last)
                         raise ProviderError('Bereits gesicherte Datei fehlt oder wurde verändert. Prüflauf erforderlich; keine automatische Überschreibung.')
                     after_id=row['id']
-            # Fixed-size waves bound memory and outstanding requests, persistent rows are the queue.
-            while True:
-                with connect() as conn:
-                    config=settings(conn)
-                    rows=conn.execute("SELECT * FROM acquisition_files WHERE acquisition_id=%s AND status='queued' ORDER BY id LIMIT %s",(identifier,1 if cancel.throttled or getattr(adapter,'throttled',False) else config['file_parallelism'])).fetchall()
-                if not rows: break
-                with ThreadPoolExecutor(max_workers=len(rows)) as pool:
-                    futures={pool.submit(run_file,job,row,adapter,config['reserve_bytes'],cancel):row for row in rows}
-                    while futures:
-                        done,_=wait(futures,timeout=1,return_when=FIRST_COMPLETED)
-                        with connect() as conn: totals(conn,identifier,last)
-                        for future in done:
-                            row=futures.pop(future)
-                            try: future.result()
-                            except evidence.StorageError:
-                                cancel.set(); raise
-                            except Exception as error:
-                                reason=str(error) if isinstance(error,ProviderError) else 'Datei konnte nicht sicher übernommen werden.'
-                                with connect() as conn: conn.execute("UPDATE acquisition_files SET status='failed',reason=%s WHERE id=%s",(reason,row['id']))
-                if not job_active(identifier) or STOP.is_set(): raise evidence.StorageError('Sicherung unterbrochen.')
+            # Inventory commits directly to the durable queue while bounded transfers consume it.
+            # Exhausting the queue is only final after the producer has succeeded.
+            with ThreadPoolExecutor(max_workers=1) as discovery_pool:
+                inventory=discovery_pool.submit(discover_files,job,adapter,config,cancel) if not job['inventory_complete'] else None
+                try:
+                    while True:
+                        inventory_finished=inventory is None or inventory.done()
+                        if inventory_finished and inventory is not None: inventory.result()
+                        if not job_active(identifier) or STOP.is_set(): raise evidence.StorageError('Sicherung unterbrochen.')
+                        with connect() as conn:
+                            config=settings(conn)
+                            rows=conn.execute("SELECT * FROM acquisition_files WHERE acquisition_id=%s AND status='queued' ORDER BY id LIMIT %s",(identifier,1 if cancel.throttled or getattr(adapter,'throttled',False) else config['file_parallelism'])).fetchall()
+                        if not rows:
+                            if inventory_finished: break
+                            with connect() as conn: totals(conn,identifier,last)
+                            cancel.wait(.25)
+                            continue
+                        with ThreadPoolExecutor(max_workers=len(rows)) as pool:
+                            futures={pool.submit(run_file,job,row,adapter,config['reserve_bytes'],cancel):row for row in rows}
+                            while futures:
+                                done,_=wait(futures,timeout=1,return_when=FIRST_COMPLETED)
+                                with connect() as conn: totals(conn,identifier,last)
+                                for future in done:
+                                    row=futures.pop(future)
+                                    try: future.result()
+                                    except evidence.StorageError:
+                                        cancel.set(); raise
+                                    except Exception as error:
+                                        reason=str(error) if isinstance(error,ProviderError) else 'Datei konnte nicht sicher übernommen werden.'
+                                        with connect() as conn: conn.execute("UPDATE acquisition_files SET status='failed',reason=%s WHERE id=%s",(reason,row['id']))
+                        if not job_active(identifier) or STOP.is_set(): raise evidence.StorageError('Sicherung unterbrochen.')
+                finally:
+                    cancel.set() # producer must exit before the shared provider session closes
             with connect() as conn:
                 failed=conn.execute("SELECT count(*) AS n FROM acquisition_files WHERE acquisition_id=%s AND status!='completed'",(identifier,)).fetchone()['n']
                 current=conn.execute('SELECT limitations FROM acquisitions WHERE id=%s',(identifier,)).fetchone()
@@ -230,7 +245,12 @@ def run_job(identifier):
         status='paused' if isinstance(error,evidence.StorageError) else 'failed'
         reason=str(error) if isinstance(error,(evidence.StorageError,ProviderError)) else 'Sicherung fehlgeschlagen. Fallprotokoll und Datenträger prüfen.'
         with connect() as conn:
-            conn.execute('UPDATE acquisitions SET status=%s,reason=%s,ended_at=now(),speed=0 WHERE id=%s',(status,reason,identifier))
+            current=conn.execute('SELECT status FROM acquisitions WHERE id=%s FOR UPDATE',(identifier,)).fetchone()
+            if status=='paused' and STOP.is_set() and current['status']=='running' and allowed(conn,job):
+                status='queued'
+                reason='Wird nach Neustart fortgesetzt.'
+            totals(conn,identifier,last)
+            conn.execute("UPDATE acquisitions SET status=%s,reason=%s,ended_at=CASE WHEN %s='queued' THEN NULL ELSE now() END,speed=0 WHERE id=%s",(status,reason,status,identifier))
             if job: audit(conn,None,'acquisition_'+status,job['case_id'],job['operator_initials'],{'acquisition_id':str(identifier),'reason':reason})
         if job:
             try: report(job,status,reason)
