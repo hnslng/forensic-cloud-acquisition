@@ -22,3 +22,11 @@ Separate PostgreSQL-Testdatenbank; keine produktiven Zugangsdaten oder echten Cl
 **48 Backendprüfungen und acht Chromium-Workflows erfolgreich** (sechs bestehende und zwei ergänzte Abläufe). Desktop- und Mobilaufnahmen wurden geprüft. Die Bereitstellung auf VM 105 erfolgte mit Schema 8; API und Worker sind gesund, die ausgelieferte Oberfläche wurde über geprüftes HTTPS gegen die Quellen verglichen. Datenbankeinträge und vorhandene Sicherungsdateien wurden vor und nach der additiven Migration geprüft und sind unverändert erhalten. Die Datenbank wurde nicht neu gestartet. Lokale Rückfallsicherung und Nachweise: `/var/backups/fca/compact-md5-20261021/`.
 
 Der vorhandene Lauf mit 49 bereits fertigen Dateien bleibt pausiert. Bei Fortsetzung werden bestehende Dateien geprüft und fehlende MD5-Werte ergänzt; der ursprüngliche Drive-Umfang bleibt erhalten. Die kombinierte Drive-/Fotos-Auswahl wurde synthetisch, noch nicht mit einem vollständigen echten iCloud-Fotobestand abgenommen. Änderungen sind auf GitHub dokumentiert; der aktuelle GitHub-CI-Status war in dieser Sitzung nicht abrufbar.
+
+
+## Weitere Verdichtung der Karten
+
+Status und gegebenenfalls Pausengrund stehen gemeinsam rechts im Kopf der Karte. Unter dem Balken folgen Datenmenge, Dateierfassung, aktive Downloads, Geschwindigkeit, Restzeit und MD5 in einer umbrechenden Informationszeile. Die eigene Informationszeile oberhalb des Balkens entfällt. Kleinere Innenabstände und ein schmalerer Balken reduzieren die Kartenhöhe; Bedienelemente und Schrift bleiben gut lesbar. Auf Mobilgeräten rückt der Status bei Bedarf unter die Kontobezeichnung, ohne horizontalen Überlauf. Sicherungsverhalten und Datenbank werden durch diese statische Änderung nicht verändert.
+
+
+Die weitere Verdichtung wurde mit drei Chromium-Workflows geprüft: mehrere Anbieter/Konten, laufende Erfassung mit Downloadanzeige sowie gemeinsamer Drive-/Fotos-Lauf. Desktop bei 1920 und 1440 Pixeln sowie Mobil bei 390 Pixeln ohne horizontalen Überlauf geprüft und visuell kontrolliert. Eine abgeschlossene Desktopkarte benötigt nun ungefähr 200 statt zuvor 260 Pixel Höhe. Die Änderung betrifft ausschließlich statische Frontenddateien.

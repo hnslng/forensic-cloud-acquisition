@@ -1,5 +1,10 @@
 # Änderungen
 
+## Flachere Cloud-Karten – 2026-10-21
+
+- Status und Pausengrund rechts im Kartenkopf; alle Mengen- und Fortschrittsangaben unter dem Balken.
+- Weniger vertikale Abstände bei unveränderter Bildschirmbreite und unverändertem Sicherungsverhalten.
+
 ## Kompakte Sicherungsverwaltung – 2026-10-21
 
 - Doppelte Mengen-/Prüfangaben entfernt, niedrigere Karten und weniger Aktionen während laufender Sicherung.

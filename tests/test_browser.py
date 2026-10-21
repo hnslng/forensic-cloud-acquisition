@@ -326,7 +326,7 @@ def test_start_synthetic_acquisition_and_integrated_progress(page,monkeypatch):
         expect(card.locator('.progress-summary')).to_contain_text('1 Dateien erfasst',timeout=15000)
         expect(card.locator('.transfer-metrics')).to_contain_text('1 Dateien geprüft',timeout=15000)
         expect(card.locator('.status-badge')).to_have_text('Erfassen und herunterladen')
-        expect(card.locator('.acquisition-info')).to_contain_text('Dateierfassung läuft noch')
+        expect(card.locator('.progress-summary')).to_contain_text('Dateierfassung noch offen')
         page.set_viewport_size({'width':390,'height':844})
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         page.set_viewport_size({'width':1440,'height':900})

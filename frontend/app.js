@@ -415,8 +415,8 @@ function renderClouds() {
         expired: "Erneut anmelden",
         error: "Anmeldung fehlgeschlagen",
       }[connectionStatus] || "Nicht verbunden";
-    top.append(
-      identity,
+    const statusColumn = node("div", undefined, "cloud-status");
+    statusColumn.append(
       node(
         "span",
         job ? jobLabels[job.status] : connectionLabel,
@@ -426,8 +426,9 @@ function renderClouds() {
             : "status-disconnected"),
       ),
     );
+    top.append(identity, statusColumn);
     const information = node("div", undefined, "acquisition-info");
-    information.hidden = Boolean(job && !job.reason && !discovering && job.status !== "pausing");
+    information.hidden = Boolean(job && !job.reason && job.status !== "pausing");
     information.append(
       node(
         "p",
@@ -438,6 +439,7 @@ function renderClouds() {
           : "Anmeldung muss in den Einstellungen eingerichtet werden.")),
       ),
     );
+    statusColumn.append(information);
     const progress = node("div", undefined, "acquisition-progress");
     const summary = node("div", undefined, "progress-summary");
     summary.append(
@@ -463,7 +465,9 @@ function renderClouds() {
       node("span", !discovering && job?.speed && job.total_known && job.bytes_total > job.bytes_done ? "Restzeit: ca. " + Math.ceil((job.bytes_total-job.bytes_done)/job.speed/60) + " Min." : "Restzeit: —"),
       node("span", job ? "MD5: " + (job.md5_done ?? 0) + ((job.md5_done ?? 0) < job.files_done ? " von " + job.files_done : "") + " Dateien geprüft" : "MD5: noch nicht verfügbar"),
     );
-    progress.append(summary, track, metrics);
+    const details = node("div", undefined, "acquisition-details");
+    details.append(summary, metrics);
+    progress.append(track, details);
     const actions = node("div", undefined, "cloud-actions");
     const authenticate = node(
       "button",
@@ -513,7 +517,7 @@ function renderClouds() {
     rename.addEventListener("click", () => openCloud(account));
     const footer = node("div", undefined, "cloud-card-footer");
     footer.append(actions, rename);
-    card.append(top, information, progress, footer);
+    card.append(top, progress, footer);
     $("cloud-list").append(card);
   }
 }
