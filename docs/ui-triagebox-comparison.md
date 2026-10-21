@@ -74,3 +74,37 @@ Vor der additiven Migration wurde ein geschütztes vollständiges Datenbank-
 Backup angelegt und erfolgreich in einer separaten Wegwerf-Datenbank
 wiederhergestellt. Zeilenprüfsummen sämtlicher vorhandener öffentlicher
 Datentabellen dienen der Kontrolle des unveränderten Bestands bei Bereitstellung.
+
+## Bereitstellung und Bestandsschutz bestätigt
+
+Version 0.3.0, Umsetzungscommit `30f3aae0fa0b0aed5f1cc1737adde617bdb11ea3`,
+am 21.10.2026 um 18:32 Uhr Europe/Vienna auf VM 105 bereitgestellt.
+[Unabhängiger GitHub-Testlauf erfolgreich](https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39635028506).
+Der letzte VM-Testlauf bestätigt ebenfalls 17 API-/DB- und 4 Browserprüfungen;
+die 11 Infrastrukturtests wurden lokal erfolgreich ausgeführt.
+
+Nach Migration 0004 und Wechsel der API wurden sämtliche bisherigen Zeilen in
+`users`, `cases`, `case_members`, `audit_events`, `sessions`, `login_limits` und
+`phase0_probe` per Prüfsumme unverändert wiedergefunden. Die alte Migrationshistorie
+bleibt erhalten; Version 4 ergänzt ausschließlich die neue Cloud-Tabelle und
+deren API-Rechte. Vorher-Backup, Wiederherstellungsprüfung, alter Quellstand und
+Prüfergebnisse liegen rootgeschützt unter `/var/backups/fca/ui-0.3.0`.
+
+Privates HTTPS wurde mit ausdrücklich vertrauter Labor-CA und IP-Prüfung
+bestätigt. Die Prüfsummen von ausgeliefertem HTML, CSS und JavaScript entsprechen
+dem Commit; API-Healthcheck ist erfolgreich, anonyme Fallabfrage wird mit 401
+abgewiesen. Nur die API wurde neu gestartet, kein VM-/Host-Neustart und keine
+öffentliche Freigabe vorgenommen.
+
+Momentaufnahme nach Bereitstellung und Beendigung der Testcontainer:
+
+| Größe | Messwert |
+|---|---:|
+| RAM verfügbar | 1,39 GiB |
+| API / PostgreSQL | 43,19 / 63,37 MiB |
+| Systemdateisystem belegt / verfügbar | 6,44 / 23,54 GiB |
+| Testdatendisk belegt / verfügbar | 0,25 / 30,61 GiB |
+
+Die Systembelegung enthält die zusätzlichen Chromium-Testimages und Build-Caches.
+Die Browserabhängigkeiten gehören nicht zum laufenden API-Image. Dies ist eine
+Leerlaufmessung und kein Nachweis für Cloud-Downloads oder deren Spitzenlast.
