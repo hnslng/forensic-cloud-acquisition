@@ -1,5 +1,7 @@
 # Stufe A – technische Befunde und Prüfnachweise
 
+> Historischer Befund aus Commit `4553cc4`. Der aktuelle Entwicklungsstand steht unter [Stufe B](stufe-b-status.md). Die damaligen Befundprüfungen sind mit dem damaligen Code zu reproduzieren; behobene Fehler müssen heute nicht mehr reproduzierbar sein.
+
 ## 1. Was tatsächlich vorhanden ist
 
 Browser → privates HTTPS/Nginx → FastAPI; PostgreSQL enthält Benutzer, Fälle, Mitgliedschaften, Konten, Inventar, Warteschlange und Audit. Ein separater Worker koordiniert maximal zwei Konten und je bis zu vier Dateiübertragungen mit laufender Nachbesetzung. Ein Datenbank-Advisory-Lock verhindert doppelte Koordinatoren. Netzwerkzugriffe liegen außerhalb langer Schreibtransaktionen. Es gibt keine Redis-Abhängigkeit.

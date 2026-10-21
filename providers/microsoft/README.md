@@ -1,9 +1,11 @@
 # Microsoft – aktueller FCA-Stand
 
-Implementiert ist ein lesender REST-Adapter für das Standard-OneDrive und Outlook-Kalenderexporte mit festgelegtem Zeitraum. Die Webanmeldung verwendet den vorhandenen FCA-OAuth-Ablauf mit PKCE und benötigt in dieser Implementierung eine eigene, einmalig administrierte App. Persönliche Konten und Geschäftsmandanten sind getrennt praktisch abzunehmen.
+Der Stufe-B-Entwicklungszweig verwendet das offizielle REST-Inventar und Rclone 1.75.2 für das Standard-OneDrive. Die automatisch ermittelte Drive-ID und der Typ Personal/Business werden in einer getrennten verschlüsselten Kontokonfiguration gespeichert. Rclone besitzt keinen öffentlichen Steuerport. Vor einer Kopie werden Objekt-ID, danach Version und verfügbare Quellhashes geprüft. Outlook-Kalender bleiben beim bestehenden REST-Adapter mit festgelegtem Zeitraum.
 
-**Automatisiert getestet:** synthetische API-Antworten, Kalenderfenster, Seitenwechsel, Download-Weiterleitungen ohne Bearer-Weitergabe und Rechteprüfungen. **Echtkonto-Abnahme:** noch offen.
+Die Webanmeldung behält FCA-PKCE, einmaligen State sowie Benutzer-/Sitzungs-/Fall-/Kontobindung und verwendet eine eigene einmalig administrierte Web-App. Keine gemeinsame fremde Registrierung und kein Device-Code-Standard. Angeforderte Berechtigungen sind lesend. Während einer Dateisitzung ist Rclone alleiniger Token-Refresh-Eigentümer; rotierte Tokens bleiben verschlüsselt erhalten und werden synchronisiert.
 
-Rclone mit gemeinsamer Microsoft-Registrierung wurde in [Stufe A](../../docs/stufe-a-machbarkeit.md) bewertet; diese Variante ist **nicht in FCA integriert**. Schreibrechte aus den Rclone-Standardeinstellungen dürfen nicht ungeprüft übernommen werden. Der bisher fehlende OneDrive-Quellhashvergleich und die pauschale HTTP-403-Wiederholung sind bestätigte Befunde für Stufe B, noch keine behobenen Funktionen.
+**Behoben:** pauschale Wiederholung von `accessDenied` und fehlender Quellhashvergleich. SHA1, QuickXorHash und CRC32 werden soweit geliefert geprüft; fehlende unterstützte Werte ausdrücklich ausgewiesen. Lokale SHA-256 bleibt erhalten.
 
-[Unterstützter Umfang und Grenzen](../../docs/cloud-acquisition.md) · [Technische Stufe-A-Befunde](../../docs/stufe-a-technik.md).
+**Getestet:** synthetische Personal-/Business-Konfiguration, echte lokale Rclone-Kopien mit simulierten Anbieter-Metadaten, Hashfehler, Token-/Kontotrennung und Browser-Rücksprung. Bestehende Kalender- und Weiterleitungstests erhalten. **Offen:** reale Privat-/Geschäftskonten, tatsächlicher Microsoft-Download/Refresh und Mandantenrichtlinien. Weitere Drives und SharePoint werden noch nicht eigenständig inventarisiert. Geprüfte Codeversion b8ac146 nach erfolgreicher CI in die Laborcontainer übernommen; weitere Codekorrekturen nur nach ihrem eigenen grünen CI-Nachweis im PR.
+
+[Stufe-B-Status](../../docs/stufe-b-status.md) · [Privates HTTPS und erster Test](../../docs/private-https-oauth.md) · [Unterstützter Umfang](../../docs/cloud-acquisition.md).

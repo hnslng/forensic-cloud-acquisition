@@ -509,17 +509,19 @@ def control_acquisition(case_id:UUID,job_id:UUID,action:Literal['pause','resume'
 
 @app.get('/api/admin/acquisition-settings')
 def acquisition_settings(user=Depends(admin),conn=Depends(connection,scope='function')):
-    return {**acquisitions.settings(conn),'providers':{p:oauth.available(p) for p in ('google','microsoft')},'resources':acquisitions.resources()}
+    return {**acquisitions.settings(conn),'ceilings':acquisitions.ceilings(),'providers':{p:oauth.available(p) for p in ('google','microsoft')},'resources':acquisitions.resources()}
 
 
 class AcquisitionSettings(Input):
-    file_parallelism:int=Field(ge=1,le=4)
-    account_parallelism:int=Field(ge=1,le=2)
+    file_parallelism:int=Field(ge=1,le=16)
+    account_parallelism:int=Field(ge=1,le=8)
     reserve_bytes:int=Field(ge=1073741824,le=107374182400)
 
 
 @app.put('/api/admin/acquisition-settings')
 def save_acquisition_settings(body:AcquisitionSettings,user=Depends(admin),conn=Depends(connection,scope='function')):
+    if any(getattr(body,key)>limit for key,limit in acquisitions.ceilings().items()):
+        raise HTTPException(422,'Parallelität überschreitet das vom Administrator eingerichtete Serverprofil.')
     conn.execute('UPDATE acquisition_settings SET file_parallelism=%s,account_parallelism=%s,reserve_bytes=%s WHERE singleton',(body.file_parallelism,body.account_parallelism,body.reserve_bytes))
     audit(conn,user,'acquisition_settings_updated',details=body.model_dump())
     return {'ok':True}
@@ -531,7 +533,7 @@ def oauth_begin(case_id:UUID,account_id:UUID,body:dict,user=Depends(identity),co
     idle_account(conn,account_id)
     if body or account['provider'] not in ('google','microsoft'): raise HTTPException(422,'Ungültiger Anbieter.')
     audit(conn,user,'cloud_login_requested',case_id,details={'account_id':str(account_id)}); conn.commit()
-    try: return oauth.begin(account['provider'],case_id,account_id,user['id'])
+    try: return oauth.begin(account['provider'],case_id,account_id,user['id'],session_id=user['csrf_hash'])
     except ProviderError as error: raise HTTPException(409,str(error)) from None
 
 
@@ -554,7 +556,7 @@ def oauth_complete(body:OAuthComplete,user=Depends(identity),conn=Depends(connec
     idle_account(conn,body.account_id)
     if account['provider'] not in ('google','microsoft'): raise HTTPException(422,'Ungültiger Anbieter.')
     conn.commit()
-    try: result=oauth.complete(account['provider'],body.case_id,body.account_id,user['id'],body.state,body.code)
+    try: result=oauth.complete(account['provider'],body.case_id,body.account_id,user['id'],body.state,body.code,session_id=user['csrf_hash'])
     except ProviderError as error: raise HTTPException(409,str(error)) from None
     any_cloud_access(conn,user,body.case_id,body.account_id)
     audit(conn,user,'cloud_login_completed',body.case_id,details={'account_id':str(body.account_id)})

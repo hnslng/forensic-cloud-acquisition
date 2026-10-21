@@ -33,4 +33,4 @@ Die synthetischen Prüfungen ersetzen keine vollständige Abnahme der einzelnen 
 
 ## Geplante vereinfachte Google-/OneDrive-Anmeldung
 
-Die [Machbarkeitsprüfung Stufe A](stufe-a-machbarkeit.md) bewertet einen vorbereiteten Tunnel und eine reine Browserlösung unter administriertem HTTPS-Namen. Diese Varianten ändern die aktuelle Bedienung noch nicht. Ermittler sollen künftig keine Tokens oder technischen Befehle übertragen müssen. Die Integration wartet auf die Freigabe zu Stufe B; echte Cloud-Anmeldungen sind gesondert freizugeben.
+Der [Stufe-B-Entwicklungsstand](stufe-b-status.md) verwendet die bestehende Browseranmeldung und Rclone für Dateien; Kalender bleiben erhalten. Die geprüfte Version ist in die laufende Laboroberfläche übernommen; echte Google-/Microsoft-Anmeldungen stehen aus. Die Adresse bleibt konfigurierbar. [Erster Google-/Microsoft-Test](private-https-oauth.md) beschreibt die persönlichen Schritte nach der einmaligen Administration und gesonderten Freigabe. Keine manuelle Tokenübertragung oder Befehle für Ermittler.

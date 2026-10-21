@@ -16,8 +16,9 @@ USER root
 COPY backend/requirements-test.lock /app/backend/requirements-test.lock
 RUN pip install --no-cache-dir --root-user-action=ignore -r /app/backend/requirements-test.lock
 COPY tests /app/tests
+COPY scripts /app/scripts
 USER 10001:10001
-CMD ["python","-m","pytest","-q","-p","no:cacheprovider","tests/test_phase1.py","tests/test_cloud_auth.py","tests/test_acquisitions.py"]
+CMD ["python","-m","pytest","-q","-p","no:cacheprovider","tests/test_phase1.py","tests/test_cloud_auth.py","tests/test_acquisitions.py","tests/test_cloud_transport.py"]
 
 # Isolated browser validation only; never used by the application service.
 FROM runtime AS browser-dependencies

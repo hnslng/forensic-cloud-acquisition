@@ -55,13 +55,16 @@ def endpoints(provider):
     if provider == 'google': return 'https://accounts.google.com/o/oauth2/v2/auth', 'https://oauth2.googleapis.com/token', GOOGLE_SCOPES
     return 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize', 'https://login.microsoftonline.com/common/oauth2/v2.0/token', MICROSOFT_SCOPES
 
-def begin(provider, case_id, account_id, user_id):
+def begin(provider, case_id, account_id, user_id, session_id=None):
     config = configuration(provider)
     if not available(provider): raise ProviderError('Anbieteranwendung muss zuerst in den Einstellungen eingerichtet werden.')
     verifier, nonce = secrets.token_urlsafe(48), secrets.token_urlsafe(32)
     with LOCK:
         value = load(case_id,account_id)
-        value['pending'] = {'verifier':verifier,'state':nonce,'user_id':str(user_id),'expires':time.time()+600}
+        value['pending'] = {'verifier':verifier,'state':nonce,'user_id':str(user_id),
+                            'session_id':session_id, 'provider':provider,
+                            'client_id':config['client_id'],'redirect_uri':config['redirect_uri'],
+                            'expires':time.time()+600}
         save(case_id,account_id,value)
     challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
     authorize, _, scope = endpoints(provider)
@@ -81,13 +84,22 @@ def exchange(provider, params):
         return value
     except Exception: raise ProviderError('Anbieteranmeldung fehlgeschlagen oder abgelaufen. Bitte erneut verbinden.') from None
 
-def complete(provider, case_id, account_id, user_id, state, code):
+def complete(provider, case_id, account_id, user_id, state, code, session_id=None):
     with LOCK:
         value = load(case_id,account_id); pending = value.pop('pending',{})
-        if pending.get('user_id') != str(user_id) or pending.get('expires',0)<time.time() or not secrets.compare_digest(pending.get('state',''),state):
+        config=configuration(provider)
+        if (not config or pending.get('user_id') != str(user_id) or pending.get('expires',0)<time.time()
+                or not secrets.compare_digest(pending.get('state',''),state)
+                or pending.get('session_id') != session_id
+                or (pending.get('provider') is not None and pending['provider'] != provider)
+                or (pending.get('client_id') is not None and pending['client_id'] != config['client_id'])
+                or (pending.get('redirect_uri') is not None and pending['redirect_uri'] != config['redirect_uri'])):
             raise ProviderError('Anmeldung abgelaufen oder nicht dieser Sitzung zugeordnet.')
         save(case_id,account_id,value) # one-use before network
         token = exchange(provider,dict(grant_type='authorization_code',code=code,redirect_uri=configuration(provider)['redirect_uri'],code_verifier=pending['verifier']))
+        token['authorized_at'] = time.time()
+        token['requested_scopes'] = endpoints(provider)[2].split()
+        token['oauth_client_id'] = config['client_id']
         token['expires_at'] = time.time()+int(token.get('expires_in',3600))-60
         save(case_id,account_id,token)
     return {'status':'connected'}

@@ -18,6 +18,8 @@ parallele Übertragungen, Wiederaufnahme auf Dateiebene, SHA-256 und Sicherungsb
 Echtkonto-Abnahmen stehen aus; Google/Microsoft benötigen registrierte Anbieteranwendungen.
 Nicht verfügbare Kategorien und Bereichsgrenzen sind ausdrücklich dokumentiert.
 
+- [Stufe B: Entwicklungsstand, Stabilität und offene Abnahme](docs/stufe-b-status.md)
+- [Privates HTTPS und erster Google-/Microsoft-Test](docs/private-https-oauth.md)
 - [Stufe A: Google-/OneDrive-Machbarkeit und Freigabeentscheidung](docs/stufe-a-machbarkeit.md)
 - [Kurzanleitung: Fall anlegen und sichern](docs/kurzanleitung.md)
 - [Prüfungen, Datenerhalt, Ressourcen und Bereitstellung 0.5.0](docs/cloud-acquisition-validation.md)
