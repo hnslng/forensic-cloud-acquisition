@@ -120,6 +120,8 @@ class WebProvider:
                     rel=prefix+evidence.source_name(name,item_id)
                     folder=item.get('mimeType')=='application/vnd.google-apps.folder' if self.provider=='google' else 'folder' in item
                     metadata=clean_metadata(item)
+                    if item.get('remoteItem') or item.get('package'):
+                        self.limits.append('Verknüpftes oder Paketobjekt nicht gesichert: '+item_id); continue
                     if folder:
                         queue.append((item_id,rel+'/'))
                         yield {'id':item_id,'path':rel,'size':0,'directory':True,'metadata':metadata}
@@ -133,8 +135,6 @@ class WebProvider:
                         if mime not in formats:
                             self.limits.append('Nicht exportierbares Google-Objekt: '+item_id); continue
                         export,extension=formats[mime]; rel+=extension
-                    if item.get('remoteItem') or item.get('package'):
-                        self.limits.append('Verknüpftes oder Paketobjekt nicht gesichert: '+item_id); continue
                     metadata['export_mime']=export
                     yield {'id':item_id,'path':rel,'size':int(item.get('size',-1)) if not export else -1,'metadata':metadata}
     def calendars(self,scope=""):

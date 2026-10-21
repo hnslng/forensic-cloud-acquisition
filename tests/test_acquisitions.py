@@ -292,3 +292,54 @@ def test_worker_retries_transient_file_and_reduces_next_wave(storage,monkeypatch
     with connect() as db:
         values=db.execute('SELECT attempts FROM acquisition_files WHERE acquisition_id=%s AND source_id=%s',(job['id'],'0')).fetchone()
     assert values['attempts']==2
+
+
+def test_microsoft_drive_nested_names_and_linked_containers_are_explicitly_skipped(monkeypatch):
+    provider=WebProvider('microsoft',UUID(int=1),UUID(int=2))
+    def get(url):
+        if '/items/folder/' in url:return {'value':[{'id':'child','name':'report.txt','size':12,'file':{},'eTag':'v1'}]}
+        return {'value':[{'id':'folder','name':'Ordner','folder':{}},{'id':'a','name':'same.txt','size':3,'file':{},'eTag':'v1'},{'id':'b','name':'same.txt','size':4,'file':{},'eTag':'v1'},{'id':'linked','name':'Extern','folder':{},'remoteItem':{'id':'other'}},{'id':'package','name':'Paket','folder':{},'package':{}}]}
+    monkeypatch.setattr(provider,'json',get)
+    records=list(provider.inventory('drive'))
+    assert len(records)==4 and len(provider.limits)==2
+    assert len({r['path'] for r in records})==4
+    child=next(r for r in records if r['id']=='child');assert '/' in child['path']
+
+
+def test_outlook_calendar_view_uses_explicit_window_and_follows_pagination(monkeypatch):
+    provider=WebProvider('microsoft',UUID(int=1),UUID(int=2));calls=[]
+    def get(url):
+        calls.append(url)
+        if 'calendarView' not in url:return {'value':[{'id':'calendar','name':'Testkalender'}]}
+        if 'skiptoken' not in url:return {'value':[{'id':'event1','type':'occurrence'}],'@odata.nextLink':'https://graph.microsoft.com/v1.0/me/calendars/calendar/calendarView?$skiptoken=next'}
+        return {'value':[{'id':'event2','type':'exception'}]}
+    monkeypatch.setattr(provider,'json',get)
+    records=list(provider.inventory('calendar','2020-01-01/2021-01-01'))
+    assert len(records)==3 and 'occurrence' in records[1]['payload'] and 'exception' in records[2]['payload']
+    assert 'startDateTime=2020-01-01T00%3A00%3A00Z' in calls[1]
+    assert 'skiptoken=next' in calls[2]
+    with pytest.raises(ProviderError):list(provider.inventory('calendar'))
+
+
+def test_google_workspace_exports_and_unavailable_types_are_recorded(monkeypatch):
+    provider=WebProvider('google',UUID(int=1),UUID(int=2))
+    monkeypatch.setattr(provider,'json',lambda *_:{'files':[{'id':'doc','name':'Dokument','mimeType':'application/vnd.google-apps.document','version':'1'},{'id':'form','name':'Formular','mimeType':'application/vnd.google-apps.form'}]})
+    records=list(provider.inventory('drive'))
+    assert len(records)==1 and records[0]['path'].endswith('.docx') and records[0]['size']==-1
+    assert records[0]['metadata']['export_mime'].endswith('wordprocessingml.document')
+    assert provider.limits==['Nicht exportierbares Google-Objekt: form']
+
+
+def test_graph_content_redirect_never_forwards_bearer_to_storage(storage,monkeypatch):
+    import urllib.error
+    import providers.acquisition as transport
+    provider=WebProvider('microsoft',UUID(int=1),UUID(int=2));requests=[]
+    monkeypatch.setattr(oauth,'token',lambda *_:'SYNTHETIC-BEARER')
+    def open_request(request,**kwargs):
+        requests.append(request)
+        if len(requests)==1:raise urllib.error.HTTPError(request.full_url,302,'',{'Location':'https://synthetic.sharepoint.com/file?temporary=secret'},None)
+        return 'synthetic-response'
+    monkeypatch.setattr(transport.OPENER,'open',open_request)
+    assert provider.request('https://graph.microsoft.com/v1.0/me/drive/items/file/content',download=True)=='synthetic-response'
+    assert requests[0].get_header('Authorization')=='Bearer SYNTHETIC-BEARER'
+    assert requests[1].get_header('Authorization') is None
