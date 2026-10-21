@@ -60,3 +60,5 @@ Berechtigungen, Kennwörter, Kontozuordnungen oder Audit-Einträge wurden geänd
 
 Bildschirmnachweise liegen auf der VM unter `/var/lib/fca/validation/browser`
 und lokal außerhalb von Git unter `.local/final-ui-validation`.
+
+Der finale Designstand ist im [GitHub-Testlauf 8](https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39643334427) erfolgreich geprüft. Funktionale Erweiterungen für iCloud-Anmeldung und Bereichsübersicht sind getrennt unter [Phase 2](phase-2-icloud.md) dokumentiert; Farben und Kartenlayout bleiben unverändert.

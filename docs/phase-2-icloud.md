@@ -101,3 +101,42 @@ Providerkonfigurationen nicht wiederherstellen. Ein DB-Restore allein genügt ni
 Die getrennten Kommandozeilen-Werkzeuge `compose.icloud-lab.yaml` und
 `scripts/prepare_icloud_test.py` bleiben optionale Entwicklerwerkzeuge. Der
 normale Benutzer benötigt sie nicht und meldet sich direkt über FCA an.
+
+## Bereitstellung und Abnahme am 21.10.2026
+
+Implementierungscommit `cc43fa76271901f42ab4776fd9232df7ef681880`,
+Version 0.4.1 auf VM 105 bereitgestellt. [GitHub-Testlauf erfolgreich](https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39647423448).
+
+**45 automatisierte Prüfungen bestanden:** 11 Infrastruktur-, 21 API-/DB-,
+5 Chromium-Browser- und 8 echte rclone-Offline-Vertragstests. Browser und API
+prüfen den iCloud-Ablauf mit klar synthetischen Providerantworten; die Offline-
+Vertragstests laufen ohne Netz. Damit wird ausdrücklich keine erfolgreiche
+reale Apple-Anmeldung behauptet.
+
+Zusätzlich im laufenden API-Container praktisch geprüft: iCloud-Funktion
+aktiviert, separater Hauptschlüssel lesbar, exakte rclone-Version, erfolgreiche
+lokale authentifizierte Adapterkommunikation und Drive-/Photos-Fähigkeiten.
+Der technische Vorabcheck führte keine Apple-Anmeldung aus und nutzte nur ein
+privates temporäres Verzeichnis, keine Kontokonfiguration der Anwendung.
+
+Private TLS-Zertifikatskette/IP und SHA-256 der drei ausgelieferten Frontenddateien
+entsprechen dem Quellstand. API gesund; anonyme Abfragen von Fall- und
+Providerstatus werden abgewiesen. Ports 80, 5432 und 8000 sind weiterhin aus dem
+LAN nicht erreichbar. Nur die API wurde neu gestartet; kein VM-/Host-Neustart.
+
+Vor der additiven Migration 0005: vollständiges Datenbankbackup und alter
+Quellstand unter `/var/backups/fca/phase2-icloud-web`, rootgeschützt. Das Backup
+wurde erfolgreich in `fca_restore_phase2_check` wiederhergestellt; die separate
+Prüfdatenbank danach entfernt. Nach Bereitstellung sind alle vorherigen Zeilen
+in Benutzer-, Fall-, Rechte-, Cloud-Konto-, Sitzungs-, Limit-, Audit- und
+Phase-0-Nachweistabellen anhand gespeicherter Zeilenprüfsummen unverändert.
+Der neue Anmeldeversuchszähler ergänzt das Schema, ohne alte Daten umzuschreiben.
+
+Momentaufnahme nach Bereitstellung um 19:54 Europe/Vienna: 1,37 GiB RAM verfügbar,
+API 52,58 MiB, PostgreSQL 52,29 MiB; 19,17 GiB auf der Systemdisk frei. Die
+Systembelegung enthält zusätzliche Browser-/Adapter-Testimages und Build-Caches.
+Dies ist kein Cloud-Last- oder Downloadnachweis.
+
+Bildschirmnachweise: privater VM-Pfad `/var/lib/fca/validation/browser`, lokal
+`.local/phase2-validation`. Sie enthalten ausschließlich synthetische Konten und
+Providerantworten. Passwörter, Codes und Tokens sind nicht in Git gespeichert.

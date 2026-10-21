@@ -1,6 +1,8 @@
 # Test- und Nachweisstand
 
-Stand 21.10.2026: **11 Infrastrukturtests, 17 PostgreSQL-Integrationstests und 4 Chromium-Browsertests bestanden**.
+Stand 21.10.2026: **45 Prüfungen bestanden: 11 Infrastruktur-, 21 API-/PostgreSQL-, 5 Chromium-Browser- und 8 rclone-Offline-Vertragstests.**
+
+Aktuelle [Phase-2-Abnahme und klare Trennung synthetischer/echter Nachweise](phase-2-icloud.md).
 
 ```sh
 python3 -m unittest discover -s tests -p test_infrastructure.py -v
@@ -10,7 +12,7 @@ Die Anwendungstests werden auf der VM oder einem isolierten CI-Runner über
 `scripts/run_phase1_tests.sh` ausgeführt. Sie erstellen ausschließlich
 `fca_test_phase1`, verwenden synthetische Daten und entfernen die Testdatenbank.
 Getrennte Compose-Testcontainer enthalten festgeschriebene API- und Browser-
-Abhängigkeiten. Die vier Browserprüfungen umfassen den vollständigen Ablauf mit
+Abhängigkeiten. Die bisherigen Browserprüfungen umfassen den vollständigen Ablauf mit
 nativer Dialogverschachtelung, erhaltenen Feldern bei Anmeldung, direktem
 Fallstart, vier Cloud-Konten (zweimal iCloud), Umbenennung/Persistenz nach
 Neuladen, deaktivierten Anbieteraktionen, separaten Admin-Einstellungen,
