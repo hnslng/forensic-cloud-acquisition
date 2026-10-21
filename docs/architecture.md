@@ -1,6 +1,8 @@
-# Architekturentwurf – ab Phase 1 umzusetzen
+# Architektur – implementierter Kern und weitere Planung
 
-Dieser Entwurf ist keine Implementierungsbehauptung.
+Identitäts-, Berechtigungs-, Fall- und Auditkern sind mit Phase 1 umgesetzt.
+Queue, Worker und Cloud-Sicherung in diesem Dokument beschreiben weiterhin
+die Planung für die nachfolgenden Phasen, keine vorhandene Cloud-Integration.
 
 ## Komponenten
 

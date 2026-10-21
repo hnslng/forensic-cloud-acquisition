@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>FORENSIC CLOUD ACQUISITION</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">FORENSIC LAB / PRIVATES TESTSYSTEM</p>
+        <h1>FCA<span>//</span>CLOUD</h1>
+        <p class="subtitle">FORENSIC CLOUD ACQUISITION</p>
+      </div>
+      <div class="header-right">
+        <span class="badge">PHASE 1 · TESTLABOR</span
+        ><span id="identity-label"></span>
+      </div>
+    </header>
+    <div class="rulebar">
+      <span>TECHNISCHE CLOUD-DATENSICHERUNG</span
+      ><span id="connection">GESCHÜTZTER BASISZUGANG</span>
+    </div>
+    <main>
+      <section id="login-panel" class="login panel">
+        <p class="eyebrow">ARBEITSSITZUNG ÖFFNEN</p>
+        <h2>Anmelden</h2>
+        <p class="muted">Persönlicher Zugang zum privaten Testlabor.</p>
+        <form id="login-form">
+          <label
+            >Benutzername<input
+              name="username"
+              autocomplete="username"
+              required
+              maxlength="64" /></label
+          ><label
+            >Passwort<input
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+              maxlength="256" /></label
+          ><button class="primary" type="submit">
+            Sitzung öffnen <span>→</span>
+          </button>
+        </form>
+        <p class="muted small">
+          Ein Bearbeiterkürzel wird zusätzlich je Fall erfasst. Es ersetzt keine
+          Anmeldung.
+        </p>
+      </section>
+      <section id="workspace" hidden>
+        <aside>
+          <p class="eyebrow">ARBEITSBEREICH</p>
+          <nav>
+            <button data-view="overview" class="selected">
+              01 <span>Übersicht</span></button
+            ><button data-view="cases">02 <span>Fälle</span></button
+            ><button data-view="users" id="users-nav" hidden>
+              03 <span>Benutzer</span>
+            </button>
+          </nav>
+          <div class="aside-bottom">
+            <button id="password-button">Passwort ändern</button
+            ><button id="logout-button">Abmelden ↗</button>
+            <p class="small muted">
+              Serverseitige Fallrechte<br />Keine echten Beweisdaten
+            </p>
+          </div>
+        </aside>
+        <div class="content">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">GESICHERTE ARBEITSSITZUNG</p>
+              <h2 id="page-title">Übersicht</h2>
+            </div>
+            <button id="new-case-button" class="primary">+ Fall anlegen</button>
+          </div>
+          <section id="overview">
+            <div class="metrics">
+              <article class="panel metric">
+                <span>AKTIVE FÄLLE</span><strong id="active-count">0</strong
+                ><small>In deinem Berechtigungsumfang</small>
+              </article>
+              <article class="panel metric">
+                <span>CLOUD-KONTEN</span><strong>–</strong
+                ><small>Integration folgt in Phase 2</small>
+              </article>
+              <article class="panel metric">
+                <span>SICHERUNGEN</span><strong>–</strong
+                ><small>Worker folgen in Phase 3</small>
+              </article>
+              <article class="panel metric">
+                <span>TESTDATENSPEICHER FREI</span
+                ><strong id="disk-free">–</strong
+                ><small id="disk-state">Wird geprüft</small>
+              </article>
+            </div>
+            <div class="notice">
+              <b>ENTWICKLUNGSSTAND</b>
+              <p id="stage-note">
+                Anmeldung und Fallverwaltung stehen bereit. Cloud-Anmeldungen
+                und Downloads sind noch nicht verfügbar.
+              </p>
+            </div>
+          </section>
+          <section id="cases-panel" class="panel">
+            <div class="panel-heading">
+              <h3>FALLVERWALTUNG <span id="case-count">0</span></h3>
+              <input
+                id="case-search"
+                aria-label="Fälle durchsuchen"
+                placeholder="Geschäftszahl oder Fallname …"
+                type="search"
+              />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>GESCHÄFTSZAHL / FALLNAME</th>
+                    <th>STATUS</th>
+                    <th>BEARBEITER</th>
+                    <th>ANGELEGT</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="case-rows"></tbody>
+              </table>
+            </div>
+            <div class="empty" id="case-empty">
+              <strong>Noch keine Fälle</strong>
+              <p>Lege einen Fall mit Geschäftszahl und Bearbeiterkürzel an.</p>
+            </div>
+          </section>
+          <section id="case-detail" class="panel" hidden>
+            <div class="panel-heading">
+              <h3 id="detail-title"></h3>
+              <button id="close-case">Schließen ×</button>
+            </div>
+            <div class="detail-body">
+              <p id="detail-id" class="muted small"></p>
+              <form id="edit-case-form" class="inline-form">
+                <input type="hidden" name="version" /><label
+                  >Fallname<input name="name" maxlength="160" /></label
+                ><label
+                  >Status<select name="status">
+                    <option value="active">Aktiv</option>
+                    <option value="completed">Abgeschlossen</option>
+                    <option value="archived">Archiviert</option>
+                  </select></label
+                ><label
+                  >Bearbeiterkürzel<input
+                    name="operator_initials"
+                    required
+                    maxlength="12" /></label
+                ><button type="submit">Änderungen speichern</button>
+              </form>
+              <p class="muted">
+                Cloud-Konten und Sicherungsaufträge werden in den nächsten
+                Phasen ergänzt.
+              </p>
+              <div id="membership-panel" hidden>
+                <h3>Fallzugriff erteilen</h3>
+                <form id="member-form" class="inline-form">
+                  <label
+                    >Benutzer<select
+                      name="user_id"
+                      id="member-user"
+                      required
+                    ></select></label
+                  ><label
+                    >Berechtigung<select name="access">
+                      <option value="viewer">Lesen</option>
+                      <option value="editor">Bearbeiten</option>
+                    </select></label
+                  ><button>Zugriff speichern</button>
+                </form>
+                <div id="member-list"></div>
+              </div>
+              <h3>TECHNISCHES FALLPROTOKOLL</h3>
+              <div id="audit-list"></div>
+            </div>
+          </section>
+          <section id="users-panel" class="panel" hidden>
+            <div class="panel-heading">
+              <h3>BENUTZER</h3>
+              <button id="add-user-button">+ Benutzer anlegen</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>BENUTZERNAME</th>
+                    <th>KÜRZEL</th>
+                    <th>ROLLE</th>
+                    <th>STATUS</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="user-rows"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+      <p id="message" role="status" aria-live="polite" hidden></p>
+    </main>
+    <footer>
+      <span>FCA / 0.2.0</span><span>TESTLABOR · KEINE EINSATZFREIGABE</span
+      ><span>IDENTITÄT ≠ BEARBEITERKÜRZEL</span>
+    </footer>
+    <dialog id="case-dialog">
+      <form id="case-form">
+        <div class="dialog-heading">
+          <h2>Fall anlegen</h2>
+          <button type="button" data-close="case-dialog" aria-label="Schließen">
+            ×
+          </button>
+        </div>
+        <label
+          >Geschäftszahl<input
+            name="business_number"
+            placeholder="Geschäftszahl eingeben"
+            required
+            maxlength="120" /></label
+        ><label
+          >Fallname <small>optional</small
+          ><input name="name" maxlength="160" /></label
+        ><label
+          >Bearbeiterkürzel<input
+            name="operator_initials"
+            required
+            maxlength="12"
+        /></label>
+        <p class="muted small">
+          Der Fall wird deiner angemeldeten Identität zugeordnet.
+        </p>
+        <button class="primary">Fall anlegen →</button>
+      </form>
+    </dialog>
+    <dialog id="user-dialog">
+      <form id="user-form">
+        <div class="dialog-heading">
+          <h2>Benutzer anlegen</h2>
+          <button type="button" data-close="user-dialog" aria-label="Schließen">
+            ×
+          </button>
+        </div>
+        <label
+          >Benutzername<input
+            name="username"
+            pattern="[a-z0-9._-]{3,64}"
+            required
+            autocomplete="off" /></label
+        ><label>Kürzel<input name="initials" required maxlength="12" /></label
+        ><label
+          >Initiales Passwort<input
+            type="password"
+            name="password"
+            required
+            minlength="14"
+            maxlength="256"
+            autocomplete="new-password" /></label
+        ><label
+          >Rolle<select name="role">
+            <option value="operator">Bearbeiter</option>
+            <option value="admin">Administrator</option>
+          </select></label
+        ><button class="primary">Benutzer anlegen →</button>
+      </form>
+    </dialog>
+    <dialog id="password-dialog">
+      <form id="password-form">
+        <div class="dialog-heading">
+          <h2>Passwort ändern</h2>
+          <button
+            type="button"
+            data-close="password-dialog"
+            aria-label="Schließen"
+          >
+            ×
+          </button>
+        </div>
+        <label
+          >Aktuelles Passwort<input
+            type="password"
+            name="current_password"
+            required
+            autocomplete="current-password" /></label
+        ><label
+          >Neues Passwort<input
+            type="password"
+            name="new_password"
+            required
+            minlength="14"
+            maxlength="256"
+            autocomplete="new-password"
+        /></label>
+        <p class="muted small">
+          Mindestens 14 Zeichen. Alle bestehenden Sitzungen werden beendet.
+        </p>
+        <button class="primary">Passwort ändern →</button>
+      </form>
+    </dialog>
+  </body>
+</html>

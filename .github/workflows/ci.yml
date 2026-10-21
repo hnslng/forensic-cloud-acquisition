@@ -10,17 +10,24 @@ jobs:
         with:
           persist-credentials: false
       - name: Synthetic capacity and inventory safety tests
-        run: python3 -m unittest discover -s tests -v
+        run: python3 -m unittest discover -s tests -p test_infrastructure.py -v
       - name: Validate Compose and test database migration
         shell: bash
         run: |
           set -euo pipefail
           export FCA_STATE_ROOT="$RUNNER_TEMP/fca-state"
           export FCA_POSTGRES_PASSWORD_FILE="$RUNNER_TEMP/fca-postgres-password"
+          export FCA_API_PASSWORD_FILE=/etc/fca/secrets/api_password
+          export FCA_EVIDENCE_ROOT="$RUNNER_TEMP/fca-evidence"
+          export FCA_PUBLIC_ORIGIN=https://fca.test
+          export FCA_PROJECT_ROOT="$GITHUB_WORKSPACE"
           umask 077
           openssl rand -hex 32 > "$FCA_POSTGRES_PASSWORD_FILE"
+          mkdir -p "$FCA_EVIDENCE_ROOT"
+          sudo install -d -m 0750 /etc/fca /etc/fca/secrets
+          printf 'FCA_STATE_ROOT=%s\nFCA_POSTGRES_PASSWORD_FILE=%s\nFCA_API_PASSWORD_FILE=%s\nFCA_EVIDENCE_ROOT=%s\nFCA_PUBLIC_ORIGIN=%s\n' "$FCA_STATE_ROOT" "$FCA_POSTGRES_PASSWORD_FILE" "$FCA_API_PASSWORD_FILE" "$FCA_EVIDENCE_ROOT" "$FCA_PUBLIC_ORIGIN" | sudo tee /etc/fca/compose.env >/dev/null
           docker compose config --quiet
-          trap 'docker compose down --volumes' EXIT
+          trap 'docker compose --profile application down --volumes --remove-orphans' EXIT
           docker compose up -d --wait --wait-timeout 120
           docker compose exec -T database psql -v ON_ERROR_STOP=1 -U fca_bootstrap -d fca < migrations/0001_bootstrap.sql
           value="$(docker compose exec -T database psql -At -U fca_bootstrap -d fca -c 'SELECT version FROM schema_migrations')"
@@ -29,3 +36,8 @@ jobs:
             echo 'Repeated bootstrap unexpectedly succeeded' >&2
             exit 1
           fi
+          sudo --preserve-env=FCA_PROJECT_ROOT python3 scripts/configure_phase1_database.py
+          sudo --preserve-env=FCA_PROJECT_ROOT bash scripts/run_phase1_tests.sh
+          docker compose --profile application build api
+          docker compose --profile application up -d --wait --wait-timeout 120
+          curl --fail --max-time 10 http://127.0.0.1:8000/api/health

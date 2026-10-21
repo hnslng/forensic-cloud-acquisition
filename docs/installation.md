@@ -1,4 +1,8 @@
-# Installationsplan – Ausführung nach VM-Freigabe
+# Installation – freigegebene Labor-VM
+
+Auf VM 105 erfolgreich ausgeführt. Tatsächliche Versionen, Abnahme und Grenzen
+stehen in [Phase 0](phase-0-completion.md), der Anwendungsbetrieb in
+[Phase 1](phase-1-status.md) und [Administration](operation.md).
 
 ## 1. Unmittelbare Vorprüfung
 
@@ -22,8 +26,8 @@ Signaturprüfung behaupten**. Image und Prüfsummen über geprüftes HTTPS von
 Debian beziehen und SHA-512 vor Import vergleichen. Das belegt Konsistenz mit
 der über HTTPS bezogenen Prüfsumme, keine zusätzliche unabhängige Signatur.
 Ergänzend lokalen SHA-256-Wert, URL, Größe und Abrufzeit dokumentieren.
-Eine abweichende Prüfsumme stoppt den Import. Das Image wurde noch nicht geladen
-oder geprüft; nur Verzeichnis und Metadaten wurden gelesen.
+Eine abweichende Prüfsumme stoppt den Import. Beim freigegebenen Lauf wurden
+Download und SHA-512-Vergleich erfolgreich ausgeführt; siehe Abschlussbericht.
 
 ## 3. Neue VM
 
@@ -90,4 +94,5 @@ auf die VM; zunächst geprüften committed Quellstand administrativ übertragen.
 9. Befehle, Ergebnisse, Versionen, Prüfsummen und verbleibende Einschränkungen
    ohne Geheimnisse im Abschlussbericht festhalten. Erst danach Phase 1 beginnen.
 
-Dieser Ablauf ist vorbereitet, aber noch nicht auf einer FCA-VM durchgeführt.
+Dieser Ablauf wurde auf der FCA-VM durchgeführt. Die Original-VMs und
+Host-Einstellungen blieben unverändert; ausschließlich VM 105 wurde neu gestartet.

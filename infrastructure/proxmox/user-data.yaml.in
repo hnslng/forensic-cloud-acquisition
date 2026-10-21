@@ -1,0 +1,29 @@
+#cloud-config
+hostname: fca-lab
+manage_etc_hosts: true
+timezone: Europe/Vienna
+disable_root: true
+ssh_pwauth: false
+users:
+  - name: fcaadmin
+    groups: [sudo]
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    lock_passwd: true
+    ssh_authorized_keys:
+      - @PUBLIC_KEY_JSON@
+package_update: true
+package_upgrade: true
+packages: [qemu-guest-agent, sudo, curl, ca-certificates, python3]
+write_files:
+  - path: /etc/ssh/sshd_config.d/00-fca.conf
+    permissions: '0600'
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PubkeyAuthentication yes
+      AllowUsers fcaadmin
+runcmd:
+  - [systemctl, enable, --now, qemu-guest-agent]
+  - [systemctl, restart, ssh]

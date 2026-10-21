@@ -8,9 +8,13 @@ ausdrücklich freigegebenen Testkonten. Keine Freigabe für echte Beweismittel.
 
 Phase 0 ist nach Freigabe erfolgreich auf VM 105 umgesetzt und praktisch
 abgenommen, einschließlich VM-Neustart, PostgreSQL-Persistenz und Restore.
-**Phase 1 beginnt.** Es gibt noch keine Cloud-Adapter oder echten Sicherungen.
+**Phase 1 ist umgesetzt:** privates HTTPS, persönliche Anmeldung, Benutzer- und
+Fallverwaltung mit serverseitigen Rechten und Audit. Cloud-Adapter und echte
+Sicherungen sind noch nicht implementiert.
 
 - [Abschlussbericht Phase 0 und Ressourcenverbrauch](docs/phase-0-completion.md)
+- [Umsetzung und Abnahme Phase 1](docs/phase-1-status.md)
+- [Laborzugang und Administration](docs/operation.md)
 
 - [Prüfbericht und Freigabevorschlag](docs/phase-0-status.md)
 - [Installationsablauf und Abnahme](docs/installation.md)
@@ -24,7 +28,7 @@ abgenommen, einschließlich VM-Neustart, PostgreSQL-Persistenz und Restore.
 Python 3.11 oder neuer, Git und OpenSSH genügen für die lokale Prüfung:
 
 ```sh
-python3 -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -p test_infrastructure.py -v
 python3 scripts/proxmox_inventory.py --host proxmox --output .local/proxmox-inventory.json
 python3 scripts/check_vm_plan.py .local/proxmox-inventory.json infrastructure/proxmox/lab-plan.json
 ```
@@ -34,9 +38,10 @@ bereits eingerichteten SSH-Alias. Unbekannte Hostschlüssel werden abgewiesen.
 Er verändert weder Proxmox-Konfiguration noch Gäste. Rohinventare bleiben lokal
 und sind durch `.gitignore` ausgeschlossen.
 
-`compose.yaml` stellt zunächst **nur PostgreSQL** für die spätere VM-Abnahme
-bereit. Es veröffentlicht keinen Port. Die Ausführung erfolgt erst nach
-Freigabe und Installation der VM; die Anwendungsdienste folgen in Phase 1.
+`compose.yaml` stellt PostgreSQL und über das Profil `application` die API
+bereit. Nur der API-Port wird an Loopback der VM gebunden. Der Debian-nginx-
+Dienst liefert das getrennte Frontend über privates HTTPS. Reale VM- und
+Restoretests sowie 15 isolierte PostgreSQL-Anwendungstests sind bestanden.
 
 ## Projektstruktur
 

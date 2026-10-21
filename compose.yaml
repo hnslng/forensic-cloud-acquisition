@@ -1,4 +1,4 @@
-# Phase 0: infrastructure smoke test only. No application or public ports.
+# Application API is loopback-only behind the guest's HTTPS reverse proxy.
 name: fca-lab
 services:
   database:
@@ -30,9 +30,53 @@ services:
       options:
         max-size: 10m
         max-file: '3'
+  api:
+    profiles: [application]
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    user: '10001:10001'
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      FCA_DB_PASSWORD_FILE: /run/secrets/api_password
+      FCA_PUBLIC_ORIGIN: ${FCA_PUBLIC_ORIGIN:?Set HTTPS origin}
+      FCA_EVIDENCE_ROOT: /evidence
+    secrets: [api_password]
+    volumes:
+      - ${FCA_EVIDENCE_ROOT:?Set external evidence mount}:/evidence:ro
+    ports:
+      - 127.0.0.1:8000:8000
+    networks: [database, web]
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/api/health",timeout=3)']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    mem_limit: 384m
+    cpus: 1.0
+    pids_limit: 96
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
 networks:
+  web:
+    driver: bridge
   database:
     internal: true
 secrets:
   postgres_password:
     file: ${FCA_POSTGRES_PASSWORD_FILE:?Set external FCA_POSTGRES_PASSWORD_FILE}
+  api_password:
+    file: ${FCA_API_PASSWORD_FILE:?Set external API secret file}

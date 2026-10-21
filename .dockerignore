@@ -1,0 +1,10 @@
+.git
+.local
+.env
+secrets
+evidence
+backups
+__pycache__
+*.pyc
+.venv
+node_modules

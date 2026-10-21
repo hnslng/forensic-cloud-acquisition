@@ -1,0 +1,11 @@
+services:
+  api:
+    image: fca-lab-api-test:local
+    build:
+      target: test
+    environment:
+      FCA_DB_NAME: fca_test_phase1
+      FCA_TEST_MIGRATION_PASSWORD_FILE: /run/secrets/test_migration_password
+      FCA_PUBLIC_ORIGIN: https://fca.test
+    volumes:
+      - /etc/fca/secrets/migrate_password:/run/secrets/test_migration_password:ro
