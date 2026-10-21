@@ -474,3 +474,57 @@ def test_apple_live_bytes_use_job_stats_before_temporary_target_exists(monkeypat
     adapter.download({'category':'drive','source_id':'synthetic','metadata':{'Size':2048,'ModTime':'synthetic'}},target,0,progress.append)
     assert progress[:2]==[1024,2048] and progress[-1]==2048
     assert target.read_bytes()==b'x'*2048
+
+
+def test_combined_icloud_categories_md5_and_separate_paths(storage,monkeypatch):
+    c=client();case,account,url=setup(c)
+    job=c.post(url,json={'service':'both','path':''}).json()
+    assert job['category']=='both'
+    class Combined(Synthetic):
+        def inventory(self,category,scope):
+            assert category in ('drive','photos') and scope==''
+            yield {'id':'same','path':'same.txt','size':3,'metadata':{'original_category':category}}
+        def download(self,record,target,reserve,progress):
+            assert record['source_id']=='same'
+            assert record['category']==record['metadata']['original_category']
+            target.write_bytes(b'abc');progress(3)
+    adapter(monkeypatch,Combined());acquisitions.run_job(UUID(job['id']))
+    assert row(job)['status']=='completed' and row(job)['files_done']==2
+    with connect() as db:files=db.execute('SELECT * FROM acquisition_files WHERE acquisition_id=%s ORDER BY id',(job['id'],)).fetchall()
+    assert {f['relative_path'] for f in files}=={'iCloud Drive/same.txt','iCloud Fotos/same.txt'}
+    assert len({f['source_id'] for f in files})==2
+    assert all(f['md5']=='900150983cd24fb0d6963f7d28e17f72' and f['sha256']==hashlib.sha256(b'abc').hexdigest() for f in files)
+    public=c.get('/api/cases/'+case['id']+'/cloud-accounts').json()[0]['acquisition']
+    assert public['md5_done']==2
+    assert c.post(url,json={'service':'both','path':'folder'}).status_code==422
+    report=json.loads((evidence.directory(row(job)['directory']+'/_FCA')/'Sicherungsbericht.json').read_text())
+    assert report['kategorien']==['drive','photos']
+
+
+def test_clean_file_cache_does_not_trigger_memory_pause(monkeypatch):
+    monkeypatch.setattr(acquisitions,'resources',lambda:{'available_memory_bytes':1024**3,'container_memory_bytes':500*1024**2,'container_inactive_file_bytes':400*1024**2,'container_limit_bytes':512*1024**2})
+    assert not acquisitions.memory_pressure()
+    monkeypatch.setattr(acquisitions,'resources',lambda:{'available_memory_bytes':1024**3,'container_memory_bytes':500*1024**2,'container_inactive_file_bytes':0,'container_limit_bytes':512*1024**2})
+    assert acquisitions.memory_pressure()
+
+
+def test_real_pause_then_resume_retains_files_and_rechecks_hashes(storage,monkeypatch):
+    c=client();case,account,url=setup(c);job=enqueue(c,url)
+    started=threading.Event();errors=[]
+    class Pausable(Synthetic):
+        def download(self,record,target,reserve,progress):
+            target.write_bytes(b'');started.set()
+            while True:progress(0);time.sleep(.05)
+    adapter(monkeypatch,Pausable())
+    def work():
+        try:acquisitions.run_job(UUID(job['id']))
+        except BaseException as error:errors.append(error)
+    worker=threading.Thread(target=work);worker.start()
+    assert started.wait(10)
+    base='/api/cases/'+case['id']+'/acquisitions/'+job['id']
+    assert c.post(base+'/pause',json={}).status_code==200
+    worker.join(15);assert not worker.is_alive() and not errors
+    assert row(job)['status']=='paused'
+    assert c.post(base+'/resume',json={}).status_code==200
+    adapter(monkeypatch,Synthetic());acquisitions.run_job(UUID(job['id']))
+    assert row(job)['status']=='completed' and row(job)['files_done']==8

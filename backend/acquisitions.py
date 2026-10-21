@@ -16,9 +16,9 @@ from providers.acquisition import open_provider, Retryable
 from providers.apple.adapter import ProviderError
 
 STOP=threading.Event()
-CATEGORIES={'apple':('drive','photos'),'google':('drive','calendar'),'microsoft':('drive','calendar')}
+CATEGORIES={'apple':('drive','photos','both'),'google':('drive','calendar'),'microsoft':('drive','calendar')}
 LABELS={'queued':'Wartet','running':'Läuft','pausing':'Wird pausiert','paused':'Pausiert','failed':'Fehlgeschlagen','incomplete':'Unvollständig','completed':'Abgeschlossen'}
-PUBLIC="id,case_id,account_id,category,scope_path,status,created_at,started_at,ended_at,bytes_done,bytes_total,files_done,speed,reason,inventory_complete,total_known,(SELECT count(*) FROM acquisition_files f WHERE f.acquisition_id=acquisitions.id) AS files_discovered,(SELECT count(*) FROM acquisition_files f WHERE f.acquisition_id=acquisitions.id AND f.status='running') AS files_active,(SELECT file_parallelism FROM acquisition_settings WHERE singleton) AS configured_limit,coalesce((resource_observations->>'transfer_limit')::integer,(SELECT file_parallelism FROM acquisition_settings WHERE singleton)) AS transfer_limit"
+PUBLIC="id,case_id,account_id,category,scope_path,status,created_at,started_at,ended_at,bytes_done,bytes_total,files_done,speed,reason,inventory_complete,total_known,(SELECT count(*) FROM acquisition_files f WHERE f.acquisition_id=acquisitions.id) AS files_discovered,(SELECT count(*) FROM acquisition_files f WHERE f.acquisition_id=acquisitions.id AND f.status='completed' AND f.md5 IS NOT NULL) AS md5_done,(SELECT count(*) FROM acquisition_files f WHERE f.acquisition_id=acquisitions.id AND f.status='running') AS files_active,(SELECT file_parallelism FROM acquisition_settings WHERE singleton) AS configured_limit,coalesce((resource_observations->>'transfer_limit')::integer,(SELECT file_parallelism FROM acquisition_settings WHERE singleton)) AS transfer_limit"
 
 def resources():
     data={}
@@ -28,6 +28,10 @@ def resources():
         data['process_rss_pages']=int(Path('/proc/self/statm').read_text().split()[1])
         data['free_disk_bytes']=__import__('shutil').disk_usage(evidence.root()).free
         data['load_average']=list(os.getloadavg())
+        stat=Path('/sys/fs/cgroup/memory.stat')
+        if stat.is_file():
+            counters=dict(line.split() for line in stat.read_text().splitlines())
+            data['container_inactive_file_bytes']=int(counters.get('inactive_file',0))
         maximum=Path('/sys/fs/cgroup/memory.max')
         if maximum.is_file() and maximum.read_text().strip().isdigit():
             data['container_limit_bytes']=int(maximum.read_text())
@@ -38,7 +42,7 @@ def resources():
 def memory_pressure():
     value=resources()
     return (value.get('available_memory_bytes',1024**3)<150*1024**2
-            or value.get('container_memory_bytes',0)>value.get('container_limit_bytes',1024**3)*.85)
+            or max(0,value.get('container_memory_bytes',0)-value.get('container_inactive_file_bytes',0))>value.get('container_limit_bytes',1024**3)*.85)
 
 def settings(conn): return conn.execute('SELECT * FROM acquisition_settings WHERE singleton').fetchone()
 
@@ -78,7 +82,7 @@ def run_file(job, row, adapter, reserve, cancel):
     # Never trust a previously completed file without rechecking its recorded hash.
     if final.exists():
         if row['sha256'] and evidence.sha256(final)==row['sha256'] and final.stat().st_size==row['bytes_done']:
-            with connect() as conn: conn.execute("UPDATE acquisition_files SET status='completed' WHERE id=%s",(row['id'],))
+            with connect() as conn: conn.execute("UPDATE acquisition_files SET status='completed',md5=%s WHERE id=%s",(evidence.file_hashes(final)[1],row['id']))
             return
         raise ProviderError('Vorhandene Zieldatei stimmt nicht mit dem Prüfprotokoll überein. Kein Überschreiben.')
     for attempt in range(1,6):
@@ -88,16 +92,16 @@ def run_file(job, row, adapter, reserve, cancel):
             conn.execute("UPDATE acquisition_files SET status='running',attempts=attempts+1,bytes_done=0 WHERE id=%s",(row['id'],))
         try:
             evidence.space(reserve,max(0,row['size']))
-            record={**row,'category':job['category']}
+            record={**row,'category':row['metadata'].get('_fca_category',job['category']),'source_id':row['metadata'].get('_fca_source_id',row['source_id'])}
             # Incomplete files are restarted safely. Completed files are retained across restarts.
             adapter.download(record,temporary,reserve,progress)
             progress(temporary.stat().st_size)
             size=temporary.stat().st_size
             if row['size']>=0 and size!=row['size']: raise Retryable()
-            checksum=evidence.sha256(temporary)
+            checksum,md5=evidence.file_hashes(temporary)
             with open(temporary,'rb') as handle: os.fsync(handle.fileno())
             # Journal hash before publication, allowing recovery after a crash between link/commit.
-            with connect() as conn: conn.execute('UPDATE acquisition_files SET sha256=%s,bytes_done=%s WHERE id=%s',(checksum,size,row['id']))
+            with connect() as conn: conn.execute('UPDATE acquisition_files SET sha256=%s,md5=%s,bytes_done=%s WHERE id=%s',(checksum,md5,size,row['id']))
             if evidence.sha256(temporary)!=checksum: raise ProviderError('Prüfsummenprüfung fehlgeschlagen.')
             os.link(temporary,final) # atomic no-clobber publication on the same evidence filesystem
             temporary.unlink()
@@ -135,7 +139,7 @@ def report(job,status,reason=None):
         with open(temp,'w',encoding='utf-8') as handle:
             with conn.cursor(name='manifest') as cursor:
                 cursor.itersize=1
-                cursor.execute('SELECT source_id,relative_path,size,bytes_done,status,sha256,attempts,reason,metadata FROM acquisition_files WHERE acquisition_id=%s ORDER BY id',(job['id'],))
+                cursor.execute('SELECT source_id,relative_path,size,bytes_done,status,md5,sha256,attempts,reason,metadata FROM acquisition_files WHERE acquisition_id=%s ORDER BY id',(job['id'],))
                 for row in cursor:
                     metadata=dict(row['metadata']); metadata.pop('payload',None); row['metadata']=metadata
                     handle.write(json.dumps(row,ensure_ascii=False,default=str)+'\n')
@@ -144,16 +148,23 @@ def report(job,status,reason=None):
         value={'sicherungs_id':str(job['id']),'fall':case,'bearbeiter':job['operator_initials'],
                'konto':dict(account,account_id=str(job['account_id']),kennung=current['account_identity']), 'ressourcen':current['resource_observations'], 'beginn':current['started_at'],'ende':current['ended_at'],
                'methode':'rclone '+('v1.75.2 iCloud-Webschnittstelle (nicht öffentliche Apple-API)' if account['provider']=='apple' else 'nicht verwendet') if account['provider']=='apple' else 'Offizielle OAuth-2.0- und Anbieter-REST-API (nur lesend)',
-               'kategorie':job['category'],'umfang':job['scope_path'] or 'zugänglicher Standardbereich laut Anbieterdefinition',
+               'kategorien':['drive','photos'] if job['category']=='both' else [job['category']],'kategorie':job['category'],'umfang':job['scope_path'] or 'zugänglicher Standardbereich laut Anbieterdefinition',
                'status':status,'grund':reason,'dateien':current['files_done'],'bytes':current['bytes_done'],
                'inventar_abgeschlossen':current['inventory_complete'],'einschraenkungen':current['limitations'],
-               'manifest_sha256':evidence.sha256(manifest),'pruefung':'SHA-256 lokal, Größenprüfung; Anbieterprüfsumme sofern verfügbar. Keine kryptografische Herkunftsbestätigung.',
+               'manifest_sha256':evidence.sha256(manifest),'pruefung':'MD5 und SHA-256 lokal (historische Dateien ohne MD5 bis zur erneuten Prüfung gekennzeichnet), Größenprüfung; Anbieterprüfsumme sofern verfügbar. Keine kryptografische Herkunftsbestätigung.',
                'hinweis':'Lebendes Cloud-System, keine atomare Momentaufnahme. Nicht zugängliche oder außerhalb des gewählten Bereichs liegende Kategorien sind nicht enthalten.'}
         evidence.atomic_json(directory/'Sicherungsbericht.json',value)
 
 def discover_files(job, adapter, config, cancel):
     identifier=job['id']
-    for entry in adapter.inventory(job['category'],job['scope_path']):
+    def entries():
+        if job['category']!='both':
+            yield from adapter.inventory(job['category'],job['scope_path']);return
+        for category,prefix in [('drive','iCloud Drive'),('photos','iCloud Fotos')]:
+            for entry in adapter.inventory(category,''):
+                yield {**entry,'id':category+':'+entry['id'],'path':prefix+'/'+entry['path'],
+                       'metadata':{**entry['metadata'],'_fca_category':category,'_fca_source_id':entry['id']}}
+    for entry in entries():
         if memory_pressure(): raise evidence.StorageError('Arbeitsspeicher knapp. Sicherung pausiert.')
         evidence.space(config['reserve_bytes'])
         if cancel.is_set() or not job_active(identifier) or STOP.is_set(): raise evidence.StorageError('Sicherung pausiert.')
@@ -191,15 +202,18 @@ def run_job(identifier):
             after_id=0
             while True:
                 with connect() as conn:
-                    completed=conn.execute("SELECT id,relative_path,sha256,bytes_done FROM acquisition_files WHERE acquisition_id=%s AND status='completed' AND id>%s ORDER BY id LIMIT 100",(identifier,after_id)).fetchall()
+                    completed=conn.execute("SELECT id,relative_path,sha256,md5,bytes_done FROM acquisition_files WHERE acquisition_id=%s AND status='completed' AND id>%s ORDER BY id LIMIT 100",(identifier,after_id)).fetchall()
                 if not completed: break
                 for row in completed:
                     path=evidence.file_path(evidence.directory(job['directory']+'/Daten'),row['relative_path'])
-                    if not path.is_file() or evidence.sha256(path)!=row['sha256'] or path.stat().st_size!=row['bytes_done']:
+                    hashes=evidence.file_hashes(path) if path.is_file() else (None,None)
+                    if hashes[0]!=row['sha256'] or (row['md5'] and hashes[1]!=row['md5']) or not path.is_file() or path.stat().st_size!=row['bytes_done']:
                         with connect() as conn:
                             conn.execute("UPDATE acquisition_files SET status='failed',reason=%s WHERE id=%s",('Gesicherte Datei fehlt oder Prüfsumme stimmt nicht.',row['id']))
                             totals(conn,identifier,last)
                         raise ProviderError('Bereits gesicherte Datei fehlt oder wurde verändert. Prüflauf erforderlich; keine automatische Überschreibung.')
+                    if not row['md5']:
+                        with connect() as conn: conn.execute('UPDATE acquisition_files SET md5=%s WHERE id=%s',(hashes[1],row['id']))
                     after_id=row['id']
             # Inventory commits directly to the durable queue while bounded transfers consume it.
             # Exhausting the queue is only final after the producer has succeeded.
@@ -281,7 +295,13 @@ def main():
             active={}
             while not STOP.is_set():
                 leader.execute('SELECT 1'); leader.commit()
-                active={key:future for key,future in active.items() if not future.done()}
+                for identifier,future in list(active.items()):
+                    if not future.done():continue
+                    # An unexpected task failure must not strand the UI in running/pausing.
+                    with connect() as conn:
+                        stranded=conn.execute("UPDATE acquisitions SET status=CASE WHEN status='pausing' THEN 'paused' ELSE 'failed' END,reason='Verarbeitung beendet. Fortsetzen ist möglich.',speed=0,ended_at=now() WHERE id=%s AND status IN ('running','pausing') RETURNING case_id,operator_initials,status",(identifier,)).fetchone()
+                        if stranded:audit(conn,None,'acquisition_'+stranded['status'],stranded['case_id'],stranded['operator_initials'],{'acquisition_id':str(identifier),'reason':'Auftrag sicher zur Wiederaufnahme freigegeben.'})
+                    del active[identifier]
                 with connect() as conn:
                     config=settings(conn)
                     if len(active)<config['account_parallelism']:

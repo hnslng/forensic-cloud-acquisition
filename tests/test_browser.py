@@ -314,6 +314,7 @@ def test_start_synthetic_acquisition_and_integrated_progress(page,monkeypatch):
     card=page.locator('.cloud-card').first
     card.get_by_role('button',name='Sicherung starten',exact=True).click()
     expect(page.locator('#acquisition-dialog')).to_be_visible()
+    page.locator('#acquisition-form [name=service]').select_option('drive')
     page.locator('#acquisition-form [name=path]').fill('SYNTHETIC-Testordner')
     page.locator('#acquisition-form button[type=submit]').click()
     expect(page.locator('#acquisition-dialog')).not_to_be_visible()
@@ -323,7 +324,7 @@ def test_start_synthetic_acquisition_and_integrated_progress(page,monkeypatch):
     worker=threading.Thread(target=acquisitions.run_job,args=(job['id'],));worker.start()
     try:
         expect(card.locator('.progress-summary')).to_contain_text('1 Dateien erfasst',timeout=15000)
-        expect(card.locator('.progress-summary')).to_contain_text('1 Dateien geprüft',timeout=15000)
+        expect(card.locator('.transfer-metrics')).to_contain_text('1 Dateien geprüft',timeout=15000)
         expect(card.locator('.status-badge')).to_have_text('Erfassen und herunterladen')
         expect(card.locator('.acquisition-info')).to_contain_text('Dateierfassung läuft noch')
         page.set_viewport_size({'width':390,'height':844})
@@ -335,7 +336,7 @@ def test_start_synthetic_acquisition_and_integrated_progress(page,monkeypatch):
         expect(card.locator('.transfer-metrics')).to_contain_text(__import__('re').compile(r'Gesamtgeschwindigkeit: [1-9]'),timeout=15000)
         screenshot(page,'13-live-download-synthetic')
         download_release.set()
-        expect(card.locator('.progress-summary')).to_contain_text('2 Dateien geprüft',timeout=15000)
+        expect(card.locator('.transfer-metrics')).to_contain_text('2 Dateien geprüft',timeout=15000)
         expect(card.locator('.transfer-metrics')).to_contain_text('Restzeit: —')
         page.goto('about:blank')
     finally:
@@ -363,3 +364,63 @@ def test_start_synthetic_acquisition_and_integrated_progress(page,monkeypatch):
     expect(page.locator('#start-overlay')).not_to_be_visible()
     expect(page.locator('#active-case-number')).to_have_text('SYNTHETIC-UI-2026')
     assert page.evaluate("sessionStorage.getItem('fca-return-case')") is None
+
+
+def test_combined_icloud_and_compact_md5_card(page,monkeypatch):
+    from backend import cloud_auth,acquisitions,evidence
+    from test_acquisitions import Synthetic,adapter
+    monkeypatch.setattr(evidence,'space',lambda *_:None)
+    monkeypatch.setattr(cloud_auth,'status',lambda *_:{'connection_status':'connected','can_authenticate':True,'can_browse':True})
+    adapter(monkeypatch,Synthetic())
+    create_case(page);add_cloud(page,'apple','SYNTHETIC Drive und Fotos')
+    card=page.locator('.cloud-card').first
+    card.get_by_role('button',name='Sicherung starten',exact=True).click()
+    expect(page.locator('#acquisition-form [name=service]')).to_have_value('both')
+    expect(page.locator('#scope-field')).not_to_be_visible()
+    expect(page.locator('#acquisition-scope-note')).to_contain_text('getrennten Unterordnern')
+    page.locator('#acquisition-form button[type=submit]').click()
+    with migration_connection() as db:job=db.execute('SELECT id,category FROM acquisitions').fetchone()
+    assert job['category']=='both'
+    acquisitions.run_job(job['id'])
+    expect(card.locator('.status-badge')).to_have_text('Abgeschlossen',timeout=15000)
+    expect(card.locator('.transfer-metrics')).to_contain_text('MD5: 16 Dateien geprüft')
+    assert card.inner_text().count('Dateien geprüft')==1
+    assert 'Datenmenge:' not in card.inner_text()
+    assert 'SHA-256:' not in card.inner_text()
+    for width,height in [(1920,1080),(1440,900),(390,844)]:
+        page.set_viewport_size({'width':width,'height':height})
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        screenshot(page,'14-compact-cloud-'+str(width))
+
+
+def test_pause_resume_controls_finish_a_real_background_job(page,monkeypatch):
+    from backend import cloud_auth,acquisitions,evidence
+    from test_acquisitions import Synthetic,adapter
+    monkeypatch.setattr(evidence,'space',lambda *_:None)
+    monkeypatch.setattr(cloud_auth,'status',lambda *_:{'connection_status':'connected','can_authenticate':True,'can_browse':True})
+    started=threading.Event();release=threading.Event()
+    class Waiting(Synthetic):
+        def download(self,record,target,reserve,progress):
+            started.set()
+            while not release.wait(.1):progress(0)
+            progress(0)
+            super().download(record,target,reserve,progress)
+    adapter(monkeypatch,Waiting())
+    create_case(page);add_cloud(page,'apple','SYNTHETIC Pause und Fortsetzen')
+    card=page.locator('.cloud-card').first
+    card.get_by_role('button',name='Sicherung starten',exact=True).click()
+    page.locator('#acquisition-form [name=service]').select_option('drive')
+    page.locator('#acquisition-form button[type=submit]').click()
+    with migration_connection() as db:job=db.execute('SELECT id FROM acquisitions').fetchone()
+    worker=threading.Thread(target=acquisitions.run_job,args=(job['id'],));worker.start()
+    try:
+        assert started.wait(10)
+        card.get_by_role('button',name='Pausieren',exact=True).click()
+        expect(card.get_by_role('button',name='Fortsetzen',exact=True)).to_be_enabled(timeout=15000)
+    finally:
+        release.set();worker.join(15)
+    assert not worker.is_alive()
+    card.get_by_role('button',name='Fortsetzen',exact=True).click()
+    expect(card.locator('.status-badge')).to_have_text('Wartet')
+    adapter(monkeypatch,Synthetic());acquisitions.run_job(job['id'])
+    expect(card.locator('.status-badge')).to_have_text('Abgeschlossen',timeout=15000)

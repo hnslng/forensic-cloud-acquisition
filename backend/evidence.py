@@ -61,7 +61,7 @@ def ensure_case(conn, case):
     return row['directory']
 
 def ensure_account(conn, case, account, category):
-    prefix = {('apple','drive'):'iCloud', ('apple','photos'):'iCloud_Fotos',
+    prefix = {('apple','drive'):'iCloud', ('apple','photos'):'iCloud_Fotos', ('apple','both'):'iCloud_Drive_und_Fotos',
               ('google','drive'):'Google_Drive', ('google','calendar'):'Google_Kalender',
               ('microsoft','drive'):'OneDrive', ('microsoft','calendar'):'Outlook_Kalender'}[(account['provider'],category)]
     # Serialize allocation per case. This also protects simultaneous account additions.
@@ -76,6 +76,12 @@ def ensure_account(conn, case, account, category):
     conn.execute('INSERT INTO evidence_accounts(account_id,category,case_id,directory) VALUES (%s,%s,%s,%s)', (account['id'],category,case['id'],name))
     directory(case_directory + '/' + name)
     return case_directory + '/' + name
+
+def file_hashes(path):
+    sha=hashlib.sha256();md5=hashlib.md5(usedforsecurity=False)
+    with open(path,'rb') as handle:
+        while chunk:=handle.read(1024*1024):sha.update(chunk);md5.update(chunk)
+    return sha.hexdigest(),md5.hexdigest()
 
 def sha256(path):
     value = hashlib.sha256()

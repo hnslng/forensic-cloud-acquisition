@@ -21,6 +21,7 @@ SQL
 { printf 'SET ROLE fca_migrate;\n'; cat migrations/0005_cloud_auth_attempts.sql; } | compose exec -T database psql -v ON_ERROR_STOP=1 -U fca_bootstrap -d fca_test_phase1
 { printf 'SET ROLE fca_migrate;\n'; cat migrations/0006_acquisitions.sql; } | compose exec -T database psql -v ON_ERROR_STOP=1 -U fca_bootstrap -d fca_test_phase1
 { printf 'SET ROLE fca_migrate;\n'; cat migrations/0007_audit_case_retention.sql; } | compose exec -T database psql -v ON_ERROR_STOP=1 -U fca_bootstrap -d fca_test_phase1
+{ printf 'SET ROLE fca_migrate;\n'; cat migrations/0008_file_md5.sql; } | compose exec -T database psql -v ON_ERROR_STOP=1 -U fca_bootstrap -d fca_test_phase1
 testcompose build api
 testcompose run --rm --no-deps api
 install -d -o 10001 -g 10001 -m 0750 /var/lib/fca/validation/browser

@@ -114,3 +114,12 @@ Die Erfassung mit laufendem Dateizähler und gleichzeitigen Downloads wurde am 2
 ### Live-Geschwindigkeit und belegte Downloadplätze
 
 iCloud-Zwischenstände werden pro Datei aus der eigenen rclone-Auftragsstatistik gelesen, auch solange rclone seine interne temporäre Datei schreibt. Es werden keine globalen oder über Wiederholungen kumulierten Bytewerte als Dateifortschritt verwendet. Die Gesamtgeschwindigkeit wird über ein kurzes gleitendes Zeitfenster aus den gespeicherten Dateifortschritten ermittelt. Die Oberfläche zeigt belegte Plätze und die konfigurierte Grenze; ein belegter Platz kann auch auf Anbieterantwort, Wiederholung oder lokale Prüfung warten. Fertige Dateien werden weiterhin erst nach Größen-/Prüfsummenprüfung übernommen. [rclone-Auftragsstatistik](https://rclone.org/rc/#core-stats).
+
+
+## Kompakte Karten, MD5 und iCloud-Gesamtauswahl
+
+Datenmenge und Prüfanzahl werden in der Karte nicht doppelt angezeigt. Neue Dateien erhalten MD5 und weiterhin SHA-256; das Manifest enthält beide Werte. MD5 ist die sichtbare Prüfsumme. Bestehende SHA-256-Einträge werden nicht ersetzt oder als MD5 umetikettiert. Bei Wiederaufnahme werden fertige Dateien gegen ihren SHA-256-Wert geprüft und fehlende MD5-Werte ergänzt. Historische Berichte bleiben erhalten.
+
+Die Auswahl „iCloud Drive und Fotos“ erzeugt einen gemeinsamen Auftrag im Kontoordner `iCloud_Drive_und_Fotos_N`, mit getrennten Unterordnern `Daten/iCloud Drive/` und `Daten/iCloud Fotos/`. Quellkennungen werden nach Kategorie getrennt, damit gleiche IDs keine Dateien vermischen. Beide Bereiche verwenden denselben begrenzten Übertragungspool (maximal vier Dateien insgesamt pro Konto). Der gemeinsame Status ist nur vollständig, wenn beide sichtbaren Inventare erfolgreich erfasst und übertragen wurden. Einzelne Drive-Ordner bzw. Alben werden weiterhin über die getrennte Auswahl gesichert. Nicht zugängliche Apple-Inhalte werden dadurch nicht verfügbar.
+
+Die Speicherprüfung zieht freigebbaren inaktiven Dateicache von der Containerbelegung ab. Echter RAM-Druck und die Containergrenze bleiben wirksam. Ein unerwartet beendeter Verarbeitungstask wird vom Koordinator als pausiert/fehlgeschlagen zur Wiederaufnahme freigegeben, statt den Status dauerhaft laufend zu lassen. Während einer angeforderten Pause zeigt die Karte „Wird angehalten …“; Fortsetzen bleibt bis zum Ende aller bisherigen Übertragungen gesperrt, damit keine doppelten Verbraucher entstehen.

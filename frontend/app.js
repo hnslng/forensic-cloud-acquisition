@@ -427,10 +427,10 @@ function renderClouds() {
     );
     const information = node("div", undefined, "acquisition-info");
     information.append(
-      node("strong", job ? jobLabels[job.status] + " · " + ({drive:"Dateien",photos:"Fotos",calendar:"Kalender"}[job.category]) : "Noch keine Sicherung gestartet"),
+      node("strong", job ? ({drive:"Dateien",photos:"Fotos",both:"iCloud Drive und Fotos",calendar:"Kalender"}[job.category]) : "Noch keine Sicherung gestartet"),
       node(
         "p",
-        job?.reason || (discovering ? "Dateierfassung läuft noch. Bereits erfasste Dateien werden parallel heruntergeladen." : busy ? "Die Sicherung läuft im Hintergrund weiter." : (account.can_authenticate
+        job?.reason || (job?.status === "pausing" ? "Laufende Übertragungen werden angehalten. Danach erscheint Fortsetzen." : discovering ? "Dateierfassung läuft noch. Bereits erfasste Dateien werden parallel heruntergeladen." : busy ? "Die Sicherung läuft im Hintergrund weiter." : (account.can_authenticate
           ? connectionStatus === "connected"
             ? "Bereit zur Sicherung. Datenbereich auswählen und starten."
             : "Nächster Schritt: Cloud-Konto anmelden."
@@ -440,7 +440,7 @@ function renderClouds() {
     const progress = node("div", undefined, "acquisition-progress");
     const summary = node("div", undefined, "progress-summary");
     summary.append(
-      node("span", job ? formatBytes(job.bytes_done) + " übertragen · " + job.files_done + " Dateien geprüft" : "Noch keine Daten übertragen"),
+      node("span", job ? formatBytes(job.bytes_done) + " übertragen" : "Noch keine Daten übertragen"),
       node("span", job ? Number(job.files_discovered ?? 0).toLocaleString("de-DE") + (job.inventory_complete ? " Dateien insgesamt · Erfassung abgeschlossen" : " Dateien erfasst · Dateierfassung noch offen") : ""),
     );
     const track = node("div", undefined, "progress-track unavailable");
@@ -457,11 +457,10 @@ function renderClouds() {
     }
     const metrics = node("div", undefined, "transfer-metrics");
     metrics.append(
-      node("span", job ? "Datenmenge: " + formatBytes(job.bytes_done) : "Datenmenge: —"),
       node("span", job?.status === "running" ? activeFiles + " von " + job.configured_limit + " Downloads aktiv" + (job.transfer_limit < job.configured_limit ? " · vorübergehend gedrosselt" : "") : "Downloads: —"),
       node("span", job?.status === "running" ? "Gesamtgeschwindigkeit: " + formatBytes(job.speed || 0) + "/s" : "Geschwindigkeit: —"),
       node("span", !discovering && job?.speed && job.total_known && job.bytes_total > job.bytes_done ? "Restzeit: ca. " + Math.ceil((job.bytes_total-job.bytes_done)/job.speed/60) + " Min." : "Restzeit: —"),
-      node("span", job ? "SHA-256: " + job.files_done + " Dateien geprüft" : "Prüfsummen: noch nicht verfügbar"),
+      node("span", job ? "MD5: " + (job.md5_done ?? 0) + ((job.md5_done ?? 0) < job.files_done ? " von " + job.files_done : "") + " Dateien geprüft" : "MD5: noch nicht verfügbar"),
     );
     progress.append(summary, track, metrics);
     const actions = node("div", undefined, "cloud-actions");
@@ -486,15 +485,20 @@ function renderClouds() {
     acquire.disabled = !activeCase.can_edit || !account.can_acquire || busy || job?.status === "paused";
     acquire.title = "Datenbereich auswählen und sichern";
     acquire.addEventListener("click", () => openAcquisition(account));
-    actions.append(authenticate, browse, acquire);
+    if (!busy) {
+      actions.append(authenticate);
+      if(account.provider === "apple") actions.append(browse);
+      if(job?.status !== "paused") actions.append(acquire);
+    }
     if (job) {
       const history=node("button","Sicherungsläufe");
       history.addEventListener("click",()=>showAcquisitionHistory(account).catch(error=>message(error.message)));
       actions.append(history);
     }
-    if (job && activeCase.can_edit && ["queued","running","paused","failed"].includes(job.status)) {
+    if (job && activeCase.can_edit && ["queued","running","pausing","paused","failed"].includes(job.status)) {
       const action = ["queued","running"].includes(job.status) ? "pause" : "resume";
-      const control = node("button", action === "pause" ? "Pausieren" : "Fortsetzen");
+      const control = node("button", job.status === "pausing" ? "Wird angehalten …" : action === "pause" ? "Pausieren" : "Fortsetzen");
+      control.disabled = job.status === "pausing";
       control.addEventListener("click", async () => {
         control.disabled = true;
         try { await api("/cases/"+activeCase.id+"/acquisitions/"+job.id+"/"+action,{method:"POST",body:"{}"}); await refreshActive(activeCase.id); }
@@ -1048,7 +1052,7 @@ function openAcquisition(account){
   const form=$("acquisition-form");form.reset();
   $("acquisition-context").textContent=account.label;
   form.elements.service.replaceChildren();
-  for(const [value,label] of (account.provider === "apple" ? [["drive","iCloud Drive"],["photos","iCloud Fotos"]] : [["drive",account.provider === "google"?"Google Drive":"OneDrive"],["calendar",account.provider === "google"?"Google Kalender":"Outlook-Kalender"]])){
+  for(const [value,label] of (account.provider === "apple" ? [["both","iCloud Drive und Fotos"],["drive","Nur iCloud Drive"],["photos","Nur iCloud Fotos"]] : [["drive",account.provider === "google"?"Google Drive":"OneDrive"],["calendar",account.provider === "google"?"Google Kalender":"Outlook-Kalender"]])){
     const option=node("option",label);option.value=value;form.elements.service.append(option);
   }
   $("scope-field").hidden=account.provider!=="apple";
@@ -1089,7 +1093,11 @@ function updateCalendarPeriod(){
   const enabled=acquisitionContext?.provider === "microsoft" && form.elements.service.value === "calendar";
   $("calendar-period").hidden=!enabled;
   const service=form.elements.service.value,provider=acquisitionContext?.provider;
-  $("acquisition-scope-note").textContent=service === "calendar"
+  const combined=provider === "apple" && service === "both";
+  $("scope-field").hidden=provider!=="apple" || combined;
+  form.elements.path.disabled=combined;
+  if(combined)form.elements.path.value="";
+  $("acquisition-scope-note").textContent=combined ? "iCloud Drive und die zugängliche Fotoansicht werden gemeinsam gesichert, in getrennten Unterordnern. Weitere Bildvarianten und Gerätebackups sind nicht zugesichert." : service === "calendar"
     ? (provider === "microsoft" ? "Kalenderexport für den gewählten Zeitraum. Anlagen werden nicht heruntergeladen." : "Kalender und zugängliche Termine als Datenexport. Anhänge werden nicht heruntergeladen.")
     : provider === "google" ? "Gesichert wird „Meine Ablage“ mit Unterordnern. Geteilte Ablagen außerhalb dieses Bereichs sind nicht enthalten."
     : provider === "microsoft" ? "Dateien und Ordner des Standard-OneDrive. Externe Verknüpfungen und weitere SharePoint-Sammlungen sind nicht enthalten."
@@ -1109,7 +1117,7 @@ async function showAcquisitionHistory(account){
   const labels={queued:"Wartet",running:"Läuft",pausing:"Wird pausiert",paused:"Pausiert",failed:"Fehlgeschlagen",incomplete:"Unvollständig",completed:"Abgeschlossen"};
   for(const job of jobs.filter(job=>job.account_id===account.id)){
     const row=node("article",undefined,"history-entry");
-    row.append(node("h3",({drive:"Dateien",photos:"Fotos",calendar:"Kalender"}[job.category])+" · "+labels[job.status]),node("p",new Date(job.created_at).toLocaleString("de-AT")+" · "+formatBytes(job.bytes_done)),node("code",job.id));
+    row.append(node("h3",({drive:"Dateien",photos:"Fotos",both:"Drive und Fotos",calendar:"Kalender"}[job.category])+" · "+labels[job.status]),node("p",new Date(job.created_at).toLocaleString("de-AT")+" · "+formatBytes(job.bytes_done)),node("code",job.id));
     if(job.reason)row.append(node("p",job.reason));
     if(!["queued","running","pausing"].includes(job.status)){
       for(const [kind,label] of [["bericht","Sicherungsbericht"],["dateien","Dateien und Prüfsummen"]]){

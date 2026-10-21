@@ -452,7 +452,7 @@ def any_cloud_access(conn,user,case_id,account_id):
 
 
 class AcquisitionInput(ICloudBrowse):
-    service: Literal['drive','photos','calendar']
+    service: Literal['drive','photos','both','calendar']
     calendar_start: date | None = None
     calendar_end: date | None = None
 
@@ -464,6 +464,8 @@ def start_acquisition(case_id:UUID,account_id:UUID,body:AcquisitionInput,user=De
     state=cloud_auth.status(case_id,account_id) if account['provider']=='apple' else oauth.status(account['provider'],case_id,account_id)
     if state['connection_status']!='connected': raise HTTPException(409,'Bitte Cloud-Konto zuerst anmelden.')
     scope=body.path
+    if body.service=='both' and (account['provider']!='apple' or body.path):
+        raise HTTPException(422,'Drive und Fotos gemeinsam benötigen den gesamten sichtbaren iCloud-Bereich ohne Ordnerfilter.')
     if account['provider']=='microsoft' and body.service=='calendar':
         if not body.calendar_start or not body.calendar_end or not 0 <= (body.calendar_end-body.calendar_start).days <= 3660:
             raise HTTPException(422,'Kalenderzeitraum angeben (höchstens zehn Jahre je Sicherungslauf).')

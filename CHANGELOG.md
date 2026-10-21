@@ -1,5 +1,12 @@
 # Änderungen
 
+## Kompakte Sicherungsverwaltung – 2026-10-21
+
+- Doppelte Mengen-/Prüfangaben entfernt, niedrigere Karten und weniger Aktionen während laufender Sicherung.
+- MD5 als sichtbare Prüfsumme; SHA-256 bleibt im Nachweis erhalten. Additive Migration 0008.
+- Gemeinsame iCloud-Auswahl für Drive und Fotos mit getrennten Datenordnern und gemeinsamem Downloadlimit.
+- Freigebbarer Dateicache zählt nicht als belegter Anwendungsspeicher; sichere Wiederaufnahme nach Pausen und unerwartetem Taskende.
+
 ## Anbieterkennzeichnung – 2026-10-21
 
 - Lokale Apple-, Google- und Microsoft-Logos in Cloud-Karten und Anbieterwahl.

@@ -304,7 +304,7 @@ h1 {
 .cloud-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
   width: 100%;
 }
 .cloud-list:empty {
@@ -316,7 +316,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--panel);
-  padding: 22px 24px 18px;
+  padding: 16px 22px 14px;
 }
 .cloud-card-top {
   display: flex;
@@ -337,8 +337,8 @@ h1 {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 64px;
-  height: 64px;
+  width: 54px;
+  height: 54px;
   border-radius: 14px;
   background: var(--icon);
   color: #afd2ff;
@@ -387,7 +387,7 @@ h1 {
   overflow-wrap: anywhere;
 }
 .acquisition-info {
-  margin-top: 20px;
+  margin-top: 12px;
 }
 .acquisition-info strong {
   font-size: 16px;
@@ -399,7 +399,7 @@ h1 {
   margin: 4px 0 0;
 }
 .acquisition-progress {
-  margin-top: 18px;
+  margin-top: 12px;
 }
 .progress-summary {
   display: flex;
