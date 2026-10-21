@@ -402,6 +402,7 @@ function renderClouds() {
     identity.append(mark, copy);
     const connectionStatus = account.connection_status;
     const job = account.acquisition;
+    if(job) copy.querySelector(".provider-description").textContent = ({apple:"Apple iCloud",google:"Google",microsoft:"Microsoft"}[account.provider]) + " · " + ({drive:"Drive",photos:"Fotos",both:"Drive und Fotos",calendar:"Kalender"}[job.category]);
     const busy = job && ["queued","running","pausing"].includes(job.status);
     const activeFiles = busy ? Number(job.files_active ?? 0) : 0;
     const downloading = activeFiles > 0;
@@ -426,8 +427,8 @@ function renderClouds() {
       ),
     );
     const information = node("div", undefined, "acquisition-info");
+    information.hidden = Boolean(job && !job.reason && !discovering && job.status !== "pausing");
     information.append(
-      node("strong", job ? ({drive:"Dateien",photos:"Fotos",both:"iCloud Drive und Fotos",calendar:"Kalender"}[job.category]) : "Noch keine Sicherung gestartet"),
       node(
         "p",
         job?.reason || (job?.status === "pausing" ? "Laufende Übertragungen werden angehalten. Danach erscheint Fortsetzen." : discovering ? "Dateierfassung läuft noch. Bereits erfasste Dateien werden parallel heruntergeladen." : busy ? "Die Sicherung läuft im Hintergrund weiter." : (account.can_authenticate

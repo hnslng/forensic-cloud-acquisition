@@ -379,6 +379,7 @@ def test_combined_icloud_and_compact_md5_card(page,monkeypatch):
     expect(page.locator('#scope-field')).not_to_be_visible()
     expect(page.locator('#acquisition-scope-note')).to_contain_text('getrennten Unterordnern')
     page.locator('#acquisition-form button[type=submit]').click()
+    expect(page.locator('#acquisition-dialog')).not_to_be_visible()
     with migration_connection() as db:job=db.execute('SELECT id,category FROM acquisitions').fetchone()
     assert job['category']=='both'
     acquisitions.run_job(job['id'])
@@ -411,6 +412,8 @@ def test_pause_resume_controls_finish_a_real_background_job(page,monkeypatch):
     card.get_by_role('button',name='Sicherung starten',exact=True).click()
     page.locator('#acquisition-form [name=service]').select_option('drive')
     page.locator('#acquisition-form button[type=submit]').click()
+    expect(page.locator('#acquisition-dialog')).not_to_be_visible()
+    expect(card.locator('.status-badge')).to_have_text('Wartet')
     with migration_connection() as db:job=db.execute('SELECT id FROM acquisitions').fetchone()
     worker=threading.Thread(target=acquisitions.run_job,args=(job['id'],));worker.start()
     try:
