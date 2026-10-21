@@ -12,9 +12,13 @@ abgenommen, einschließlich VM-Neustart, PostgreSQL-Persistenz und Restore.
 Fallverwaltung mit serverseitigen Rechten und Audit. Die Oberfläche folgt dem
 TRIAGE//BOX-Start-/Fallablauf in der freigegebenen dunkelblauen Gestaltung und
 verwaltet mehrere benannte
-Cloud-Konten je Fall. iCloud-Anmeldung mit 2FA und Bereichsübersicht werden in Phase 2 ergänzt;
-Google-/OneDrive-Anmeldung und echte Sicherungen sind noch nicht implementiert.
+Cloud-Konten je Fall. **Version 0.5.0 implementiert tatsächliche Sicherungen:**
+iCloud Drive/Fotos sowie offizielle Google-Drive-/Kalender- und Microsoft-OneDrive-/Outlook-Kalender-Adapter, eine dauerhafte Warteschlange,
+parallele Übertragungen, Wiederaufnahme auf Dateiebene, SHA-256 und Sicherungsberichte.
+Echtkonto-Abnahmen stehen aus; Google/Microsoft benötigen registrierte Anbieteranwendungen.
+Nicht verfügbare Kategorien und Bereichsgrenzen sind ausdrücklich dokumentiert.
 
+- [Cloud-Sicherungen: kurze Anleitung, Anbieterstatus und Grenzen](docs/cloud-acquisition.md)
 - [Abschlussbericht Phase 0 und Ressourcenverbrauch](docs/phase-0-completion.md)
 - [Umsetzung und Abnahme Phase 1](docs/phase-1-status.md)
 - [Phase 2: iCloud-Anmeldung, Grenzen und Abnahme](docs/phase-2-icloud.md)

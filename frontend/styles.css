@@ -1047,3 +1047,8 @@ th {
     grid-column: 1/-1;
   }
 }
+
+.progress-fill {height:100%;background:#60A5FA;border-radius:inherit;transition:width .3s;}
+
+.history-entry {padding:1rem 0;border-bottom:1px solid #304B69;overflow-wrap:anywhere;}
+.history-entry a{display:inline-block;color:#60A5FA;margin:1rem 1rem 0 0;}

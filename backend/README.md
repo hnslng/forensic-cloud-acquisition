@@ -1,5 +1,8 @@
 # Backend
 
+**Aktueller Stand 0.5.0:** [Sicherungsfunktionen, Anleitung, Grenzen und ausstehende Echtkonto-Abnahme](../docs/cloud-acquisition.md). Ältere Phasenangaben unten dokumentieren den vorherigen Entwicklungsstand.
+
+
 FastAPI mit persönlicher Anmeldung, austauschbarer Identity-Provider-Schnittstelle,
 persistenten Sitzungen, CSRF/Origin-Prüfung, Benutzer- und Fallverwaltung.
 Fallrechte werden unabhängig von eingegebenen Bearbeiterkürzeln geprüft.

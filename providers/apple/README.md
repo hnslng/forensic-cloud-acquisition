@@ -1,5 +1,8 @@
 # iCloud-Adapter
 
+**Aktueller Stand 0.5.0:** [Sicherungsfunktionen, Anleitung, Grenzen und ausstehende Echtkonto-Abnahme](../../docs/cloud-acquisition.md). Ältere Phasenangaben unten dokumentieren den vorherigen Entwicklungsstand.
+
+
 `adapter.py`: festgeschriebenes rclone v1.75.2, reguläre Apple-Anmeldung und 2FA,
 verschlüsselte Kontokonfiguration, geschützter Unix-Socket und ausschließlich
 explizite Verzeichnisabfragen. Der Webzugang wird in `backend/cloud_auth.py`

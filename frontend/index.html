@@ -87,15 +87,12 @@
             </div>
             <div id="cloud-list" class="cloud-list"></div>
             <p class="coverage-note">
-              iCloud-Anmeldung und Bereichsübersicht sind vorbereitet. Google,
-              OneDrive und Sicherungsaufträge sind noch nicht verfügbar. Ein
-              Anbieterzugriff erfolgt erst über deine Anmeldung und die
-              ausdrücklich gewählte Bereichsabfrage.
+              Cloud-Konto anmelden, Datenbereich wählen und Sicherung starten.
             </p>
           </article>
         </section>
         <details id="audit-panel" class="panel audit-panel" hidden>
-          <summary class="panel-title">Technisches Fallprotokoll</summary>
+          <summary class="panel-title">Fallprotokoll</summary>
           <div id="audit-list"></div>
         </details>
         <footer>
@@ -148,7 +145,7 @@
             <span>1 · FALL</span><small>NEU ODER ARCHIV</small>
           </div>
           <label class="case-field"
-            >GESCHÄFTSZAHL<input
+            >FALLNUMMER<input
               name="business_number"
               autocomplete="off"
               spellcheck="false"
@@ -168,7 +165,7 @@
             <span>2 · SITZUNG</span><small>VERANTWORTLICH</small>
           </div>
           <label class="case-field"
-            >BEARBEITER / KÜRZEL<input
+            >BEARBEITER<input
               name="operator_initials"
               autocomplete="off"
               spellcheck="false"
@@ -238,7 +235,7 @@
           id="case-search"
           aria-label="Fälle durchsuchen"
           type="search"
-          placeholder="Geschäftszahl oder Fallbezeichnung …"
+          placeholder="Fallnummer oder Fallbezeichnung …"
         />
       </div>
       <div id="case-list" class="case-list"></div>
@@ -282,8 +279,7 @@
             autocomplete="off"
         /></label>
         <p class="case-profile-hint">
-          Konten werden zunächst erfasst. Bei iCloud kannst du anschließend die
-          Anmeldung öffnen; Sicherungen bleiben deaktiviert.
+          Jedes Konto erhält einen eigenen Sicherungsordner im Fall.
         </p>
         <p class="dialog-message" role="alert" hidden></p>
         <button id="cloud-submit" class="case-start" type="submit">
@@ -383,12 +379,47 @@
         <div class="subhead"><span>TECHNISCHER STATUS</span></div>
         <p id="technical-status">Zur Statusanzeige anmelden.</p>
         <p class="case-profile-hint">
-          Google-/OneDrive-Anmeldung, Sicherungsaufträge und Prüfberichte sind
-          noch nicht implementiert. Es werden keine Zugangsdaten für
-          Cloud-Anbieter abgefragt.
+          Google und Microsoft benötigen eine registrierte Anbieteranwendung.
+          Der freie Speicher wird vor und während der Sicherung geprüft.
         </p>
+        <form id="download-settings" hidden class="settings-form">
+          <label>Dateien je Konto <input name="file_parallelism" type="number" min="1" max="4" required value="4"></label>
+          <label>Gleichzeitig aktive Konten <input name="account_parallelism" type="number" min="1" max="2" required value="2"></label>
+          <p>Test-VM: höchstens 4 Dateien je Konto und 2 aktive Konten. Speicherreserve: 2 GiB.</p>
+          <button type="submit">Speichern</button>
+        </form>
+        <p id="oauth-configured"></p>
+        <form id="oauth-settings" hidden class="settings-form">
+          <h3>Anbieteranmeldung einrichten</h3>
+          <label>Anbieter <select name="provider"><option value="google">Google</option><option value="microsoft">Microsoft</option></select></label>
+          <label>Anwendungs-ID <input name="client_id" required autocomplete="off"></label>
+          <label>Anwendungsschlüssel <input name="client_secret" type="password" required autocomplete="new-password"></label>
+          <label>Rückkehradresse <input name="redirect_uri" required readonly></label>
+          <p>Diese Adresse beim Anbieter registrieren. Google benötigt einen zugelassenen HTTPS-Domainnamen; eine private IP-Adresse reicht nicht aus.</p>
+          <button type="submit">Anbieter speichern</button>
+        </form>
       </section>
       <p class="dialog-message" role="alert" hidden></p>
+    </dialog>
+    <dialog id="acquisition-history-dialog" class="settings-modal" aria-labelledby="acquisition-history-title">
+      <div class="modal-head"><h2 id="acquisition-history-title">Sicherungsläufe</h2><button type="button" data-close="acquisition-history-dialog">Schließen ×</button></div>
+      <div id="acquisition-history-list" class="modal-body"></div>
+    </dialog>
+    <dialog id="acquisition-dialog" class="settings-modal" aria-labelledby="acquisition-title">
+      <div class="modal-head"><h2 id="acquisition-title">Sicherung starten</h2><button type="button" data-close="acquisition-dialog">Schließen ×</button></div>
+      <form id="acquisition-form" class="modal-body">
+        <p id="acquisition-context" class="context-line"></p>
+        <label class="case-field">Datenbereich<select name="service" required></select></label>
+        <label id="scope-field" class="case-field">Ordner oder Album (optional)<input name="path" maxlength="1024" placeholder="Leer: gesamter zugänglicher Bereich"></label>
+        <fieldset id="calendar-period" hidden><legend>Outlook-Kalenderzeitraum (UTC)</legend>
+          <label>Von <input name="calendar_start" type="date" disabled></label>
+          <label>Bis <input name="calendar_end" type="date" disabled></label>
+          <p>Termine einschließlich Serienterminen und Ausnahmen innerhalb dieses Zeitraums. Anlagen werden nicht heruntergeladen.</p>
+        </fieldset>
+        <p>Gesichert wird ausschließlich der gewählte, freigegebene Datenbereich. Jeder Lauf erhält einen eigenen Ordner. Die Sicherung läuft auch bei geschlossenem Browser weiter.</p>
+        <p class="dialog-message" role="alert" hidden></p>
+        <button type="submit" class="case-start">Sicherung starten</button>
+      </form>
     </dialog>
     <dialog
       id="icloud-dialog"
@@ -446,8 +477,6 @@
         <section id="icloud-browser" hidden>
           <p class="case-profile-hint">
             Wähle einen Bereich. Nur die jeweils geöffnete Ebene wird gelesen.
-            Sicherungsumfang und Downloads werden erst in einem späteren Schritt
-            festgelegt.
           </p>
           <div class="settings-actions">
             <button type="button" id="icloud-drive">iCloud Drive ansehen</button

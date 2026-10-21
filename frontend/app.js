@@ -111,7 +111,7 @@ function renderWorkspace() {
     : "KEIN FALL GESTARTET";
   $("dock-case-note").textContent = ready
     ? "Fallstatus: " + statuses[activeCase.status]
-    : "Geschäftszahl und Bearbeiterkürzel eingeben, dann „Fall starten“.";
+    : "Fallnummer und Bearbeiter eingeben, dann „Fall starten“.";
   $("open-case-button").textContent = ready
     ? "Fall wechseln / öffnen"
     : "+ Fall anlegen / öffnen";
@@ -135,6 +135,7 @@ function clearCase() {
   connectionContext = null;
   $("cloud-list").replaceChildren();
   $("audit-list").replaceChildren();
+  $("acquisition-history-list").replaceChildren();
   $("member-list").replaceChildren();
   $("member-user").replaceChildren();
   $("audit-panel").open = false;
@@ -230,8 +231,8 @@ async function refreshTechnical() {
   if (generation !== authGeneration || !currentUser) return;
   $("technical-status").textContent =
     (status.evidence_mounted
-      ? "TESTDATENDISK EINGEHÄNGT"
-      : "TESTDATENDISK NICHT VERFÜGBAR") +
+      ? "Sicherungsdatenträger verfügbar"
+      : "Sicherungsdatenträger nicht verfügbar") +
     (status.free_bytes === null
       ? ""
       : " · " + (status.free_bytes / 1024 ** 3).toFixed(1) + " GiB frei");
@@ -397,14 +398,17 @@ function renderClouds() {
         "p",
         {
           apple: "Apple iCloud · Drive und Fotos",
-          google: "Google · Drive und verfügbare Exportverfahren",
-          microsoft: "Microsoft OneDrive · Dateien, Fotos und Videos",
+          google: "Google · Drive und Kalender",
+          microsoft: "Microsoft · OneDrive und Outlook-Kalender",
         }[account.provider],
         "provider-description",
       ),
     );
     identity.append(mark, copy);
     const connectionStatus = account.connection_status;
+    const job = account.acquisition;
+    const busy = job && ["queued","running","pausing"].includes(job.status);
+    const jobLabels = {queued:"Wartet", running:"Läuft", pausing:"Wird pausiert", paused:"Pausiert", failed:"Fehlgeschlagen", incomplete:"Unvollständig", completed:"Abgeschlossen"};
     const connectionLabel =
       {
         connected: "Verbunden",
@@ -416,64 +420,89 @@ function renderClouds() {
       identity,
       node(
         "span",
-        connectionLabel,
+        job ? jobLabels[job.status] : connectionLabel,
         "status-badge " +
-          (connectionStatus === "connected"
+          ((job ? job.status === "completed" : connectionStatus === "connected")
             ? "status-success"
             : "status-disconnected"),
       ),
     );
     const information = node("div", undefined, "acquisition-info");
     information.append(
-      node("strong", "Noch keine Sicherung gestartet"),
+      node("strong", job ? jobLabels[job.status] + " · " + ({drive:"Dateien",photos:"Fotos",calendar:"Kalender"}[job.category]) : "Noch keine Sicherung gestartet"),
       node(
         "p",
-        account.can_authenticate
+        job?.reason || (account.can_authenticate
           ? connectionStatus === "connected"
-            ? "Verbindung hergestellt. Über „Bereiche ansehen“ die verfügbaren Inhalte prüfen. Sicherungen sind noch nicht implementiert."
-            : "Nächster Schritt: Authentifizierung mit Apple-ID, Passwort und 2FA."
-          : "Die Anbieteranbindung ist noch nicht verfügbar.",
+            ? "Bereit zur Sicherung. Datenbereich auswählen und starten."
+            : "Nächster Schritt: Cloud-Konto anmelden."
+          : "Anmeldung muss in den Einstellungen eingerichtet werden."),
       ),
     );
     const progress = node("div", undefined, "acquisition-progress");
     const summary = node("div", undefined, "progress-summary");
     summary.append(
-      node("span", "Übertragungsfortschritt noch nicht verfügbar"),
-      node("span", "Keine Messwerte"),
+      node("span", job ? formatBytes(job.bytes_done) + " übertragen · " + job.files_done + " Dateien geprüft" : "Noch keine Daten übertragen"),
+      node("span", job?.inventory_complete && job.bytes_total > 0 ? formatBytes(job.bytes_total) + " erfasst" : ""),
     );
     const track = node("div", undefined, "progress-track unavailable");
     track.setAttribute("role", "img");
     track.setAttribute("aria-label", "Kein Sicherungsfortschritt verfügbar");
+    if (job) {
+      track.classList.remove("unavailable");
+      const fill = node("div", undefined, "progress-fill");
+      const percent = job.status === "completed" ? 100 : (job.bytes_total > 0 ? Math.min(99, 100 * job.bytes_done / job.bytes_total) : 0);
+      fill.style.width = percent + "%";
+      if (job.status === "completed") fill.style.background = "#47B881";
+      track.replaceChildren(fill);
+      track.setAttribute("aria-label", jobLabels[job.status]);
+    }
     const metrics = node("div", undefined, "transfer-metrics");
     metrics.append(
-      node("span", "Datenmenge: —"),
-      node("span", "Geschwindigkeit: —"),
-      node("span", "Restzeit: —"),
-      node("span", "Prüfsummen: noch nicht verfügbar"),
+      node("span", job ? "Datenmenge: " + formatBytes(job.bytes_done) : "Datenmenge: —"),
+      node("span", job?.speed ? formatBytes(job.speed) + "/s" : "Geschwindigkeit: —"),
+      node("span", job?.speed && job.bytes_total > job.bytes_done ? "Restzeit: ca. " + Math.ceil((job.bytes_total-job.bytes_done)/job.speed/60) + " Min." : "Restzeit: —"),
+      node("span", job ? "SHA-256: " + job.files_done + " Dateien geprüft" : "Prüfsummen: noch nicht verfügbar"),
     );
     progress.append(summary, track, metrics);
     const actions = node("div", undefined, "cloud-actions");
     const authenticate = node(
       "button",
       connectionStatus === "connected"
-        ? "Erneut authentifizieren"
-        : "Authentifizieren",
+        ? "Erneut anmelden"
+        : "Anmelden",
     );
     authenticate.type = "button";
-    authenticate.disabled = !activeCase.can_edit || !account.can_authenticate;
+    authenticate.disabled = !activeCase.can_edit || !account.can_authenticate || busy;
     authenticate.title = account.can_authenticate
       ? "Mit deinem vorbereiteten iCloud-Konto anmelden"
       : "Noch nicht verfügbar";
-    authenticate.addEventListener("click", () => openICloud(account));
+    authenticate.addEventListener("click", () => account.provider === "apple" ? openICloud(account) : beginOAuth(account));
     const browse = node("button", "Bereiche ansehen");
     browse.type = "button";
-    browse.disabled = !activeCase.can_edit || !account.can_browse;
+    browse.disabled = !activeCase.can_edit || !account.can_browse || busy;
     browse.addEventListener("click", () => openICloud(account, true));
     const acquire = node("button", "Sicherung starten");
     acquire.type = "button";
-    acquire.disabled = true;
-    acquire.title = "Sicherungsaufträge sind noch nicht implementiert";
+    acquire.disabled = !activeCase.can_edit || !account.can_acquire || busy || job?.status === "paused";
+    acquire.title = "Datenbereich auswählen und sichern";
+    acquire.addEventListener("click", () => openAcquisition(account));
     actions.append(authenticate, browse, acquire);
+    if (job) {
+      const history=node("button","Sicherungsläufe");
+      history.addEventListener("click",()=>showAcquisitionHistory(account).catch(error=>message(error.message)));
+      actions.append(history);
+    }
+    if (job && activeCase.can_edit && ["queued","running","paused","failed"].includes(job.status)) {
+      const action = ["queued","running"].includes(job.status) ? "pause" : "resume";
+      const control = node("button", action === "pause" ? "Pausieren" : "Fortsetzen");
+      control.addEventListener("click", async () => {
+        control.disabled = true;
+        try { await api("/cases/"+activeCase.id+"/acquisitions/"+job.id+"/"+action,{method:"POST",body:"{}"}); await refreshActive(activeCase.id); }
+        catch(error) { message(error.message); control.disabled=false; }
+      });
+      actions.append(control);
+    }
     const rename = node("button", "Bezeichnung bearbeiten", "cloud-rename");
     rename.type = "button";
     rename.disabled = !activeCase?.can_edit;
@@ -652,7 +681,7 @@ async function selectPane(pane) {
     );
   if (pane === "users") await loadUsers();
   if (pane === "rights") await loadRights();
-  if (pane === "technical" && currentUser) await refreshTechnical();
+  if (pane === "technical" && currentUser) { await refreshTechnical(); await loadDownloadSettings(); }
 }
 function openSettings() {
   updateSettingsIdentity();
@@ -998,3 +1027,90 @@ api("/auth/me")
     if (initialAuth === authGeneration) return signedIn(user);
   })
   .catch(() => {});
+
+
+function formatBytes(value) {
+  if (value < 1024) return value + " B";
+  const units=["KiB","MiB","GiB","TiB"]; let amount=value/1024, index=0;
+  while(amount>=1024 && index<units.length-1){amount/=1024;index++;}
+  return amount.toLocaleString("de-AT",{maximumFractionDigits:1})+" "+units[index];
+}
+async function beginOAuth(account){
+  try {
+    const context={case_id:activeCase.id,account_id:account.id};
+    const result=await api("/cases/"+context.case_id+"/cloud-accounts/"+account.id+"/oauth/begin",{method:"POST",body:"{}"});
+    sessionStorage.setItem("fca-oauth",JSON.stringify(context));
+    location.assign(result.url);
+  } catch(error){message(error.message);}
+}
+let acquisitionContext=null;
+function openAcquisition(account){
+  acquisitionContext={caseId:activeCase.id,accountId:account.id,provider:account.provider,auth:authGeneration};
+  const form=$("acquisition-form");form.reset();
+  $("acquisition-context").textContent=account.label;
+  form.elements.service.replaceChildren();
+  for(const [value,label] of (account.provider === "apple" ? [["drive","iCloud Drive"],["photos","iCloud Fotos"]] : [["drive",account.provider === "google"?"Google Drive":"OneDrive"],["calendar",account.provider === "google"?"Google Kalender":"Outlook-Kalender"]])){
+    const option=node("option",label);option.value=value;form.elements.service.append(option);
+  }
+  $("scope-field").hidden=account.provider!=="apple";
+  updateCalendarPeriod();
+  openDialog("acquisition-dialog");
+}
+formAction("acquisition-form",async(form)=>{
+  const context=acquisitionContext;if(!context || context.auth!==authGeneration || activeCase?.id!==context.caseId)return;
+  await api("/cases/"+context.caseId+"/cloud-accounts/"+context.accountId+"/acquisitions",{method:"POST",body:JSON.stringify(formData(form))});
+  closeDialog("acquisition-dialog");await refreshActive(context.caseId);
+});
+async function loadDownloadSettings(){
+  $("download-settings").hidden=currentUser?.role!=="admin";
+  $("oauth-settings").hidden=currentUser?.role!=="admin";
+  if(currentUser?.role!=="admin")return;
+  const result=await api("/admin/acquisition-settings");
+  const form=$("download-settings");form.elements.file_parallelism.value=result.file_parallelism;form.elements.account_parallelism.value=result.account_parallelism;
+  if(result.resources?.available_memory_bytes) $("technical-status").textContent += " · " + formatBytes(result.resources.available_memory_bytes) + " RAM verfügbar";
+  $("oauth-configured").textContent="Anmeldung eingerichtet: Google "+(result.providers.google?"ja":"nein")+" · Microsoft "+(result.providers.microsoft?"ja":"nein");
+  $("oauth-settings").hidden=false;$("oauth-settings").elements.redirect_uri.value=location.origin+"/api/oauth/callback";
+}
+formAction("download-settings",async(form)=>{
+  await api("/admin/acquisition-settings",{method:"PUT",body:JSON.stringify({file_parallelism:Number(form.elements.file_parallelism.value),account_parallelism:Number(form.elements.account_parallelism.value),reserve_bytes:2147483648})});
+  message("Sicherungseinstellungen gespeichert.");
+});
+formAction("oauth-settings",async(form)=>{
+  try {await api("/admin/oauth-settings",{method:"PUT",body:JSON.stringify(formData(form))});await loadDownloadSettings();message("Anbieteranwendung gespeichert.");}
+  finally {form.elements.client_secret.value="";}
+});
+setInterval(async()=>{
+  if(!currentUser || !activeCase || document.hidden || document.querySelector("dialog[open]"))return;
+  if(!cloudList.some(a=>a.acquisition && ["queued","running","pausing"].includes(a.acquisition.status)))return;
+  try {await refreshActive(activeCase.id);} catch { /* existing session handling applies */ }
+},2000);
+
+function updateCalendarPeriod(){
+  const form=$("acquisition-form");
+  const enabled=acquisitionContext?.provider === "microsoft" && form.elements.service.value === "calendar";
+  $("calendar-period").hidden=!enabled;
+  for(const name of ["calendar_start","calendar_end"]){form.elements[name].disabled=!enabled;form.elements[name].required=enabled;}
+  const year=new Date().getUTCFullYear();
+  if(enabled && !form.elements.calendar_start.value){form.elements.calendar_start.value=(year-5)+"-01-01";form.elements.calendar_end.value=(year+1)+"-12-31";}
+}
+$("acquisition-form").elements.service.addEventListener("change",updateCalendarPeriod);
+
+async function showAcquisitionHistory(account){
+  const caseId=activeCase.id,auth=authGeneration;
+  const jobs=await api("/cases/"+caseId+"/acquisitions");
+  if(auth!==authGeneration || activeCase?.id!==caseId)return;
+  $("acquisition-history-list").replaceChildren();
+  const labels={queued:"Wartet",running:"Läuft",pausing:"Wird pausiert",paused:"Pausiert",failed:"Fehlgeschlagen",incomplete:"Unvollständig",completed:"Abgeschlossen"};
+  for(const job of jobs.filter(job=>job.account_id===account.id)){
+    const row=node("article",undefined,"history-entry");
+    row.append(node("h3",({drive:"Dateien",photos:"Fotos",calendar:"Kalender"}[job.category])+" · "+labels[job.status]),node("p",new Date(job.created_at).toLocaleString("de-AT")+" · "+formatBytes(job.bytes_done)),node("code",job.id));
+    if(job.reason)row.append(node("p",job.reason));
+    if(!["queued","running","pausing"].includes(job.status)){
+      for(const [kind,label] of [["bericht","Sicherungsbericht"],["dateien","Dateien und Prüfsummen"]]){
+        const link=node("a",label);link.href="/api/cases/"+caseId+"/acquisitions/"+job.id+"/report/"+kind;link.download="";row.append(link);
+      }
+    }
+    $("acquisition-history-list").append(row);
+  }
+  openDialog("acquisition-history-dialog");
+}

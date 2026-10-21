@@ -5,6 +5,7 @@ from pathlib import Path
 import secrets
 import shutil
 from typing import Literal
+from datetime import date
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
@@ -16,7 +17,7 @@ from psycopg.errors import UniqueViolation
 from backend.db import connect, audit
 from backend.identity import identity_provider, verify_password, hash_password, BusyAuthentication
 
-app = FastAPI(title='FORENSIC CLOUD ACQUISITION', version='0.4.1', docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title='FORENSIC CLOUD ACQUISITION', version='0.5.0', docs_url=None, redoc_url=None, openapi_url=None)
 COOKIE = '__Host-fca_session'
 CSRF_COOKIE = '__Host-fca_csrf'
 USER_FIELDS = 'id,username,initials,role,active,identity_provider,created_at'
@@ -216,9 +217,10 @@ def create_case(body: CaseInput, user=Depends(identity), conn=Depends(connection
             case = conn.execute('INSERT INTO cases(business_number,name,created_by,operator_initials) VALUES (%s,%s,%s,%s) RETURNING *',
                                 (body.business_number, body.name, user['id'], body.operator_initials.upper())).fetchone()
             conn.execute("INSERT INTO case_members(case_id,user_id,access) VALUES (%s,%s,'editor')", (case['id'], user['id']))
+            evidence.ensure_case(conn, case)
             audit(conn, user, 'case_created', case['id'], body.operator_initials.upper())
     except UniqueViolation:
-        raise HTTPException(409, 'Geschäftszahl bereits vorhanden.')
+        raise HTTPException(409, 'Fallnummer bereits vorhanden.')
     return case
 
 
@@ -300,9 +302,9 @@ def status(user=Depends(identity)):
     path = Path(os.environ.get('FCA_EVIDENCE_ROOT', '/evidence'))
     ready = (path / '.fca-volume-id').is_file()
     disk = shutil.disk_usage(path) if path.exists() else None
-    return {'phase': 1, 'acquisition_available': False, 'evidence_mounted': ready,
+    return {'phase': 3, 'acquisition_available': ready, 'evidence_mounted': ready,
             'free_bytes': disk.free if disk else None, 'total_bytes': disk.total if disk else None,
-            'note': 'Cloud-Anmeldung und Sicherungen folgen ab Phase 2. Nur Testlabor.'}
+            'note': 'Sicherung über den gewählten Datenbereich. Nur Testlabor.'}
 
 
 @app.get('/api/cases/{case_id}/cloud-accounts')
@@ -310,8 +312,9 @@ def cloud_accounts(case_id: UUID, user=Depends(identity), conn=Depends(connectio
     case_access(conn, user, case_id)
     rows = conn.execute('SELECT * FROM cloud_accounts WHERE case_id=%s ORDER BY created_at,id', (case_id,)).fetchall()
     for row in rows:
-        row.update(cloud_auth.status(case_id, row['id']) if row['provider'] == 'apple' else
-                   {'connection_status': 'unavailable', 'can_authenticate': False, 'can_browse': False})
+        row.update(cloud_auth.status(case_id, row['id']) if row['provider'] == 'apple' else oauth.status(row['provider'], case_id, row['id']))
+        row['can_acquire'] = row['connection_status'] == 'connected'
+        row['acquisition'] = conn.execute('SELECT '+acquisitions.PUBLIC+' FROM acquisitions WHERE account_id=%s ORDER BY created_at DESC LIMIT 1', (row['id'],)).fetchone()
     return rows
 
 
@@ -320,6 +323,9 @@ def add_cloud_account(case_id: UUID, body: CloudAccountInput, user=Depends(ident
     case_access(conn, user, case_id, write=True)
     account = conn.execute('INSERT INTO cloud_accounts(case_id,provider,label,created_by) VALUES (%s,%s,%s,%s) RETURNING *',
                            (case_id, body.provider, body.label, user['id'])).fetchone()
+    case = case_access(conn,user,case_id,write=True)
+    for category in acquisitions.CATEGORIES[body.provider]:
+        evidence.ensure_account(conn,case,account,category)
     audit(conn, user, 'cloud_account_added', case_id,
           details={'account_id': str(account['id']), 'provider': body.provider, 'label': body.label})
     return account
@@ -340,7 +346,8 @@ def rename_cloud_account(case_id: UUID, account_id: UUID, body: CloudAccountRena
 
 
 # Phase 2: real iCloud authentication and explicitly requested directory reads.
-from backend import cloud_auth
+from backend import cloud_auth, evidence, acquisitions, oauth
+from providers.apple.adapter import ProviderError
 
 
 class ICloudLogin(Input):
@@ -378,9 +385,9 @@ def cloud_access(conn, user, case_id, account_id, write=True):
 
 @app.get('/api/providers/status')
 def providers_status(user=Depends(identity)):
-    return {'apple': {'authentication_available': cloud_auth.available(), 'downloads_available': False},
-            'google': {'authentication_available': False, 'downloads_available': False},
-            'microsoft': {'authentication_available': False, 'downloads_available': False}}
+    return {'apple': {'authentication_available': cloud_auth.available(), 'downloads_available': cloud_auth.available()},
+            'google': {'authentication_available': oauth.available('google'), 'downloads_available': oauth.available('google')},
+            'microsoft': {'authentication_available': oauth.available('microsoft'), 'downloads_available': oauth.available('microsoft')}}
 
 
 @app.post('/api/cases/{case_id}/cloud-accounts/{account_id}/icloud/{action}')
@@ -389,6 +396,8 @@ def icloud_action(case_id: UUID, account_id: UUID, action: Literal['login', 'con
     cloud_access(conn, user, case_id, account_id)
     if not cloud_auth.available():
         raise HTTPException(503, 'iCloud-Anbindung ist noch nicht eingerichtet.')
+    if action in ('login','confirm','forget'):
+        idle_account(conn,account_id)
     # Validate BEFORE any provider operation. Generic error never echoes secrets.
     try:
         model = {'login': ICloudLogin, 'confirm': ICloudAnswer, 'browse': ICloudBrowse}.get(action)
@@ -423,3 +432,161 @@ def icloud_action(case_id: UUID, account_id: UUID, action: Literal['login', 'con
     audit(conn, user, 'cloud_' + action + '_completed', case_id,
           details={'account_id': str(account_id), 'status': result.get('status', 'read_completed')})
     return result
+
+
+@app.exception_handler(evidence.StorageError)
+async def storage_problem(request, exc):
+    return JSONResponse(status_code=409, content={'detail':str(exc)})
+
+
+def idle_account(conn,account_id):
+    if conn.execute("SELECT id FROM acquisitions WHERE account_id=%s AND status IN ('queued','running','pausing')",(account_id,)).fetchone():
+        raise HTTPException(409,'Bitte die laufende Sicherung zuerst pausieren.')
+
+
+def any_cloud_access(conn,user,case_id,account_id):
+    case=case_access(conn,user,case_id,write=True)
+    row=conn.execute('SELECT * FROM cloud_accounts WHERE case_id=%s AND id=%s',(case_id,account_id)).fetchone()
+    if not row: raise HTTPException(404,'Cloud-Konto nicht gefunden.')
+    return case,row
+
+
+class AcquisitionInput(ICloudBrowse):
+    service: Literal['drive','photos','calendar']
+    calendar_start: date | None = None
+    calendar_end: date | None = None
+
+
+@app.post('/api/cases/{case_id}/cloud-accounts/{account_id}/acquisitions',status_code=201)
+def start_acquisition(case_id:UUID,account_id:UUID,body:AcquisitionInput,user=Depends(identity),conn=Depends(connection,scope='function')):
+    case,account=any_cloud_access(conn,user,case_id,account_id)
+    idle_account(conn,account_id)
+    state=cloud_auth.status(case_id,account_id) if account['provider']=='apple' else oauth.status(account['provider'],case_id,account_id)
+    if state['connection_status']!='connected': raise HTTPException(409,'Bitte Cloud-Konto zuerst anmelden.')
+    scope=body.path
+    if account['provider']=='microsoft' and body.service=='calendar':
+        if not body.calendar_start or not body.calendar_end or not 0 <= (body.calendar_end-body.calendar_start).days <= 3660:
+            raise HTTPException(422,'Kalenderzeitraum angeben (höchstens zehn Jahre je Sicherungslauf).')
+        scope=body.calendar_start.isoformat()+'/'+body.calendar_end.isoformat()
+    elif body.calendar_start or body.calendar_end:
+        raise HTTPException(422,'Kalenderzeitraum ist nur für Outlook vorgesehen.')
+    try:
+        with conn.transaction(): return acquisitions.enqueue(conn,case,account,user,body.service,scope)
+    except UniqueViolation: raise HTTPException(409,'Für dieses Konto ist bereits eine Sicherung vorgemerkt.') from None
+    except ProviderError as error: raise HTTPException(409,str(error)) from None
+
+
+@app.get('/api/cases/{case_id}/acquisitions')
+def list_acquisitions(case_id:UUID,user=Depends(identity),conn=Depends(connection,scope='function')):
+    case_access(conn,user,case_id)
+    return conn.execute('SELECT '+acquisitions.PUBLIC+' FROM acquisitions WHERE case_id=%s ORDER BY created_at DESC LIMIT 500',(case_id,)).fetchall()
+
+
+@app.post('/api/cases/{case_id}/acquisitions/{job_id}/{action}')
+def control_acquisition(case_id:UUID,job_id:UUID,action:Literal['pause','resume'],body:dict,user=Depends(identity),conn=Depends(connection,scope='function')):
+    case_access(conn,user,case_id,write=True)
+    if body: raise HTTPException(422,'Ungültige Eingaben.')
+    row=conn.execute('SELECT * FROM acquisitions WHERE case_id=%s AND id=%s FOR UPDATE',(case_id,job_id)).fetchone()
+    if not row: raise HTTPException(404,'Sicherung nicht gefunden.')
+    if row['status']=='completed': raise HTTPException(409,'Abgeschlossene Sicherung bleibt unverändert.')
+    # Wait for the worker to finish a pause before allowing a second consumer.
+    if action=='pause' and row['status'] not in ('queued','running','pausing'): raise HTTPException(409,'Nur wartende oder laufende Sicherungen können pausiert werden.')
+    if action=='resume' and row['status'] not in ('paused','failed','incomplete'): raise HTTPException(409,'Sicherung wird noch verarbeitet.')
+    if action=='resume':
+        evidence.space(acquisitions.settings(conn)['reserve_bytes'])
+        if row['status']=='incomplete':
+            raise HTTPException(409,'Unvollständigen Umfang über einen neuen Sicherungslauf erneut erfassen.')
+    new='pausing' if action=='pause' and row['status']=='running' else ('paused' if action=='pause' else 'queued')
+    try:
+        with conn.transaction():
+            conn.execute('UPDATE acquisitions SET status=%s,reason=%s WHERE id=%s',(new,'Pause angefordert.' if action=='pause' else None,job_id))
+    except UniqueViolation: raise HTTPException(409,'Für dieses Konto existiert bereits ein anderer aktiver Sicherungslauf.') from None
+    audit(conn,user,'acquisition_'+action,case_id,details={'acquisition_id':str(job_id)})
+    return {'status':new}
+
+
+@app.get('/api/admin/acquisition-settings')
+def acquisition_settings(user=Depends(admin),conn=Depends(connection,scope='function')):
+    return {**acquisitions.settings(conn),'providers':{p:oauth.available(p) for p in ('google','microsoft')},'resources':acquisitions.resources()}
+
+
+class AcquisitionSettings(Input):
+    file_parallelism:int=Field(ge=1,le=4)
+    account_parallelism:int=Field(ge=1,le=2)
+    reserve_bytes:int=Field(ge=1073741824,le=107374182400)
+
+
+@app.put('/api/admin/acquisition-settings')
+def save_acquisition_settings(body:AcquisitionSettings,user=Depends(admin),conn=Depends(connection,scope='function')):
+    conn.execute('UPDATE acquisition_settings SET file_parallelism=%s,account_parallelism=%s,reserve_bytes=%s WHERE singleton',(body.file_parallelism,body.account_parallelism,body.reserve_bytes))
+    audit(conn,user,'acquisition_settings_updated',details=body.model_dump())
+    return {'ok':True}
+
+
+@app.post('/api/cases/{case_id}/cloud-accounts/{account_id}/oauth/begin')
+def oauth_begin(case_id:UUID,account_id:UUID,body:dict,user=Depends(identity),conn=Depends(connection,scope='function')):
+    _,account=any_cloud_access(conn,user,case_id,account_id)
+    idle_account(conn,account_id)
+    if body or account['provider'] not in ('google','microsoft'): raise HTTPException(422,'Ungültiger Anbieter.')
+    audit(conn,user,'cloud_login_requested',case_id,details={'account_id':str(account_id)}); conn.commit()
+    try: return oauth.begin(account['provider'],case_id,account_id,user['id'])
+    except ProviderError as error: raise HTTPException(409,str(error)) from None
+
+
+class OAuthComplete(Input):
+    case_id:UUID
+    account_id:UUID
+    state:str=Field(min_length=16,max_length=512,repr=False)
+    code:str=Field(min_length=1,max_length=8192,repr=False)
+
+
+@app.get('/api/oauth/callback')
+def oauth_callback():
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse('<!doctype html><html lang="de"><meta charset="utf-8"><title>FCA Anmeldung</title><p id="result">Anmeldung wird abgeschlossen …</p><script src="/oauth-callback.js" defer></script></html>')
+
+
+@app.post('/api/oauth/complete')
+def oauth_complete(body:OAuthComplete,user=Depends(identity),conn=Depends(connection,scope='function')):
+    _,account=any_cloud_access(conn,user,body.case_id,body.account_id)
+    idle_account(conn,body.account_id)
+    if account['provider'] not in ('google','microsoft'): raise HTTPException(422,'Ungültiger Anbieter.')
+    conn.commit()
+    try: result=oauth.complete(account['provider'],body.case_id,body.account_id,user['id'],body.state,body.code)
+    except ProviderError as error: raise HTTPException(409,str(error)) from None
+    any_cloud_access(conn,user,body.case_id,body.account_id)
+    audit(conn,user,'cloud_login_completed',body.case_id,details={'account_id':str(body.account_id)})
+    return result
+
+
+class OAuthConfiguration(Input):
+    provider:Literal['google','microsoft']
+    client_id:str=Field(min_length=1,max_length=512)
+    client_secret:str=Field(min_length=1,max_length=2048,repr=False)
+    redirect_uri:str=Field(min_length=10,max_length=1024)
+
+
+@app.put('/api/admin/oauth-settings')
+def oauth_settings(body:OAuthConfiguration,user=Depends(admin),conn=Depends(connection,scope='function')):
+    from urllib.parse import urlsplit
+    uri=urlsplit(body.redirect_uri)
+    if (uri.scheme!='https' or not uri.hostname or uri.username or uri.password or uri.query or uri.fragment
+            or uri.path!='/api/oauth/callback' or body.redirect_uri!=os.environ['FCA_PUBLIC_ORIGIN']+'/api/oauth/callback'):
+        raise HTTPException(422,'Rückkehradresse muss der HTTPS-Adresse dieser FCA-Installation mit /api/oauth/callback entsprechen.')
+    if conn.execute("SELECT j.id FROM acquisitions j JOIN cloud_accounts a ON a.id=j.account_id WHERE a.provider=%s AND j.status IN ('queued','running','pausing')",(body.provider,)).fetchone():
+        raise HTTPException(409,'Für diesen Anbieter läuft noch eine Sicherung.')
+    oauth.save_configuration(body.provider,body.client_id,body.client_secret,body.redirect_uri)
+    audit(conn,user,'oauth_application_configured',details={'provider':body.provider})
+    return {'ok':True}
+
+
+@app.get('/api/cases/{case_id}/acquisitions/{job_id}/report/{kind}')
+def acquisition_report(case_id:UUID,job_id:UUID,kind:Literal['bericht','dateien'],user=Depends(identity),conn=Depends(connection,scope='function')):
+    from fastapi.responses import FileResponse
+    case_access(conn,user,case_id)
+    job=conn.execute('SELECT directory,status FROM acquisitions WHERE case_id=%s AND id=%s',(case_id,job_id)).fetchone()
+    if not job: raise HTTPException(404,'Sicherung nicht gefunden.')
+    name='Sicherungsbericht.json' if kind=='bericht' else 'Dateien.jsonl'
+    path=evidence.file_path(evidence.directory(job['directory']+'/_FCA'),name)
+    if not path.is_file(): raise HTTPException(404,'Bericht ist noch nicht verfügbar.')
+    return FileResponse(path,media_type='application/json' if kind=='bericht' else 'application/x-ndjson',filename=str(job_id)+'-'+name)

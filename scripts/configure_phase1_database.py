@@ -38,8 +38,17 @@ def main():
         sql('SET ROLE fca_migrate;\n' + Path('migrations/0004_cloud_account_catalog.sql').read_text())
     if sql('SELECT max(version) FROM schema_migrations;').strip() == '4':
         sql('SET ROLE fca_migrate;\n' + Path('migrations/0005_cloud_auth_attempts.sql').read_text())
+    if sql('SELECT max(version) FROM schema_migrations;').strip() == '5':
+        sql('SET ROLE fca_migrate;\n' + Path('migrations/0006_acquisitions.sql').read_text())
     # Independent provider secret: never rotate an existing key during deployment.
     rendered = json.loads(subprocess.check_output(COMPOSE + ['--profile', 'application', 'config', '--format', 'json']))
+    evidence_root = Path(next(v['source'] for v in rendered['services']['api']['volumes'] if v['target'] == '/evidence'))
+    if (evidence_root / '.fca-volume-id').is_file():
+        if evidence_root.resolve() != evidence_root: raise RuntimeError('Refusing a symlink evidence root')
+        tree=evidence_root / 'FCA-Sicherungen'
+        if not tree.exists():
+            tree.mkdir(mode=0o700); os.chown(tree,10001,10001)
+        if tree.is_symlink(): raise RuntimeError('Refusing a symlink evidence tree')
     cloud_root = Path(next(v['source'] for v in rendered['services']['api']['volumes'] if v['target'] == '/cloud-auth'))
     cloud_root.mkdir(mode=0o700, exist_ok=True)
     if cloud_root.is_symlink():

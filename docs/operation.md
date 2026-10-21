@@ -1,5 +1,8 @@
 # Laborbetrieb – Zugang und Administration
 
+Aktuelle Sicherungsbedienung und Anbietergrenzen: [Cloud-Sicherungen 0.5.0](cloud-acquisition.md).
+Der neue Worker wird zusammen mit dem API-Profil `application` gestartet. Nach Migration/Update bestehende Fallordner einmalig mit `docker compose --env-file /etc/fca/compose.env exec -T api python -m backend.initialize_evidence` ergänzen. Dies bearbeitet ausschließlich neue Verzeichniszuordnungen, keine bisherigen Falldaten.
+
 ## Zugriff
 
 Aktuelles Laborziel: **https://10.0.1.189/**. DHCP ist freigegeben und aktiviert;

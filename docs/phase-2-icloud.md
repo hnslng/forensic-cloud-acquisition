@@ -1,5 +1,8 @@
 # Phase 2 – iCloud zuerst
 
+**Aktueller Stand 0.5.0:** [Sicherungsfunktionen, Anleitung, Grenzen und ausstehende Echtkonto-Abnahme](cloud-acquisition.md). Ältere Phasenangaben unten dokumentieren den vorherigen Entwicklungsstand.
+
+
 Der Benutzer möchte ein vollständig vorbereitetes Labor, um danach sein eigens
 vorbereitetes iCloud-Konto direkt in FCA anzumelden und erreichbare Bereiche zu
 prüfen. Ein vorab festgelegter Testordner ist dafür nicht erforderlich. Es wurden

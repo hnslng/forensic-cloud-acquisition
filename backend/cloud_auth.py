@@ -115,6 +115,8 @@ def perform(case_id, account_id, user_id, action, *, apple_id=None, password=Non
                 except (ProviderError, OSError):
                     _write_state(directory, {'status': 'error'})
                     raise ProviderError('iCloud-Anmeldung fehlgeschlagen. Zugangsdaten, 2FA und erlaubten Webzugriff prüfen.') from None
+                from backend import oauth
+                oauth.save(case_id, account_id, {'account_identifier': apple_id})
                 state = _step_state(adapter, step, user_id)
                 _write_state(directory, state)
                 return _public_step(state)
@@ -144,6 +146,9 @@ def perform(case_id, account_id, user_id, action, *, apple_id=None, password=Non
                 return {'service': service, 'path': path, 'entries': entries, 'downloads_available': False}
             if action == 'forget':
                 adapter.forget()
+                from backend import oauth
+                encrypted, _ = oauth.vault(case_id, account_id)
+                encrypted.unlink(missing_ok=True)
                 _write_state(directory, {'status': 'disconnected'})
                 return {'status': 'disconnected'}
             raise ValueError('Unsupported action')

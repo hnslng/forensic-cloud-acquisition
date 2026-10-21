@@ -1,5 +1,14 @@
 # Änderungen
 
+## 0.5.0 – 2026-10-21 – Dauerhafte Cloud-Sicherungen
+
+- Separater Worker mit PostgreSQL-Warteschlange; maximal zwei Konten und vier Dateien je Konto, konfigurierbar innerhalb der VM-Grenzen.
+- Eigene Fall-/Konto-/Laufordner, temporäre Übertragung, atomare Übernahme ohne Überschreiben, SHA-256 und geschützte Berichte.
+- Wiederaufnahme fertiger Dateien nach Prozessneustart; unfertige Dateien werden sicher neu übertragen.
+- iCloud-Downloadadapter sowie offizielle OAuth-/REST-Adapter für Google Drive/Kalender und Microsoft OneDrive/Outlook-Kalender.
+- Deutsches Bedienvokabular, echte Fortschritte und Sicherungsläufe innerhalb der freigegebenen Oberfläche.
+- Synthetische Sicherheits-, Parallelitäts-, Abbruch-/Neustart- und Browserprüfungen; echte Anbieterabnahmen und App-Registrierungen bleiben ausdrücklich offen.
+
 ## Phase 2 – iCloud-Anmeldung vorbereitet
 
 - iCloud-SRP-Anmeldung, 2FA und explizite Drive-/Fotos-Bereichsübersicht.

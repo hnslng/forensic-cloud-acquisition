@@ -163,3 +163,25 @@ def test_explicit_browse_rejects_untrusted_paths_and_auth_state_is_reviewed(tmp_
             adapter.resume_challenge('arbitrary-state', 'config_2fa')
         adapter.resume_challenge('2fa_sms_1_sms', 'config_2fa_sms')
         assert adapter._step.status == 'challenge'
+
+
+def test_actual_async_copy_inventory_and_parallel_files_offline(tmp_path,monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from providers.acquisition import AppleDownload
+    from backend import evidence
+    from providers.apple.adapter import AccountContext
+    os.chmod(tmp_path,0o700)
+    config=tmp_path/'config';config.mkdir(mode=0o700)
+    source=tmp_path/'source';source.mkdir();(source/'folder').mkdir()
+    for i,size in enumerate([0,1,65536,1048576]):(source/'folder'/('file'+str(i))).write_bytes(b'z'*size)
+    destination=tmp_path/'destination';destination.mkdir()
+    monkeypatch.setattr(evidence,'space',lambda *_:None)
+    with AppleDownload(config/'rclone.conf',KEY,AccountContext(uuid4(),uuid4())) as adapter:
+        adapter._rpc('config/create',{'name':adapter.remote,'type':'alias','parameters':{'remote':str(source)},'opt':{'nonInteractive':True}})
+        records=[r for r in adapter.inventory('drive') if not r.get('directory')]
+        assert len(records)==4
+        def transfer(record):
+            target=destination/(str(record['size'])+'.part')
+            adapter.download({'source_id':record['id'],'metadata':record['metadata'],'category':'drive'},target,0,lambda _:None)
+            assert target.read_bytes()==b'z'*record['size']
+        with ThreadPoolExecutor(max_workers=4) as pool:list(pool.map(transfer,records))

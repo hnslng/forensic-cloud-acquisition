@@ -105,7 +105,7 @@ def test_start_nested_login_case_and_multi_cloud_persistence(page):
         add_cloud(page, provider, label)
     expect(page.locator('.cloud-card')).to_have_count(4)
     for card in page.locator('.cloud-card').all():
-        expect(card.get_by_role('button', name='Authentifizieren', exact=True)).to_be_disabled()
+        expect(card.get_by_role('button', name='Anmelden', exact=True)).to_be_disabled()
         expect(card.get_by_role('button', name='Sicherung starten', exact=True)).to_be_disabled()
     first = page.locator('.cloud-card').first
     first.get_by_role('button', name='Bezeichnung bearbeiten').click()
@@ -257,7 +257,7 @@ def test_icloud_login_2fa_and_explicit_browsing_in_approved_ui(page, monkeypatch
     create_case(page)
     add_cloud(page, 'apple', 'SYNTHETIC iCloud-Anmeldung')
     card = page.locator('.cloud-card').first
-    card.get_by_role('button', name='Authentifizieren', exact=True).click()
+    card.get_by_role('button', name='Anmelden', exact=True).click()
     page.locator('#icloud-login-form [name=apple_id]').fill('synthetic@example.invalid')
     page.locator('#icloud-login-form [name=password]').fill('Synthetic-Apple-Password')
     screenshot(page, '10-icloud-login-synthetic')
@@ -269,7 +269,7 @@ def test_icloud_login_2fa_and_explicit_browsing_in_approved_ui(page, monkeypatch
     expect(page.locator('#icloud-browser')).to_be_visible()
     expect(card.locator('.status-success')).to_have_text('Verbunden')
     assert 'browse' not in calls
-    expect(card.get_by_role('button', name='Sicherung starten')).to_be_disabled()
+    expect(card.get_by_role('button', name='Sicherung starten')).to_be_enabled()
     page.locator('#icloud-drive').click()
     expect(page.locator('#icloud-entries')).to_contain_text('SYNTHETIC-Testordner')
     screenshot(page, '11-icloud-browse-synthetic')
@@ -280,3 +280,38 @@ def test_icloud_login_2fa_and_explicit_browsing_in_approved_ui(page, monkeypatch
     expect(card.locator('.status-disconnected')).to_have_text('Nicht verbunden')
     assert calls == ['begin', 'answer', 'browse', 'browse', 'forget']
     expect(page.locator('#icloud-confirm-form [name=answer]')).to_have_value('')
+
+
+def test_start_synthetic_acquisition_and_integrated_progress(page,monkeypatch):
+    from backend import cloud_auth,acquisitions,evidence
+    monkeypatch.setattr(evidence,"space",lambda *_:None)
+    from test_acquisitions import Synthetic, adapter
+    from uuid import UUID
+    monkeypatch.setattr(cloud_auth,'status',lambda *_:{'connection_status':'connected','can_authenticate':True,'can_browse':True})
+    source=Synthetic();adapter(monkeypatch,source)
+    create_case(page);add_cloud(page,'apple','SYNTHETIC Sicherung')
+    card=page.locator('.cloud-card').first
+    card.get_by_role('button',name='Sicherung starten',exact=True).click()
+    expect(page.locator('#acquisition-dialog')).to_be_visible()
+    page.locator('#acquisition-form [name=path]').fill('SYNTHETIC-Testordner')
+    page.locator('#acquisition-form button[type=submit]').click()
+    expect(page.locator('#acquisition-dialog')).not_to_be_visible()
+    expect(card.locator('.status-badge')).to_have_text('Wartet')
+    with migration_connection() as db:job=db.execute('SELECT id,case_id FROM acquisitions').fetchone()
+    # Background work continues while the browser navigates away from the application.
+    page.goto('about:blank');acquisitions.run_job(job['id'])
+    page.goto(URL)
+    page.locator('#start-open-case').click()
+    page.locator('#open-archive').click()
+    page.get_by_role('button',name='Fall öffnen →').click()
+    expect(page.locator('.cloud-card .status-badge')).to_have_text('Abgeschlossen')
+    expect(page.locator('.transfer-metrics')).to_contain_text('8 Dateien geprüft')
+    page.get_by_role('button',name='Sicherungsläufe',exact=True).click()
+    expect(page.locator('#acquisition-history-dialog')).to_be_visible()
+    expect(page.locator('#acquisition-history-list')).to_contain_text('Abgeschlossen')
+    expect(page.get_by_role('link',name='Sicherungsbericht',exact=True)).to_have_attribute('href',f'/api/cases/{job["case_id"]}/acquisitions/{job["id"]}/report/bericht')
+    page.locator('[data-close=acquisition-history-dialog]').click()
+    for width,height in [(1920,1080),(1440,900),(390,844)]:
+        page.set_viewport_size({'width':width,'height':height})
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        screenshot(page,'12-acquisition-synthetic-'+str(width))

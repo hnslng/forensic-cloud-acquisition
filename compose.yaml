@@ -53,7 +53,7 @@ services:
       FCA_CLOUD_MASTER_KEY_FILE: /run/secrets/cloud_master_key
     secrets: [api_password, cloud_master_key]
     volumes:
-      - ${FCA_EVIDENCE_ROOT:?Set external evidence mount}:/evidence:ro
+      - ${FCA_EVIDENCE_ROOT:?Set external evidence mount}:/evidence
       - ${FCA_STATE_ROOT:?Set external FCA_STATE_ROOT}/cloud-auth:/cloud-auth
     ports:
       - 127.0.0.1:8000:8000
@@ -69,6 +69,48 @@ services:
     mem_limit: 384m
     cpus: 1.0
     pids_limit: 96
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+  worker:
+    profiles: [application]
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+      target: runtime
+    command: [python, -m, backend.acquisitions]
+    restart: unless-stopped
+    user: '10001:10001'
+    read_only: true
+    tmpfs: [/tmp:size=32m,noexec,nosuid]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      FCA_DB_PASSWORD_FILE: /run/secrets/api_password
+      FCA_EVIDENCE_ROOT: /evidence
+      FCA_ICLOUD_ENABLED: "1"
+      FCA_CLOUD_AUTH_ROOT: /cloud-auth
+      FCA_CLOUD_MASTER_KEY_FILE: /run/secrets/cloud_master_key
+    secrets: [api_password, cloud_master_key]
+    volumes:
+      - ${FCA_EVIDENCE_ROOT:?Set external evidence mount}:/evidence
+      - ${FCA_STATE_ROOT:?Set external FCA_STATE_ROOT}/cloud-auth:/cloud-auth
+    networks: [database, web]
+    depends_on:
+      database:
+        condition: service_healthy
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 96
+    healthcheck:
+      test: [CMD, python, -m, backend.worker_health]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    stop_grace_period: 90s
     logging:
       driver: json-file
       options:

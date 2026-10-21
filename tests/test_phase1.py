@@ -24,8 +24,13 @@ def migration_connection():
 
 
 @pytest.fixture(autouse=True)
-def synthetic_database():
+def synthetic_database(monkeypatch, tmp_path):
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    (evidence / ".fca-volume-id").write_text("synthetic-test-volume")
+    monkeypatch.setenv("FCA_EVIDENCE_ROOT", str(evidence))
     with migration_connection() as c:
+        c.execute('UPDATE acquisition_settings SET file_parallelism=4,account_parallelism=2,reserve_bytes=2147483648')
         c.execute('TRUNCATE audit_events,case_members,cases,sessions,login_limits,users RESTART IDENTITY CASCADE')
         for name, role in [('admin', 'admin'), ('alice', 'operator'), ('bob', 'operator')]:
             c.execute('INSERT INTO users(username,initials,password_hash,role) VALUES (%s,%s,%s,%s)', (name, name[:3].upper(), hash_password(PASSWORD), role))
