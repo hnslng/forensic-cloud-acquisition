@@ -1,5 +1,15 @@
 # Änderungen
 
+## Phase 2 – iCloud-Anmeldung vorbereitet
+
+- iCloud-SRP-Anmeldung, 2FA und explizite Drive-/Fotos-Bereichsübersicht.
+- Verschlüsselte Konfiguration je Fall/Konto, unabhängiger Hauptschlüssel.
+- Serverrechte, CSRF, Anmeldebegrenzung und Audit ohne Zugangsdaten.
+- Echte fixierte rclone-Laufzeit und isolierte Offline-Vertragstests.
+- Freigegebenes finales Design beibehalten; keine fingierten Downloadwerte.
+- Echte Testkonto-Abnahme steht bis zur persönlichen Anmeldung aus.
+
+
 ## 0.4.0 – 2026-10-21 – Verbindliches finales UI
 
 - Freigegebene dunkelblaue Palette und Standardschrift umgesetzt.

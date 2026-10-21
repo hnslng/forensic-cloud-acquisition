@@ -48,9 +48,13 @@ services:
       FCA_DB_PASSWORD_FILE: /run/secrets/api_password
       FCA_PUBLIC_ORIGIN: ${FCA_PUBLIC_ORIGIN:?Set HTTPS origin}
       FCA_EVIDENCE_ROOT: /evidence
-    secrets: [api_password]
+      FCA_ICLOUD_ENABLED: "1"
+      FCA_CLOUD_AUTH_ROOT: /cloud-auth
+      FCA_CLOUD_MASTER_KEY_FILE: /run/secrets/cloud_master_key
+    secrets: [api_password, cloud_master_key]
     volumes:
       - ${FCA_EVIDENCE_ROOT:?Set external evidence mount}:/evidence:ro
+      - ${FCA_STATE_ROOT:?Set external FCA_STATE_ROOT}/cloud-auth:/cloud-auth
     ports:
       - 127.0.0.1:8000:8000
     networks: [database, web]
@@ -80,3 +84,6 @@ secrets:
     file: ${FCA_POSTGRES_PASSWORD_FILE:?Set external FCA_POSTGRES_PASSWORD_FILE}
   api_password:
     file: ${FCA_API_PASSWORD_FILE:?Set external API secret file}
+
+  cloud_master_key:
+    file: /etc/fca/secrets/cloud_master_key

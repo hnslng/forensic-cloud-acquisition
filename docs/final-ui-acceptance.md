@@ -25,7 +25,7 @@ Nach dieser Abnahme erfolgen keine eigenständigen weiteren Designänderungen.
 
 Die Laboroberfläche enthält keine synthetischen Downloadwerte. Fotos-/Drive-
 Untertitel benennen Anbieterbereiche, keine bereits implementierten Fähigkeiten.
-Erfolgstöne und Fortschrittsfüllung sind vorbereitet, werden aber erst durch
+Erfolgsfarben und Fortschrittsfüllung sind vorbereitet, werden aber erst durch
 spätere echte Auftragsdaten aktiviert. Derzeit wird keine Sicherung behauptet.
 
 ## Praktische Abnahme

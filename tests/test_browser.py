@@ -223,3 +223,60 @@ def test_narrow_viewport_and_modal_keyboard_navigation(page):
     page.keyboard.press('Escape')
     expect(page.locator('#case-dialog')).not_to_be_visible()
     expect(page.locator('#start-open-case')).to_be_focused()
+
+
+def test_icloud_login_2fa_and_explicit_browsing_in_approved_ui(page, monkeypatch):
+    """Synthetic provider responses only. Tests real browser/API/rights; no Apple claim."""
+    from backend import cloud_auth
+    connected = False
+    calls = []
+    monkeypatch.setattr(cloud_auth, 'available', lambda: True)
+    def public_status(*args):
+        return {'connection_status': 'connected' if connected else 'disconnected',
+                'can_authenticate': True, 'can_browse': connected}
+    def synthetic_perform(case_id, account_id, user_id, action, **data):
+        nonlocal connected
+        calls.append(action)
+        if action == 'begin':
+            assert data['apple_id'] == 'synthetic@example.invalid'
+            assert data['password'] == 'Synthetic-Apple-Password'
+            return {'status': 'challenge', 'challenge_id': 'Synthetic-Challenge-ID-Only', 'field': 'config_2fa', 'choices': []}
+        if action == 'answer':
+            assert data['answer'] == '123456'
+            connected = True
+            return {'status': 'connected'}
+        if action == 'browse':
+            return {'service': data['service'], 'path': data['path'], 'downloads_available': False,
+                    'entries': [{'name': 'SYNTHETIC-Testordner', 'path': 'SYNTHETIC-Testordner', 'is_dir': True, 'size': -1}] if not data['path'] else []}
+        if action == 'forget':
+            connected = False
+            return {'status': 'disconnected'}
+        raise AssertionError(action)
+    monkeypatch.setattr(cloud_auth, 'status', public_status)
+    monkeypatch.setattr(cloud_auth, 'perform', synthetic_perform)
+    create_case(page)
+    add_cloud(page, 'apple', 'SYNTHETIC iCloud-Anmeldung')
+    card = page.locator('.cloud-card').first
+    card.get_by_role('button', name='Authentifizieren', exact=True).click()
+    page.locator('#icloud-login-form [name=apple_id]').fill('synthetic@example.invalid')
+    page.locator('#icloud-login-form [name=password]').fill('Synthetic-Apple-Password')
+    screenshot(page, '10-icloud-login-synthetic')
+    page.locator('#icloud-login-form button[type=submit]').click()
+    expect(page.locator('#icloud-confirm-form')).to_be_visible()
+    expect(page.locator('#icloud-login-form [name=password]')).to_have_value('')
+    page.locator('#icloud-confirm-form [name=answer]').fill('123456')
+    page.locator('#icloud-confirm-form button[type=submit]').click()
+    expect(page.locator('#icloud-browser')).to_be_visible()
+    expect(card.locator('.status-success')).to_have_text('Verbunden')
+    assert 'browse' not in calls
+    expect(card.get_by_role('button', name='Sicherung starten')).to_be_disabled()
+    page.locator('#icloud-drive').click()
+    expect(page.locator('#icloud-entries')).to_contain_text('SYNTHETIC-Testordner')
+    screenshot(page, '11-icloud-browse-synthetic')
+    page.locator('#icloud-entries').get_by_role('button', name='Öffnen').click()
+    expect(page.locator('#icloud-path')).to_contain_text('SYNTHETIC-Testordner')
+    page.locator('#icloud-forget').click()
+    expect(page.locator('#icloud-dialog')).not_to_be_visible()
+    expect(card.locator('.status-disconnected')).to_have_text('Nicht verbunden')
+    assert calls == ['begin', 'answer', 'browse', 'browse', 'forget']
+    expect(page.locator('#icloud-confirm-form [name=answer]')).to_have_value('')

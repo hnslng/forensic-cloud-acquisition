@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run with sudo in the FCA VM; secrets never appear in process arguments."""
 import os
+import json
 from pathlib import Path
 import secrets
 import subprocess
@@ -35,6 +36,22 @@ def main():
         sql('SET ROLE fca_migrate;\n' + Path('migrations/0003_revoke_case_members.sql').read_text())
     if sql('SELECT max(version) FROM schema_migrations;').strip() == '3':
         sql('SET ROLE fca_migrate;\n' + Path('migrations/0004_cloud_account_catalog.sql').read_text())
+    if sql('SELECT max(version) FROM schema_migrations;').strip() == '4':
+        sql('SET ROLE fca_migrate;\n' + Path('migrations/0005_cloud_auth_attempts.sql').read_text())
+    # Independent provider secret: never rotate an existing key during deployment.
+    rendered = json.loads(subprocess.check_output(COMPOSE + ['--profile', 'application', 'config', '--format', 'json']))
+    cloud_root = Path(next(v['source'] for v in rendered['services']['api']['volumes'] if v['target'] == '/cloud-auth'))
+    cloud_root.mkdir(mode=0o700, exist_ok=True)
+    if cloud_root.is_symlink():
+        raise RuntimeError('Refusing a symlink cloud auth root')
+    os.chown(cloud_root, 10001, 10001); cloud_root.chmod(0o700)
+    cloud_key = ROOT / 'cloud_master_key'
+    if not cloud_key.exists():
+        if any(cloud_root.iterdir()):
+            raise RuntimeError('Existing provider state without encryption key; manual recovery required')
+        with cloud_key.open('x') as handle:
+            handle.write(secrets.token_urlsafe(64) + '\n')
+        os.chown(cloud_key, 0, 10001); cloud_key.chmod(0o640)
     initial = ROOT / 'initial_admin_password'
     if not initial.exists() and sql("SELECT count(*) FROM users WHERE role='admin';").strip() == '0':
         with initial.open('x') as handle:

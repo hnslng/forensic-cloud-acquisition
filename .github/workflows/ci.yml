@@ -41,3 +41,7 @@ jobs:
           docker compose --profile application build api
           docker compose --profile application up -d --wait --wait-timeout 120
           curl --fail --max-time 10 http://127.0.0.1:8000/api/health
+      - name: Pinned iCloud adapter offline contracts (no network or real accounts)
+        run: |
+          docker compose -f compose.icloud-test.yaml build adapter-test
+          docker compose -f compose.icloud-test.yaml run --rm --no-deps adapter-test

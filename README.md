@@ -12,11 +12,12 @@ abgenommen, einschließlich VM-Neustart, PostgreSQL-Persistenz und Restore.
 Fallverwaltung mit serverseitigen Rechten und Audit. Die Oberfläche folgt dem
 TRIAGE//BOX-Start-/Fallablauf in der freigegebenen dunkelblauen Gestaltung und
 verwaltet mehrere benannte
-Cloud-Konten je Fall. Cloud-Adapter und echte
-Sicherungen sind noch nicht implementiert.
+Cloud-Konten je Fall. iCloud-Anmeldung mit 2FA und Bereichsübersicht werden in Phase 2 ergänzt;
+Google-/OneDrive-Anmeldung und echte Sicherungen sind noch nicht implementiert.
 
 - [Abschlussbericht Phase 0 und Ressourcenverbrauch](docs/phase-0-completion.md)
 - [Umsetzung und Abnahme Phase 1](docs/phase-1-status.md)
+- [Phase 2: iCloud-Anmeldung, Grenzen und Abnahme](docs/phase-2-icloud.md)
 - [Verbindliches finales UI und Abnahme](docs/final-ui-acceptance.md)
 - [Historische Layoutüberarbeitung für Lesbarkeit und Desktopproportionen](docs/ui-layout-refinement.md)
 - [Vergleich mit dem tatsächlichen TRIAGE//BOX-Frontend](docs/ui-triagebox-comparison.md)

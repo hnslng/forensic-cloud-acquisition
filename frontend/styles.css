@@ -1017,3 +1017,33 @@ th {
     width: 100%;
   }
 }
+/* Phase-2 functional content uses the approved design without changing the workspace. */
+.icloud-entry {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.icloud-entry strong {
+  font-size: 15px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.entry-type {
+  font-size: 13px;
+  color: var(--muted);
+}
+#icloud-context {
+  margin-top: 0;
+}
+@media (max-width: 650px) {
+  .icloud-entry {
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .icloud-entry .entry-type {
+    grid-column: 1/-1;
+  }
+}

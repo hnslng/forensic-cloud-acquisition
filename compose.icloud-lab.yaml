@@ -1,0 +1,23 @@
+# Manual phase-2 test bench only; never started with the application stack.
+name: fca-icloud-lab
+services:
+  icloud:
+    image: fca-lab-icloud-adapter:local
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+      target: icloud-adapter
+    user: '10001:10001'
+    read_only: true
+    stdin_open: true
+    tty: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid,nodev
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - /var/lib/fca/phase2-icloud:/state
+      - ${FCA_ICLOUD_KEY_FILE:?Set the separate per-account protected key file}:/run/secrets/icloud_test_key:ro
+    mem_limit: 384m
+    cpus: 0.75
+    pids_limit: 64

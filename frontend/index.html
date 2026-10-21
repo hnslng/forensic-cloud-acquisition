@@ -23,7 +23,7 @@
                   FCA <span>// CLOUD</span>
                 </button>
               </h1>
-              <small class="brand-version">v0.4.0</small>
+              <small class="brand-version">v0.4.1</small>
             </div>
             <p class="brand-subtitle">FORENSIC CLOUD ACQUISITION</p>
           </div>
@@ -87,9 +87,10 @@
             </div>
             <div id="cloud-list" class="cloud-list"></div>
             <p class="coverage-note">
-              Cloud-Anmeldung und Sicherung sind noch nicht implementiert.
-              Konten können vorbereitet und bezeichnet werden; es erfolgt kein
-              Anbieterzugriff.
+              iCloud-Anmeldung und Bereichsübersicht sind vorbereitet. Google,
+              OneDrive und Sicherungsaufträge sind noch nicht verfügbar. Ein
+              Anbieterzugriff erfolgt erst über deine Anmeldung und die
+              ausdrücklich gewählte Bereichsabfrage.
             </p>
           </article>
         </section>
@@ -281,7 +282,8 @@
             autocomplete="off"
         /></label>
         <p class="case-profile-hint">
-          Nur Kontoverwaltung. Anmeldung und Sicherung bleiben deaktiviert.
+          Konten werden zunächst erfasst. Bei iCloud kannst du anschließend die
+          Anmeldung öffnen; Sicherungen bleiben deaktiviert.
         </p>
         <p class="dialog-message" role="alert" hidden></p>
         <button id="cloud-submit" class="case-start" type="submit">
@@ -381,12 +383,90 @@
         <div class="subhead"><span>TECHNISCHER STATUS</span></div>
         <p id="technical-status">Zur Statusanzeige anmelden.</p>
         <p class="case-profile-hint">
-          Cloud-Anmeldung, Sicherungsaufträge und Prüfberichte sind noch nicht
-          implementiert. Es werden keine Zugangsdaten für Cloud-Anbieter
-          abgefragt.
+          Google-/OneDrive-Anmeldung, Sicherungsaufträge und Prüfberichte sind
+          noch nicht implementiert. Es werden keine Zugangsdaten für
+          Cloud-Anbieter abgefragt.
         </p>
       </section>
       <p class="dialog-message" role="alert" hidden></p>
+    </dialog>
+    <dialog
+      id="icloud-dialog"
+      class="settings-modal"
+      aria-labelledby="icloud-title"
+    >
+      <div class="modal-head">
+        <h2 id="icloud-title">iCloud verbinden und Bereiche ansehen</h2>
+        <button type="button" data-close="icloud-dialog">Schließen ×</button>
+      </div>
+      <div class="modal-body">
+        <p id="icloud-context" class="context-line"></p>
+        <form id="icloud-login-form">
+          <p class="case-profile-hint">
+            Melde dein vorbereitetes iCloud-Konto an. Danach kannst du Drive und
+            Fotos ansehen. Es werden noch keine Dateien heruntergeladen. Bei
+            erweitertem Datenschutz kann eine zusätzliche Freigabe am
+            Apple-Gerät erforderlich sein.
+          </p>
+          <label class="case-field"
+            >Apple-ID<input
+              name="apple_id"
+              required
+              maxlength="320"
+              autocomplete="off" /></label
+          ><label class="case-field"
+            >Apple-Passwort<input
+              name="password"
+              type="password"
+              required
+              maxlength="1024"
+              autocomplete="off"
+          /></label>
+          <p class="case-profile-hint">
+            Reguläres Apple-Passwort und 2FA verwenden; kein app-spezifisches
+            Passwort. Anmeldedaten werden pro Fall und Konto verschlüsselt
+            gespeichert.
+          </p>
+          <button type="submit" class="case-start">Bei iCloud anmelden</button>
+        </form>
+        <form id="icloud-confirm-form" hidden>
+          <p id="icloud-challenge-hint"></p>
+          <label class="case-field"
+            >Apple-Bestätigung<input
+              name="answer"
+              type="password"
+              autocomplete="off"
+              maxlength="64" /><select
+              id="icloud-choices"
+              aria-label="Apple-Zustellweg"
+              hidden
+            ></select></label
+          ><button type="submit" class="case-start">Bestätigung senden</button>
+        </form>
+        <section id="icloud-browser" hidden>
+          <p class="case-profile-hint">
+            Wähle einen Bereich. Nur die jeweils geöffnete Ebene wird gelesen.
+            Sicherungsumfang und Downloads werden erst in einem späteren Schritt
+            festgelegt.
+          </p>
+          <div class="settings-actions">
+            <button type="button" id="icloud-drive">iCloud Drive ansehen</button
+            ><button type="button" id="icloud-photos">
+              iCloud Fotos ansehen</button
+            ><button type="button" id="icloud-up" hidden>
+              Eine Ebene zurück
+            </button>
+          </div>
+          <p id="icloud-path" class="context-line"></p>
+          <div id="icloud-entries"></div>
+        </section>
+        <div>
+          <button type="button" id="icloud-forget" hidden>
+            Gespeicherte iCloud-Anmeldedaten entfernen
+          </button>
+        </div>
+        <p class="dialog-message" role="alert" hidden></p>
+      </div>
     </dialog>
     <dialog id="user-dialog" class="login-modal" aria-labelledby="user-title">
       <div class="modal-head">

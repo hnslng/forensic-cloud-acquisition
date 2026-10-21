@@ -51,14 +51,18 @@ ssh -F .local/fca-ssh-config fca-lab 'sudo cat /etc/fca/secrets/initial_admin_pa
 4. „+ Cloud hinzufügen“ öffnet die Auswahl iCloud, Google oder OneDrive und die
    freie Kontobezeichnung. Mehrere Konten auch desselben Anbieters sind möglich.
    „Bezeichnung bearbeiten“ ändert den Namen unter Beibehaltung der Konto-ID.
-   Anmeldung beim Anbieter und Sicherung sind sichtbar deaktiviert.
+   Für iCloud öffnet „Authentifizieren“ die Apple-Anmeldung mit 2FA. Nach
+   erfolgreicher Anmeldung lassen sich Drive und Fotos ausdrücklich öffnen.
+   Google-/OneDrive-Anmeldung und Sicherung sind weiterhin deaktiviert.
 5. Das Zahnrad öffnet den getrennten Einstellungsbereich: Sitzung/Passwort,
    Fallbezeichnung/Status, administrative Benutzer- und Fallrechte sowie Technik.
    Bearbeiter sehen keine administrativen Reiter; Viewer können nur lesen.
 6. „Arbeitsbereich verlassen“ kehrt zum Start zurück und verändert den Fall nicht.
    Abmelden beendet die serverseitige Sitzung. Ein geschlossenes Browserfenster
    ersetzt die Abmeldung nicht; Sitzungen enden nach acht Stunden.
-7. Bei Konfliktmeldung den Fall neu öffnen und den aktuellen Stand prüfen.
+7. iCloud-Zugangsdaten ausschließlich im privaten HTTPS-Dialog eingeben, nie
+   im Chat oder in Befehlsargumenten. Details: [iCloud-Betrieb](phase-2-icloud.md).
+8. Bei Konfliktmeldung den Fall neu öffnen und den aktuellen Stand prüfen.
 
 Die Fallübersicht liefert derzeit höchstens 500 zugeordnete Fälle; eine
 serverseitige Suche/Paginierung folgt vor größeren Beständen.

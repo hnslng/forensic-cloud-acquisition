@@ -21,6 +21,7 @@ let currentUser = null,
   authGeneration = 0,
   caseGeneration = 0,
   caseSubmitting = false;
+let connectionContext = null;
 let dialogStack = [],
   loginContinuation = null,
   cloudContext = null;
@@ -131,6 +132,7 @@ function clearCase() {
   activeCase = null;
   cloudList = [];
   cloudContext = null;
+  connectionContext = null;
   $("cloud-list").replaceChildren();
   $("audit-list").replaceChildren();
   $("member-list").replaceChildren();
@@ -158,6 +160,11 @@ function lockApplication() {
   $("cloud-form").reset();
   $("user-form").reset();
   $("password-form").reset();
+  $("icloud-login-form").reset();
+  $("icloud-confirm-form").reset();
+  $("icloud-entries").replaceChildren();
+  $("icloud-context").textContent = "";
+  $("icloud-path").textContent = "";
   $("technical-status").textContent = "Zur Statusanzeige anmelden.";
   document
     .querySelectorAll("input[type=password]")
@@ -397,16 +404,35 @@ function renderClouds() {
       ),
     );
     identity.append(mark, copy);
+    const connectionStatus = account.connection_status;
+    const connectionLabel =
+      {
+        connected: "Verbunden",
+        challenge: "2FA ausstehend",
+        expired: "Erneut anmelden",
+        error: "Anmeldung fehlgeschlagen",
+      }[connectionStatus] || "Nicht verbunden";
     top.append(
       identity,
-      node("span", "Nicht verbunden", "status-badge status-disconnected"),
+      node(
+        "span",
+        connectionLabel,
+        "status-badge " +
+          (connectionStatus === "connected"
+            ? "status-success"
+            : "status-disconnected"),
+      ),
     );
     const information = node("div", undefined, "acquisition-info");
     information.append(
       node("strong", "Noch keine Sicherung gestartet"),
       node(
         "p",
-        "Nächster Schritt: Authentifizierung. Die Anbieteranbindung ist noch nicht verfügbar.",
+        account.can_authenticate
+          ? connectionStatus === "connected"
+            ? "Verbindung hergestellt. Über „Bereiche ansehen“ die verfügbaren Inhalte prüfen. Sicherungen sind noch nicht implementiert."
+            : "Nächster Schritt: Authentifizierung mit Apple-ID, Passwort und 2FA."
+          : "Die Anbieteranbindung ist noch nicht verfügbar.",
       ),
     );
     const progress = node("div", undefined, "acquisition-progress");
@@ -427,13 +453,27 @@ function renderClouds() {
     );
     progress.append(summary, track, metrics);
     const actions = node("div", undefined, "cloud-actions");
-    for (const text of ["Authentifizieren", "Sicherung starten"]) {
-      const button = node("button", text);
-      button.type = "button";
-      button.disabled = true;
-      button.title = "Noch nicht implementiert";
-      actions.append(button);
-    }
+    const authenticate = node(
+      "button",
+      connectionStatus === "connected"
+        ? "Erneut authentifizieren"
+        : "Authentifizieren",
+    );
+    authenticate.type = "button";
+    authenticate.disabled = !activeCase.can_edit || !account.can_authenticate;
+    authenticate.title = account.can_authenticate
+      ? "Mit deinem vorbereiteten iCloud-Konto anmelden"
+      : "Noch nicht verfügbar";
+    authenticate.addEventListener("click", () => openICloud(account));
+    const browse = node("button", "Bereiche ansehen");
+    browse.type = "button";
+    browse.disabled = !activeCase.can_edit || !account.can_browse;
+    browse.addEventListener("click", () => openICloud(account, true));
+    const acquire = node("button", "Sicherung starten");
+    acquire.type = "button";
+    acquire.disabled = true;
+    acquire.title = "Sicherungsaufträge sind noch nicht implementiert";
+    actions.append(authenticate, browse, acquire);
     const rename = node("button", "Bezeichnung bearbeiten", "cloud-rename");
     rename.type = "button";
     rename.disabled = !activeCase?.can_edit;
@@ -442,6 +482,135 @@ function renderClouds() {
     footer.append(actions, rename);
     card.append(top, information, progress, footer);
     $("cloud-list").append(card);
+  }
+}
+function openICloud(account, browse = false) {
+  if (!activeCase?.can_edit) return;
+  connectionContext = {
+    caseId: activeCase.id,
+    accountId: account.id,
+    challengeId: null,
+    service: null,
+    path: "",
+  };
+  $("icloud-context").textContent =
+    activeCase.business_number + " / " + account.label;
+  $("icloud-login-form").reset();
+  $("icloud-confirm-form").reset();
+  $("icloud-login-form").hidden = browse;
+  $("icloud-confirm-form").hidden = true;
+  $("icloud-browser").hidden = !browse;
+  $("icloud-entries").replaceChildren();
+  $("icloud-path").textContent = "Noch kein Bereich geöffnet.";
+  $("icloud-up").hidden = true;
+  $("icloud-forget").hidden = !account.can_browse;
+  openDialog("icloud-dialog");
+}
+async function icloudRequest(context, action, body) {
+  return api(
+    "/cases/" +
+      context.caseId +
+      "/cloud-accounts/" +
+      context.accountId +
+      "/icloud/" +
+      action,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+function showICloudStep(context, result) {
+  if (connectionContext !== context || activeCase?.id !== context.caseId)
+    return;
+  $("icloud-login-form").hidden = true;
+  $("icloud-confirm-form").hidden = result.status !== "challenge";
+  $("icloud-browser").hidden = result.status !== "connected";
+  $("icloud-forget").hidden = result.status !== "connected";
+  if (result.status === "challenge") {
+    context.challengeId = result.challenge_id;
+    const form = $("icloud-confirm-form");
+    form.reset();
+    const choices = $("icloud-choices");
+    choices.replaceChildren();
+    for (const value of result.choices || []) {
+      const option = node("option", value);
+      option.value = value;
+      choices.append(option);
+    }
+    choices.hidden = !(result.choices || []).length;
+    form.elements.answer.hidden = !choices.hidden;
+    form.elements.answer.required = choices.hidden;
+    $("icloud-challenge-hint").textContent =
+      result.field === "config_2fa_phone"
+        ? "Apple bietet mehrere Zustellwege. Bitte einen Auswahlwert wählen."
+        : "Bestätigungscode vom vertrauenswürdigen Apple-Gerät eingeben. Falls benötigt, „sms“ eingeben, um einen SMS-Code anzufordern.";
+    if (choices.hidden) form.elements.answer.focus();
+  } else
+    message(
+      "iCloud-Anmeldung abgeschlossen. Wähle jetzt Drive oder Fotos, um die zugänglichen Bereiche anzusehen. Es wird nichts heruntergeladen.",
+    );
+}
+async function browseICloud(service, path = "") {
+  const context = connectionContext;
+  if (!context || activeCase?.id !== context.caseId) return;
+  const auth = authGeneration;
+  $("icloud-entries").replaceChildren(node("p", "Bereich wird abgefragt …"));
+  $("icloud-browser").setAttribute("aria-busy", "true");
+  try {
+    const result = await icloudRequest(context, "browse", { service, path });
+    if (
+      connectionContext !== context ||
+      auth !== authGeneration ||
+      activeCase?.id !== context.caseId
+    )
+      return;
+    context.service = service;
+    context.path = path;
+    $("icloud-path").textContent =
+      (service === "drive" ? "iCloud Drive" : "iCloud Fotos") +
+      (path ? " / " + path : "");
+    $("icloud-up").hidden = !path;
+    $("icloud-entries").replaceChildren();
+    if (!result.entries.length)
+      $("icloud-entries").append(
+        node(
+          "p",
+          "Dieser Bereich ist leer oder enthält keine zugänglichen Einträge.",
+        ),
+      );
+    for (const entry of result.entries) {
+      const row = node("div", undefined, "icloud-entry");
+      row.append(
+        node("span", entry.is_dir ? "Ordner / Album" : "Datei", "entry-type"),
+        node("strong", entry.name),
+      );
+      if (entry.is_dir) {
+        const button = node("button", "Öffnen");
+        button.type = "button";
+        button.addEventListener("click", () =>
+          browseICloud(service, entry.path).catch((e) => message(e.message)),
+        );
+        row.append(button);
+      } else
+        row.append(
+          node(
+            "span",
+            entry.size >= 0
+              ? (entry.size / 1024 ** 2).toFixed(2) + " MiB"
+              : "Größe unbekannt",
+          ),
+        );
+      $("icloud-entries").append(row);
+    }
+  } catch (error) {
+    if (connectionContext === context)
+      $("icloud-entries").replaceChildren(
+        node(
+          "p",
+          "Bereich konnte nicht geöffnet werden. Erneute Anmeldung oder Freigabe auf dem Apple-Gerät kann erforderlich sein.",
+        ),
+      );
+    throw error;
+  } finally {
+    $("icloud-browser").removeAttribute("aria-busy");
   }
 }
 function openCloud(account = null) {
@@ -594,6 +763,66 @@ function formAction(id, action) {
     }
   });
 }
+formAction("icloud-login-form", async (form) => {
+  const context = connectionContext,
+    auth = authGeneration;
+  if (!context) return;
+  try {
+    const result = await icloudRequest(context, "login", formData(form));
+    if (auth !== authGeneration || context !== connectionContext) return;
+    showICloudStep(context, result);
+    await refreshActive(context.caseId);
+  } finally {
+    form.elements.password.value = "";
+  }
+});
+formAction("icloud-confirm-form", async (form) => {
+  const context = connectionContext,
+    auth = authGeneration;
+  if (!context) return;
+  const answer = $("icloud-choices").hidden
+    ? form.elements.answer.value
+    : $("icloud-choices").value;
+  try {
+    const result = await icloudRequest(context, "confirm", {
+      challenge_id: context.challengeId,
+      answer,
+    });
+    if (auth !== authGeneration || context !== connectionContext) return;
+    showICloudStep(context, result);
+    await refreshActive(context.caseId);
+  } finally {
+    form.elements.answer.value = "";
+  }
+});
+$("icloud-drive").addEventListener("click", () =>
+  browseICloud("drive").catch((e) => message(e.message)),
+);
+$("icloud-photos").addEventListener("click", () =>
+  browseICloud("photos").catch((e) => message(e.message)),
+);
+$("icloud-up").addEventListener("click", () => {
+  const c = connectionContext;
+  if (c)
+    browseICloud(c.service, c.path.split("/").slice(0, -1).join("/")).catch(
+      (e) => message(e.message),
+    );
+});
+$("icloud-forget").addEventListener("click", async () => {
+  const context = connectionContext;
+  if (!context) return;
+  $("icloud-forget").disabled = true;
+  try {
+    await icloudRequest(context, "forget", {});
+    if (connectionContext !== context) return;
+    closeDialog("icloud-dialog");
+    await refreshActive(context.caseId);
+  } catch (e) {
+    message(e.message);
+  } finally {
+    $("icloud-forget").disabled = false;
+  }
+});
 formAction("login-form", async (form) => {
   const generation = ++authGeneration;
   try {
@@ -745,6 +974,14 @@ document.querySelectorAll("dialog").forEach((dialog) =>
       .querySelectorAll('input[type="password"]')
       .forEach((input) => (input.value = ""));
     if (dialog.id === "login-dialog") loginContinuation = null;
+    if (dialog.id === "icloud-dialog") {
+      connectionContext = null;
+      $("icloud-login-form").reset();
+      $("icloud-confirm-form").reset();
+      $("icloud-entries").replaceChildren();
+      $("icloud-context").textContent = "";
+      $("icloud-path").textContent = "";
+    }
     syncBackdrops();
   }),
 );

@@ -1,11 +1,14 @@
 services:
   api:
     image: fca-lab-api-test:local
+    secrets: !override [api_password]
     build:
       target: test
     environment:
       FCA_DB_NAME: fca_test_phase1
+      FCA_ICLOUD_ENABLED: "0"
+      FCA_CLOUD_AUTH_ROOT: /tmp/cloud-auth-test
       FCA_TEST_MIGRATION_PASSWORD_FILE: /run/secrets/test_migration_password
       FCA_PUBLIC_ORIGIN: https://fca.test
-    volumes:
+    volumes: !override
       - /etc/fca/secrets/migrate_password:/run/secrets/test_migration_password:ro

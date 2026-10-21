@@ -16,7 +16,7 @@ from psycopg.errors import UniqueViolation
 from backend.db import connect, audit
 from backend.identity import identity_provider, verify_password, hash_password, BusyAuthentication
 
-app = FastAPI(title='FORENSIC CLOUD ACQUISITION', version='0.3.0', docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title='FORENSIC CLOUD ACQUISITION', version='0.4.1', docs_url=None, redoc_url=None, openapi_url=None)
 COOKIE = '__Host-fca_session'
 CSRF_COOKIE = '__Host-fca_csrf'
 USER_FIELDS = 'id,username,initials,role,active,identity_provider,created_at'
@@ -38,7 +38,7 @@ class Input(BaseModel):
     @classmethod
     def trim_labels(cls, value, info):
         # Password whitespace is significant and must never be silently changed.
-        return value.strip() if isinstance(value, str) and 'password' not in info.field_name else value
+        return value.strip() if isinstance(value, str) and 'password' not in info.field_name and info.field_name != 'path' else value
 
 
 class Login(Input):
@@ -308,7 +308,11 @@ def status(user=Depends(identity)):
 @app.get('/api/cases/{case_id}/cloud-accounts')
 def cloud_accounts(case_id: UUID, user=Depends(identity), conn=Depends(connection, scope='function')):
     case_access(conn, user, case_id)
-    return conn.execute('SELECT * FROM cloud_accounts WHERE case_id=%s ORDER BY created_at,id', (case_id,)).fetchall()
+    rows = conn.execute('SELECT * FROM cloud_accounts WHERE case_id=%s ORDER BY created_at,id', (case_id,)).fetchall()
+    for row in rows:
+        row.update(cloud_auth.status(case_id, row['id']) if row['provider'] == 'apple' else
+                   {'connection_status': 'unavailable', 'can_authenticate': False, 'can_browse': False})
+    return rows
 
 
 @app.post('/api/cases/{case_id}/cloud-accounts', status_code=201)
@@ -333,3 +337,89 @@ def rename_cloud_account(case_id: UUID, account_id: UUID, body: CloudAccountRena
         raise HTTPException(409, 'Cloud-Konto wurde zwischenzeitlich geändert. Bitte aktualisieren.')
     audit(conn, user, 'cloud_account_renamed', case_id, details={'account_id': str(account_id), 'label': body.label})
     return account
+
+
+# Phase 2: real iCloud authentication and explicitly requested directory reads.
+from backend import cloud_auth
+
+
+class ICloudLogin(Input):
+    apple_id: str = Field(min_length=3, max_length=320)
+    password: str = Field(min_length=1, max_length=1024, repr=False)
+
+
+class ICloudAnswer(Input):
+    challenge_id: str = Field(min_length=16, max_length=64, repr=False)
+    answer: str = Field(min_length=1, max_length=64, repr=False)
+
+
+class ICloudBrowse(Input):
+    service: Literal['drive', 'photos']
+    path: str = Field(default='', max_length=1024)
+
+    @field_validator('path')
+    @classmethod
+    def relative_directory(cls, value):
+        if value and (any(part in ('', '.', '..') for part in value.split('/'))
+                      or any(ord(c) < 32 or ord(c) == 127 or c in ':\\' for c in value)):
+            raise ValueError('Invalid relative iCloud directory')
+        return value
+
+
+def cloud_access(conn, user, case_id, account_id, write=True):
+    case_access(conn, user, case_id, write=write)
+    account = conn.execute('SELECT * FROM cloud_accounts WHERE id=%s AND case_id=%s', (account_id, case_id)).fetchone()
+    if not account:
+        raise HTTPException(404, 'Cloud-Konto nicht gefunden.')
+    if account['provider'] != 'apple':
+        raise HTTPException(409, 'Diese Anbieteranbindung ist noch nicht verfügbar.')
+    return account
+
+
+@app.get('/api/providers/status')
+def providers_status(user=Depends(identity)):
+    return {'apple': {'authentication_available': cloud_auth.available(), 'downloads_available': False},
+            'google': {'authentication_available': False, 'downloads_available': False},
+            'microsoft': {'authentication_available': False, 'downloads_available': False}}
+
+
+@app.post('/api/cases/{case_id}/cloud-accounts/{account_id}/icloud/{action}')
+def icloud_action(case_id: UUID, account_id: UUID, action: Literal['login', 'confirm', 'browse', 'forget'],
+                  request: Request, body: dict, user=Depends(identity), conn=Depends(connection, scope='function')):
+    cloud_access(conn, user, case_id, account_id)
+    if not cloud_auth.available():
+        raise HTTPException(503, 'iCloud-Anbindung ist noch nicht eingerichtet.')
+    # Validate BEFORE any provider operation. Generic error never echoes secrets.
+    try:
+        model = {'login': ICloudLogin, 'confirm': ICloudAnswer, 'browse': ICloudBrowse}.get(action)
+        data = model.model_validate(body).model_dump() if model else {}
+        if action == 'forget' and body:
+            raise ValueError()
+        if any('\n' in str(value) or '\r' in str(value) for value in data.values()):
+            raise ValueError()
+    except ValueError:
+        raise HTTPException(422, 'Ungültige Eingaben. Bitte Felder prüfen.') from None
+    if action in ('login', 'confirm'):
+        conn.execute('INSERT INTO cloud_auth_limits(account_id) VALUES (%s) ON CONFLICT DO NOTHING', (account_id,))
+        limit = conn.execute("SELECT *,window_start > now()-interval '10 minutes' AS recent FROM cloud_auth_limits WHERE account_id=%s FOR UPDATE", (account_id,)).fetchone()
+        if limit['recent'] and limit['attempts'] >= 8:
+            raise HTTPException(429, 'Zu viele iCloud-Anmeldeversuche. In zehn Minuten erneut versuchen.')
+        conn.execute("UPDATE cloud_auth_limits SET attempts=CASE WHEN %s THEN attempts+1 ELSE 1 END,window_start=CASE WHEN %s THEN window_start ELSE now() END WHERE account_id=%s", (limit['recent'], limit['recent'], account_id))
+    audit(conn, user, 'cloud_' + action + '_requested', case_id, details={'account_id': str(account_id)})
+    # Never keep a DB transaction open during external SRP/2FA/network operations.
+    conn.commit()
+    try:
+        result = cloud_auth.perform(case_id, account_id, user['id'], {'login': 'begin', 'confirm': 'answer'}.get(action, action), **data)
+    except (cloud_auth.ProviderError, OSError, ValueError) as error:
+        # Revalidate identity and permissions after the network call.
+        user = identity(request, conn)
+        cloud_access(conn, user, case_id, account_id)
+        audit(conn, user, 'cloud_' + action + '_failed', case_id, details={'account_id': str(account_id)})
+        conn.commit()
+        detail = str(error) if isinstance(error, cloud_auth.ProviderError) else 'iCloud-Anfrage fehlgeschlagen.'
+        raise HTTPException(409, detail) from None
+    user = identity(request, conn)
+    cloud_access(conn, user, case_id, account_id)
+    audit(conn, user, 'cloud_' + action + '_completed', case_id,
+          details={'account_id': str(account_id), 'status': result.get('status', 'read_completed')})
+    return result
