@@ -13,6 +13,7 @@
       body:JSON.stringify({...context,state:query.get('state'),code:query.get('code')})
     });
     if (!response.ok) throw new Error();
+    sessionStorage.setItem('fca-return-case',context.case_id);
     location.replace('/');
   } catch {
     result.textContent='Anmeldung konnte nicht abgeschlossen werden. Bitte FCA erneut öffnen und das Konto verbinden.';

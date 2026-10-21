@@ -153,6 +153,8 @@ function lockApplication() {
   closeDialogs();
   clearMessages();
   clearCase();
+  sessionStorage.removeItem("fca-return-case");
+  sessionStorage.removeItem("fca-oauth");
   $("case-list").replaceChildren();
   $("case-search").value = "";
   $("login-form").reset();
@@ -244,6 +246,9 @@ async function signedIn(user) {
   updateSettingsIdentity();
   updateCaseReadiness();
   await refreshIndex();
+  const returnCase=sessionStorage.getItem("fca-return-case");
+  sessionStorage.removeItem("fca-return-case");
+  if(returnCase && /^[a-f0-9-]{36}$/i.test(returnCase)) await activateCase(returnCase);
 }
 function openCaseForm() {
   $("case-form").reset();
@@ -1076,7 +1081,7 @@ formAction("download-settings",async(form)=>{
   message("Sicherungseinstellungen gespeichert.");
 });
 formAction("oauth-settings",async(form)=>{
-  try {await api("/admin/oauth-settings",{method:"PUT",body:JSON.stringify(formData(form))});await loadDownloadSettings();message("Anbieteranwendung gespeichert.");}
+  try {await api("/admin/oauth-settings",{method:"PUT",body:JSON.stringify(formData(form))});await loadDownloadSettings();if(activeCase)await refreshActive(activeCase.id);message("Anbieteranwendung gespeichert.");}
   finally {form.elements.client_secret.value="";}
 });
 setInterval(async()=>{

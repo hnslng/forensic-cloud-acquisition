@@ -315,3 +315,10 @@ def test_start_synthetic_acquisition_and_integrated_progress(page,monkeypatch):
         page.set_viewport_size({'width':width,'height':height})
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         screenshot(page,'12-acquisition-synthetic-'+str(width))
+
+    # Successful OAuth returns directly to the authorized case, once only.
+    page.evaluate("id => sessionStorage.setItem('fca-return-case', id)",str(job['case_id']))
+    page.reload()
+    expect(page.locator('#start-overlay')).not_to_be_visible()
+    expect(page.locator('#active-case-number')).to_have_text('SYNTHETIC-UI-2026')
+    assert page.evaluate("sessionStorage.getItem('fca-return-case')") is None
