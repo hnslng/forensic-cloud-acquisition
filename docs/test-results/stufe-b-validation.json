@@ -282,7 +282,6 @@
       ]
     }
   },
-  "tested_code_commit": "7af889fe32166b7eb0605bf21afe55d0fe4a1294",
   "deployment": {
     "first_tested_code_commit": "b8ac146867be79601bff5fa23cbb84c8e88b3563",
     "schema": 9,
@@ -310,5 +309,7 @@
         "sha256": "d15f9d47a0cc744376a46b1367cc589c8657d647c19f82d4119dde9906ad7340"
       }
     }
-  }
+  },
+  "source_code_revision": "a04b667cb3231e8fced3f839b5cf9e4884aee325",
+  "provenance_note": "Source fingerprints cover the final runtime code. CI status for later revisions is recorded by the linked PR checks; the explicit successful run below is the first deployment baseline."
 }
