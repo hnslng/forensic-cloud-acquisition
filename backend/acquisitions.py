@@ -146,6 +146,7 @@ def report(job,status,reason=None):
         account=conn.execute('SELECT provider,label FROM cloud_accounts WHERE id=%s',(job['account_id'],)).fetchone()
         current=conn.execute('SELECT * FROM acquisitions WHERE id=%s',(job['id'],)).fetchone()
         ledger=conn.execute("SELECT count(*) AS discovered,coalesce(sum(greatest(size,0)),0) AS discovered_known_bytes,count(*) FILTER (WHERE status='completed') AS completed,coalesce(sum(bytes_done) FILTER (WHERE status='completed'),0) AS secured_bytes,count(*) FILTER (WHERE status='failed' AND coalesce(metadata->>'_fca_outcome','')!='inaccessible') AS failed,coalesce(sum(greatest(size,0)) FILTER (WHERE status='failed' AND coalesce(metadata->>'_fca_outcome','')!='inaccessible'),0) AS failed_known_bytes,count(*) FILTER (WHERE metadata->>'_fca_outcome'='inaccessible' AND status!='completed') AS inaccessible,coalesce(sum(greatest(size,0)) FILTER (WHERE metadata->>'_fca_outcome'='inaccessible' AND status!='completed'),0) AS inaccessible_known_bytes,count(*) FILTER (WHERE status IN ('queued','running','pausing')) AS pending,count(*) FILTER (WHERE size<0) AS unknown_size FROM acquisition_files WHERE acquisition_id=%s",(job['id'],)).fetchone()
+        ledger={key:int(value) for key,value in ledger.items()}
         manifest=directory/'Dateien.jsonl'; temp=directory/'Dateien.jsonl.tmp'
         if temp.is_symlink(): raise evidence.StorageError('Unsicheres Prüfprotokoll.')
         with open(temp,'w',encoding='utf-8') as handle:

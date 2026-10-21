@@ -3,7 +3,7 @@
   "base_commit": "4553cc4527968a6e6c08a67dc044776ff6550f62",
   "branch": "codex/stage-b-cloud-acquisition",
   "source_sha256": {
-    "backend/acquisitions.py": "23a8a7ca5d7636ae1f7aec749f9e90cd47984b639b197581c65364e871319be1",
+    "backend/acquisitions.py": "21dd7ea013a9291f0d1c5c355d77c5774041e951afc11b145dd7a5e693b261ee",
     "backend/main.py": "f19019689fc7ba3c53adb723967816a1f7915c5dfe15477e787870ff48afbab5",
     "backend/oauth.py": "6af9133ed939d2dcd22f4f83bc598c3383dfee4cd05fa639b44c3486bfb60bff",
     "compose.yaml": "cc54f9a818e947925621c1a22297a54e1846b222c6585d3bcb60533d90fb723d",
