@@ -105,6 +105,11 @@ def test_start_nested_login_case_and_multi_cloud_persistence(page):
     for provider, label in [('apple', 'iCloud – Testperson A'), ('apple', 'iCloud – Testperson B'), ('google', 'Google – Testperson A'), ('microsoft', 'OneDrive – Testperson A')]:
         add_cloud(page, provider, label)
     expect(page.locator('.cloud-card')).to_have_count(4)
+    for provider,brand in [('apple','Apple iCloud'),('google','Google'),('microsoft','Microsoft')]:
+        card=page.locator('.cloud-card[data-provider='+provider+']').first
+        expect(card.get_by_role('img',name=brand,exact=True)).to_be_visible()
+        assert card.locator('.provider-mark img').evaluate('(el) => el.complete && el.naturalWidth > 0')
+        assert card.evaluate('(el) => getComputedStyle(el).boxShadow') != 'none'
     for card in page.locator('.cloud-card').all():
         expect(card.get_by_role('button', name='Anmelden', exact=True)).to_be_disabled()
         expect(card.get_by_role('button', name='Sicherung starten', exact=True)).to_be_disabled()

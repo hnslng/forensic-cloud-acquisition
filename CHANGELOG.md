@@ -1,5 +1,10 @@
 # Änderungen
 
+## Anbieterkennzeichnung – 2026-10-21
+
+- Lokale Apple-, Google- und Microsoft-Logos in Cloud-Karten und Anbieterwahl.
+- Eigene Anbieterakzente bei unveränderter dunkelblauer Oberfläche und unveränderten Statusfarben.
+
 ## Live-Downloads – 2026-10-21
 
 - Echte iCloud-Zwischenstände während großer Dateiübertragungen und geglättete Gesamtgeschwindigkeit.

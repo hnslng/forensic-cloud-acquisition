@@ -380,22 +380,12 @@ function renderClouds() {
     const top = node("div", undefined, "cloud-card-top");
     const identity = node("div", undefined, "cloud-identity");
     const mark = node("span", undefined, "provider-mark");
-    // Fixed local SVG paths; no provider assets or account content loaded remotely.
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 32 32");
-    svg.setAttribute("aria-hidden", "true");
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute(
-      "d",
-      {
-        apple: "M9 25h15a6 6 0 0 0 0-12 9 9 0 0 0-17-2A7 7 0 0 0 9 25Z",
-        google: "M9 6h14l6 12v9H3v-9L9 6ZM3 18h26M9 23h1m5 0h1",
-        microsoft:
-          "M7 25h18a6 6 0 0 0 0-12 8 8 0 0 0-14-4 7 7 0 0 0-4 16Zm0-10 9 5 9-5",
-      }[account.provider],
-    );
-    svg.append(path);
-    mark.append(svg);
+    // Fixed local assets: no requests to providers and no account-supplied URLs.
+    const logo = document.createElement("img");
+    logo.src = "/icons/" + ({apple:"apple",google:"google",microsoft:"microsoft"}[account.provider]) + ".svg";
+    logo.alt = {apple:"Apple iCloud",google:"Google",microsoft:"Microsoft"}[account.provider];
+    logo.width = 36; logo.height = 36;
+    mark.append(logo);
     const copy = node("div", undefined, "cloud-identity-copy");
     copy.append(
       node("h3", account.label, "cloud-name"),

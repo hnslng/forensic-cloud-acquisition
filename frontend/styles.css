@@ -343,14 +343,35 @@ h1 {
   background: var(--icon);
   color: #afd2ff;
 }
-.provider-mark svg {
-  width: 34px;
-  height: 34px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.provider-mark img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.cloud-card[data-provider="apple"] {
+  --provider-accent: #B9D9FF;
+  --provider-tint: #263B55;
+}
+.cloud-card[data-provider="google"] {
+  --provider-accent: #F6C453;
+  --provider-tint: #34382F;
+}
+.cloud-card[data-provider="microsoft"] {
+  --provider-accent: #52C7F5;
+  --provider-tint: #163E50;
+}
+.cloud-card[data-provider] {
+  box-shadow: inset 4px 0 0 var(--provider-accent);
+}
+.cloud-card .provider-mark {
+  background: var(--provider-tint, var(--icon));
+  border: 1px solid var(--provider-accent, var(--line));
+}
+.provider-choice-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .cloud-name {
   margin: 0;
@@ -938,7 +959,7 @@ th {
     height: 46px;
     border-radius: 10px;
   }
-  .provider-mark svg {
+  .provider-mark img {
     width: 28px;
     height: 28px;
   }
