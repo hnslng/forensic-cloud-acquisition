@@ -120,7 +120,7 @@ class WebProvider:
                     rel=prefix+evidence.source_name(name,item_id)
                     folder=item.get('mimeType')=='application/vnd.google-apps.folder' if self.provider=='google' else 'folder' in item
                     metadata=clean_metadata(item)
-                    if item.get('remoteItem') or item.get('package'):
+                    if 'remoteItem' in item or 'package' in item:
                         self.limits.append('Verknüpftes oder Paketobjekt nicht gesichert: '+item_id); continue
                     if folder:
                         queue.append((item_id,rel+'/'))

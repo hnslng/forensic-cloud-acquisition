@@ -343,3 +343,14 @@ def test_graph_content_redirect_never_forwards_bearer_to_storage(storage,monkeyp
     assert provider.request('https://graph.microsoft.com/v1.0/me/drive/items/file/content',download=True)=='synthetic-response'
     assert requests[0].get_header('Authorization')=='Bearer SYNTHETIC-BEARER'
     assert requests[1].get_header('Authorization') is None
+
+
+def test_unknown_source_size_is_not_a_known_total(storage,monkeypatch):
+    c=client();case,account,url=setup(c);job=enqueue(c,url)
+    class Unknown(Synthetic):
+        def inventory(self,*args):yield {'id':'unknown','path':'export.json','size':-1,'metadata':{}}
+        def download(self,record,target,reserve,progress):target.write_bytes(b'export');progress(6)
+    source=Unknown();adapter(monkeypatch,source);acquisitions.run_job(UUID(job['id']))
+    current=row(job)
+    assert current['status']=='completed' and current['bytes_done']==6 and not current['total_known']
+    assert c.get('/api/cases/'+case['id']+'/cloud-accounts').json()[0]['acquisition']['total_known'] is False

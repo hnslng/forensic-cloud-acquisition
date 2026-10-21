@@ -21,7 +21,7 @@ CREATE TABLE acquisitions (
  requested_by uuid NOT NULL REFERENCES users(id), operator_initials text NOT NULL,
  status text NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','running','pausing','paused','failed','completed','incomplete')),
  directory text UNIQUE NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
- started_at timestamptz, ended_at timestamptz, inventory_complete boolean NOT NULL DEFAULT false,
+ started_at timestamptz, ended_at timestamptz, inventory_complete boolean NOT NULL DEFAULT false, total_known boolean NOT NULL DEFAULT false,
  bytes_done bigint NOT NULL DEFAULT 0, bytes_total bigint NOT NULL DEFAULT 0,
  files_done bigint NOT NULL DEFAULT 0, speed bigint NOT NULL DEFAULT 0,
  reason text, account_identity jsonb NOT NULL DEFAULT '{}', resource_observations jsonb NOT NULL DEFAULT '{}', limitations jsonb NOT NULL DEFAULT '[]',

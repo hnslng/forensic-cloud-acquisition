@@ -443,7 +443,7 @@ function renderClouds() {
     const summary = node("div", undefined, "progress-summary");
     summary.append(
       node("span", job ? formatBytes(job.bytes_done) + " übertragen · " + job.files_done + " Dateien geprüft" : "Noch keine Daten übertragen"),
-      node("span", job?.inventory_complete && job.bytes_total > 0 ? formatBytes(job.bytes_total) + " erfasst" : ""),
+      node("span", job?.inventory_complete && job.total_known && job.bytes_total > 0 ? formatBytes(job.bytes_total) + " erfasst" : ""),
     );
     const track = node("div", undefined, "progress-track unavailable");
     track.setAttribute("role", "img");
@@ -451,7 +451,7 @@ function renderClouds() {
     if (job) {
       track.classList.remove("unavailable");
       const fill = node("div", undefined, "progress-fill");
-      const percent = job.status === "completed" ? 100 : (job.bytes_total > 0 ? Math.min(99, 100 * job.bytes_done / job.bytes_total) : 0);
+      const percent = job.status === "completed" ? 100 : (job.total_known && job.bytes_total > 0 ? Math.min(99, 100 * job.bytes_done / job.bytes_total) : 0);
       fill.style.width = percent + "%";
       if (job.status === "completed") fill.style.background = "#47B881";
       track.replaceChildren(fill);
@@ -461,7 +461,7 @@ function renderClouds() {
     metrics.append(
       node("span", job ? "Datenmenge: " + formatBytes(job.bytes_done) : "Datenmenge: —"),
       node("span", job?.speed ? formatBytes(job.speed) + "/s" : "Geschwindigkeit: —"),
-      node("span", job?.speed && job.bytes_total > job.bytes_done ? "Restzeit: ca. " + Math.ceil((job.bytes_total-job.bytes_done)/job.speed/60) + " Min." : "Restzeit: —"),
+      node("span", job?.speed && job.total_known && job.bytes_total > job.bytes_done ? "Restzeit: ca. " + Math.ceil((job.bytes_total-job.bytes_done)/job.speed/60) + " Min." : "Restzeit: —"),
       node("span", job ? "SHA-256: " + job.files_done + " Dateien geprüft" : "Prüfsummen: noch nicht verfügbar"),
     );
     progress.append(summary, track, metrics);

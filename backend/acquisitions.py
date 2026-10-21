@@ -17,7 +17,7 @@ from providers.apple.adapter import ProviderError
 STOP=threading.Event()
 CATEGORIES={'apple':('drive','photos'),'google':('drive','calendar'),'microsoft':('drive','calendar')}
 LABELS={'queued':'Wartet','running':'Läuft','pausing':'Wird pausiert','paused':'Pausiert','failed':'Fehlgeschlagen','incomplete':'Unvollständig','completed':'Abgeschlossen'}
-PUBLIC='id,case_id,account_id,category,scope_path,status,created_at,started_at,ended_at,bytes_done,bytes_total,files_done,speed,reason,inventory_complete'
+PUBLIC='id,case_id,account_id,category,scope_path,status,created_at,started_at,ended_at,bytes_done,bytes_total,files_done,speed,reason,inventory_complete,total_known'
 
 def resources():
     data={}
@@ -177,7 +177,7 @@ def run_job(identifier):
                     with connect() as conn:
                         conn.execute('INSERT INTO acquisition_files(acquisition_id,source_id,relative_path,metadata,size) VALUES (%s,%s,%s,%s,%s) ON CONFLICT(acquisition_id,source_id) DO NOTHING',
                                      (identifier,entry['id'],entry['path'],Jsonb(metadata),entry['size']))
-                with connect() as conn: conn.execute('UPDATE acquisitions SET inventory_complete=true,limitations=%s WHERE id=%s',(Jsonb(adapter.limits),identifier))
+                with connect() as conn: conn.execute('UPDATE acquisitions SET inventory_complete=true,total_known=NOT EXISTS(SELECT 1 FROM acquisition_files WHERE acquisition_id=%s AND size<0),limitations=%s WHERE id=%s',(identifier,Jsonb(adapter.limits),identifier))
             # Revalidate completed files too: a restart cannot silently skip damaged evidence.
             with connect() as conn:
                 conn.execute("UPDATE acquisition_files SET status='queued' WHERE acquisition_id=%s AND status IN ('running','failed')",(identifier,))
