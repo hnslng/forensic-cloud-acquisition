@@ -2,7 +2,7 @@
 name: fca-lab
 services:
   database:
-    image: postgres:17-bookworm
+    image: postgres@sha256:858bb5e98eed02eb8cafbcdc007f9a65d1b613972028944a8ec2133ccaf80d27
     restart: unless-stopped
     environment:
       POSTGRES_DB: fca

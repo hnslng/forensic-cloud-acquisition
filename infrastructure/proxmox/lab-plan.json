@@ -10,5 +10,7 @@
   "host_memory_reserve_mib": 1536,
   "storage_reserve_gib": 24,
   "onboot": true,
-  "approved": false
+  "approved": true,
+  "approval_date": "2026-10-21",
+  "approval_scope": "VM 105 creation, installation and guest-only restart tests; existing guests and host settings unchanged"
 }

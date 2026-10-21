@@ -1,6 +1,7 @@
 # Phase 0 – Prüfstand und Freigabevorschlag
 
-Stand: 21.10.2026, Europe/Vienna. **Zwischenbericht, kein Phasenabschluss.**
+Stand: 21.10.2026, Europe/Vienna. **Historischer Zwischenbericht vor Freigabe.**
+Aktueller Stand: [Phase 0 erfolgreich abgeschlossen](phase-0-completion.md).
 Der Projektordner war anfangs leer. Aktive Zugriffsdokumente unter
 `~/.infra_work/README.md` und `ZUGRIFFE-AKTIV.md` wurden gelesen; der dort
 ausgewiesene SSH-Alias `proxmox` wurde erfolgreich verwendet. Keine

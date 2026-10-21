@@ -6,10 +6,11 @@ ausdrücklich freigegebenen Testkonten. Keine Freigabe für echte Beweismittel.
 
 ## Tatsächlicher Stand
 
-Phase 0 läuft. Proxmox wurde ausschließlich lesend geprüft. Das private
-GitHub-Repository ist angelegt. **Eine VM wurde noch nicht erstellt: Die im
-Projektauftrag verlangte Freigabe steht aus.** Es gibt noch keine Cloud-Adapter,
-keine Benutzerverwaltung und keine nutzbare Webanwendung.
+Phase 0 ist nach Freigabe erfolgreich auf VM 105 umgesetzt und praktisch
+abgenommen, einschließlich VM-Neustart, PostgreSQL-Persistenz und Restore.
+**Phase 1 beginnt.** Es gibt noch keine Cloud-Adapter oder echten Sicherungen.
+
+- [Abschlussbericht Phase 0 und Ressourcenverbrauch](docs/phase-0-completion.md)
 
 - [Prüfbericht und Freigabevorschlag](docs/phase-0-status.md)
 - [Installationsablauf und Abnahme](docs/installation.md)
