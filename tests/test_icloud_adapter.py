@@ -198,6 +198,13 @@ def test_real_rclone_live_stats_before_atomic_target_publication(tmp_path,monkey
     destination=tmp_path/'destination';destination.mkdir();target=destination/'large.part'
     monkeypatch.setattr(evidence,'space',lambda *_:None)
     observed=[]
+    # Bandwidth limiting is process-wide in rclone; per-request config does not
+    # slow a local fixture reliably. Force a real streamed local copy here.
+    import subprocess
+    popen=subprocess.Popen
+    def slow_runtime(args,*a,**kw):
+        return popen(args+['--bwlimit','1M','--disable','Copy'],*a,**kw)
+    monkeypatch.setattr('providers.apple.adapter.subprocess.Popen',slow_runtime)
     with AppleDownload(config/'rclone.conf',KEY,AccountContext(uuid4(),uuid4())) as adapter:
         adapter._rpc('config/create',{'name':adapter.remote,'type':'alias','parameters':{'remote':str(source)},'opt':{'nonInteractive':True}})
         record=next(adapter.inventory('drive'));rpc=adapter._rpc

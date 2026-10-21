@@ -22,3 +22,12 @@ Benutzerkonten, Berechtigungen der Benutzer, bestehende Audit-Einträge, Verschl
 Migration 0007 bewahrt minimale historische Fallreferenzen getrennt von den aktiven Fällen. Bestehende Audit-Zeilen und ihre Fall-IDs werden dabei nicht verändert. Die API erhält keine Änderungs- oder Löschrechte für Audit-Protokolle oder historische Referenzen. Die administrative Bereinigung ist zusätzlich protokolliert.
 
 Die Bereinigung wurde anhand leerer Datenbanklisten und leerem Fallverzeichnis geprüft. Geschützte Rückfallsicherungen liegen ausschließlich lokal auf der VM unter `/var/backups/fca/user-requested-reset-20261021/`. Sie gehören nicht zur aktiven Fallverwaltung. Datenträger, Einhängepunkt und Volumenkennung bleiben bestehen.
+
+
+## Ergänzung: Geschwindigkeit und Nachbesetzung
+
+Der Übertragungspool besetzt freie Plätze fortlaufend nach; eine langsame Datei blockiert die übrigen Plätze nicht. Die API liefert aktive Plätze, konfigurierte Grenze und vorübergehend reduzierte Grenze. Die Karte zeigt die Gesamtgeschwindigkeit; der kurze gleitende Messzeitraum berücksichtigt laufende Dateibytes. Für iCloud stammen diese aus der jeweiligen rclone-Auftragsstatistik, auch vor Veröffentlichung der temporären Zieldatei. Bereits abgeschlossene Dateien bleiben getrennt als geprüft erkennbar.
+
+Neue Prüfungen umfassen den Nachrücker hinter einer blockierten großen Datei, API-Werte während laufender Übertragung, rclone-Zwischenstände mit echter, gedrosselter Laufzeit und den sichtbaren Downloadzähler im Browser. Die Startseite verwendet nun einheitlich „Fall anlegen / öffnen“.
+
+Auf erneuten ausdrücklichen Benutzerwunsch wurde der nächste Laborfall samt Anmeldung, Inventar und Sicherungsdateien wieder entfernt. Benutzer und bestehende Audit-Zeilen blieben unverändert. Die geschützte Rückfallsicherung liegt unter `/var/backups/fca/user-requested-reset-current-20261021/` und gehört nicht zur aktiven Fallverwaltung.

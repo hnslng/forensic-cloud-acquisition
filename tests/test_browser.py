@@ -68,6 +68,7 @@ def sign_in(page, username='alice'):
 
 
 def create_case(page, username='alice'):
+    expect(page.locator('#start-open-case')).to_contain_text('Fall anlegen / öffnen')
     page.locator('#start-open-case').click()
     page.locator('#case-form [name=business_number]').fill('SYNTHETIC-UI-2026')
     page.locator('#case-form [name=name]').fill('Synthetischer Testfall')
