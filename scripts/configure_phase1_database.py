@@ -40,6 +40,8 @@ def main():
         sql('SET ROLE fca_migrate;\n' + Path('migrations/0005_cloud_auth_attempts.sql').read_text())
     if sql('SELECT max(version) FROM schema_migrations;').strip() == '5':
         sql('SET ROLE fca_migrate;\n' + Path('migrations/0006_acquisitions.sql').read_text())
+    if sql('SELECT max(version) FROM schema_migrations;').strip() == '6':
+        sql('SET ROLE fca_migrate;\n' + Path('migrations/0007_audit_case_retention.sql').read_text())
     # Independent provider secret: never rotate an existing key during deployment.
     rendered = json.loads(subprocess.check_output(COMPOSE + ['--profile', 'application', 'config', '--format', 'json']))
     evidence_root = Path(next(v['source'] for v in rendered['services']['api']['volumes'] if v['target'] == '/evidence'))

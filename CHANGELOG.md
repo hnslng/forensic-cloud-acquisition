@@ -1,5 +1,9 @@
 # Änderungen
 
+## Laborbereinigung – 2026-10-21
+
+- Historische Fallreferenzen bleiben unabhängig von der aktiven Fallverwaltung erhalten. Eine ausdrücklich angeforderte administrative Entfernung von Testfällen verändert bestehende Audit-Einträge nicht.
+
 ## Ergänzung – 2026-10-21 – Erfassung und Übertragung parallel
 
 - Laufend aktualisierter Dateizähler und verständliche Unterscheidung zwischen Erfassung und Übertragung.

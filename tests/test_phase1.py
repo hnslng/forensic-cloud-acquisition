@@ -215,3 +215,18 @@ def test_cloud_catalog_case_access_csrf_and_immutable_capabilities():
     assert alice.post(path, json={**payload, 'label': '   '}).status_code == 422
     del alice.headers['X-CSRF-Token']
     assert alice.post(path, json=payload).status_code == 403
+
+
+def test_audit_history_survives_authorized_case_removal():
+    c=client();case=new_case(c,'SYNTHETIC-REMOVAL')
+    with migration_connection() as db:
+        before=db.execute('SELECT id,md5(row_to_json(t)::text) AS fingerprint FROM audit_events t WHERE case_id=%s ORDER BY id',(case['id'],)).fetchall()
+        assert before
+        db.execute('DELETE FROM case_members WHERE case_id=%s',(case['id'],))
+        db.execute('DELETE FROM evidence_cases WHERE case_id=%s',(case['id'],))
+        db.execute('DELETE FROM cases WHERE id=%s',(case['id'],))
+        after=db.execute('SELECT id,md5(row_to_json(t)::text) AS fingerprint FROM audit_events t WHERE case_id=%s ORDER BY id',(case['id'],)).fetchall()
+        assert before==after
+        assert db.execute('SELECT business_number FROM audit_case_references WHERE id=%s',(case['id'],)).fetchone()['business_number']=='SYNTHETIC-REMOVAL'
+    assert c.get('/api/cases').json()==[]
+    assert c.get('/api/cases/'+case['id']+'/cloud-accounts').status_code==404
