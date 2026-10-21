@@ -177,7 +177,9 @@ def test_only_google_copyid_to_local_temporary_files_is_allowed(vault,tmp_path):
         with pytest.raises(ProviderError):adapter._rpc('backend/command',{'command':command,'fs':fs,'arg':args})
 
 
-def test_actual_failed_async_rclone_job_is_classified_without_exposing_its_error(tmp_path):
+def test_actual_failed_async_rclone_job_is_classified_without_exposing_its_error(tmp_path,monkeypatch):
+    from backend import evidence
+    monkeypatch.setattr(evidence,'space',lambda *_:None)
     source=tmp_path/'source';source.mkdir();config=tmp_path/'config';config.mkdir(mode=0o700)
     with AppleDownload(config/'rclone.conf','SYNTHETIC-'+('x'*64),AccountContext(uuid4(),uuid4())) as adapter:
         adapter._rpc('config/create',{'name':adapter.remote,'type':'alias','parameters':{'remote':str(source)},'opt':{'nonInteractive':True}})
