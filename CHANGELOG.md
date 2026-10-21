@@ -1,5 +1,15 @@
 # Änderungen
 
+## 0.4.0 – 2026-10-21 – Verbindliches finales UI
+
+- Freigegebene dunkelblaue Palette und Standardschrift umgesetzt.
+- Genau eine volle horizontale Cloud-Karte pro Zeile auf allen Bildschirmbreiten.
+- Integrierte Status-/Fortschritts-/Messwertbereiche; keine fingierten Sicherungen.
+- Separaten Auftragsbereich entfernt; Fallablauf und Einstellungen erhalten.
+- Desktop-/Mobilabnahme, Benutzeranlage und Fallrechte praktisch getestet.
+- Vollständiges Backup und bestätigter Erhalt sämtlicher vorhandener Daten.
+
+
 ## 2026-10-21 – Layoutnachbesserung
 
 - Größere, klarere Schrift und höherer Kontrast im bestehenden TRIAGE//BOX-Stil.

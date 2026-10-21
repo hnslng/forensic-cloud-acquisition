@@ -10,13 +10,15 @@ Phase 0 ist nach Freigabe erfolgreich auf VM 105 umgesetzt und praktisch
 abgenommen, einschließlich VM-Neustart, PostgreSQL-Persistenz und Restore.
 **Phase 1 ist umgesetzt:** privates HTTPS, persönliche Anmeldung, Benutzer- und
 Fallverwaltung mit serverseitigen Rechten und Audit. Die Oberfläche folgt dem
-tatsächlichen TRIAGE//BOX-Start-/Fallablauf und verwaltet mehrere benannte
+TRIAGE//BOX-Start-/Fallablauf in der freigegebenen dunkelblauen Gestaltung und
+verwaltet mehrere benannte
 Cloud-Konten je Fall. Cloud-Adapter und echte
 Sicherungen sind noch nicht implementiert.
 
 - [Abschlussbericht Phase 0 und Ressourcenverbrauch](docs/phase-0-completion.md)
 - [Umsetzung und Abnahme Phase 1](docs/phase-1-status.md)
-- [Layoutüberarbeitung für Lesbarkeit und Desktopproportionen](docs/ui-layout-refinement.md)
+- [Verbindliches finales UI und Abnahme](docs/final-ui-acceptance.md)
+- [Historische Layoutüberarbeitung für Lesbarkeit und Desktopproportionen](docs/ui-layout-refinement.md)
 - [Vergleich mit dem tatsächlichen TRIAGE//BOX-Frontend](docs/ui-triagebox-comparison.md)
 - [Laborzugang und Administration](docs/operation.md)
 

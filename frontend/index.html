@@ -3,40 +3,33 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#10130f" />
+    <meta name="theme-color" content="#101A2A" />
     <title>FORENSIC CLOUD ACQUISITION</title>
     <link rel="stylesheet" href="/styles.css" />
     <script src="/app.js" defer></script>
   </head>
   <body>
-    <div class="scanlines" aria-hidden="true"></div>
     <main class="shell">
       <div id="workspace-frame" inert>
         <header class="masthead">
-          <div class="brand-block">
-            <h1>
-              <button
-                id="home-button"
-                class="brand-home"
-                aria-label="Zum Fallarbeitsbereich"
-              >
-                FCA<span>//</span>CLOUD
-              </button>
-            </h1>
-            <small class="brand-version">v0.3.0</small>
+          <div>
+            <div class="brand-block">
+              <h1>
+                <button
+                  id="home-button"
+                  class="brand-home"
+                  aria-label="Zum Fallarbeitsbereich"
+                >
+                  FCA <span>// CLOUD</span>
+                </button>
+              </h1>
+              <small class="brand-version">v0.4.0</small>
+            </div>
+            <p class="brand-subtitle">FORENSIC CLOUD ACQUISITION</p>
           </div>
-          <div id="active-case-display" class="active-case-display locked">
-            <strong
-              ><span id="active-case-number">KEIN FALL</span
-              ><em id="active-operator"></em
-            ></strong>
-          </div>
-        </header>
-        <section class="rulebar" aria-label="Systemstatus">
-          <span class="mode-badge">CLOUD ACQUISITION · TESTLABOR</span
-          ><span id="system-state" class="system-state">KEIN FALL AKTIV</span>
-          <div class="utility-controls">
-            <button
+          <div class="header-tools">
+            <span class="lab-badge">Laborbetrieb</span
+            ><button
               id="open-settings"
               class="system-button"
               type="button"
@@ -46,28 +39,38 @@
               ⚙
             </button>
           </div>
-          <span id="clock">LOKAL --:--:--</span>
-        </section>
-        <section class="case-dock" aria-label="Fallsteuerung">
-          <button id="open-case-button" type="button">
-            + Fall anlegen / öffnen
-          </button>
-          <div>
-            <span>01 · AKTIVER FALL</span
-            ><strong id="dock-case-name">KEIN FALL GESTARTET</strong
-            ><small id="dock-case-note"
-              >Geschäftszahl und Bearbeiterkürzel eingeben, dann „Fall
-              starten“.</small
-            >
+        </header>
+        <section class="case-dock" aria-label="Aktiver Fall">
+          <div class="case-summary">
+            <span class="eyebrow">Aktiver Fall</span>
+            <div id="active-case-display" class="active-case-display locked">
+              <strong id="active-case-number">KEIN FALL</strong
+              ><span class="case-separator" aria-hidden="true">–</span
+              ><strong id="dock-case-name">KEIN FALL GESTARTET</strong>
+            </div>
+            <p id="active-operator"></p>
+            <small id="dock-case-note">Zuerst einen Fall starten.</small>
           </div>
-          <button id="leave-case-button" class="secondary" type="button" hidden>
-            Arbeitsbereich verlassen
-          </button>
+          <div class="case-controls">
+            <span id="case-status" class="status-badge">Kein Fall aktiv</span>
+            <div class="case-actions">
+              <button id="open-case-button" type="button">
+                + Fall anlegen / öffnen</button
+              ><button
+                id="leave-case-button"
+                class="secondary"
+                type="button"
+                hidden
+              >
+                Arbeitsbereich verlassen
+              </button>
+            </div>
+          </div>
         </section>
         <section class="control-grid">
           <article class="panel cloud-panel" aria-label="Cloud-Verwaltung">
             <div class="panel-title device-title">
-              <div><span>02</span> CLOUD-VERWALTUNG</div>
+              <h2>Cloud-Verwaltung</h2>
               <div class="device-title-actions">
                 <button id="add-cloud-button" disabled>
                   + Cloud hinzufügen</button
@@ -90,31 +93,14 @@
             </p>
           </article>
         </section>
-        <section
-          id="jobs-panel"
-          class="panel jobs-panel"
-          aria-label="Sicherungsaufträge und Downloads"
-        >
-          <div class="panel-title jobs-title">
-            <div><span>03</span> SICHERUNGSAUFTRÄGE &amp; DOWNLOADS</div>
-            <small>Noch nicht verfügbar</small>
-          </div>
-          <div class="jobs-empty">
-            <strong>Keine Sicherungsaufträge</strong>
-            <p>
-              Hier werden später Aufträge und Downloadfortschritte angezeigt.
-              Sicherungen sind noch nicht implementiert.
-            </p>
-          </div>
-        </section>
         <details id="audit-panel" class="panel audit-panel" hidden>
-          <summary class="panel-title">
-            <span>04</span> TECHNISCHES FALLPROTOKOLL
-          </summary>
+          <summary class="panel-title">Technisches Fallprotokoll</summary>
           <div id="audit-list"></div>
         </details>
         <footer>
-          <span>FORENSIC CLOUD ACQUISITION</span
+          <span id="system-state">KEIN FALL AKTIV</span
+          ><span id="clock">LOKAL --:--:--</span
+          ><span>FORENSIC CLOUD ACQUISITION</span
           ><span>PRIVATES TESTLABOR · KEINE EINSATZFREIGABE</span>
         </footer>
       </div>
@@ -136,7 +122,7 @@
           aria-label="Startbereitschaft"
         >
           <h2 class="start-overlay-brand">
-            FCA<span class="acid">//</span>CLOUD
+            FCA <span class="acid">// CLOUD</span>
           </h2>
           <strong class="start-overlay-ready">BEREIT</strong
           ><button

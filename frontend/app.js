@@ -102,18 +102,25 @@ function renderWorkspace() {
     ? activeCase.business_number
     : "KEIN FALL";
   $("active-operator").textContent = ready
-    ? "| " + activeCase.operator_initials
+    ? "Bearbeiter " + activeCase.operator_initials
     : "";
   $("system-state").textContent = ready ? "FALL AKTIV" : "KEIN FALL AKTIV";
   $("dock-case-name").textContent = ready
     ? activeCase.name || "OHNE FALLBEZEICHNUNG"
     : "KEIN FALL GESTARTET";
   $("dock-case-note").textContent = ready
-    ? statuses[activeCase.status] + " · " + activeCase.business_number
+    ? "Fallstatus: " + statuses[activeCase.status]
     : "Geschäftszahl und Bearbeiterkürzel eingeben, dann „Fall starten“.";
   $("open-case-button").textContent = ready
     ? "Fall wechseln / öffnen"
     : "+ Fall anlegen / öffnen";
+  $("case-status").textContent = ready
+    ? statuses[activeCase.status]
+    : "Kein Fall aktiv";
+  $("case-status").classList.toggle(
+    "status-success",
+    ready && activeCase.status === "active",
+  );
   $("leave-case-button").hidden = !ready;
   $("add-cloud-button").disabled = !ready || !activeCase.can_edit;
   $("audit-panel").hidden = !ready;
@@ -358,21 +365,67 @@ function renderClouds() {
     card.dataset.provider = account.provider;
     card.setAttribute("aria-label", account.label);
     const top = node("div", undefined, "cloud-card-top");
-    const provider = node("div", undefined, "provider-identity");
-    const mark = node(
-      "span",
-      { apple: "iC", google: "G", microsoft: "OD" }[account.provider],
-      "provider-mark",
+    const identity = node("div", undefined, "cloud-identity");
+    const mark = node("span", undefined, "provider-mark");
+    // Fixed local SVG paths; no provider assets or account content loaded remotely.
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 32 32");
+    svg.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute(
+      "d",
+      {
+        apple: "M9 25h15a6 6 0 0 0 0-12 9 9 0 0 0-17-2A7 7 0 0 0 9 25Z",
+        google: "M9 6h14l6 12v9H3v-9L9 6ZM3 18h26M9 23h1m5 0h1",
+        microsoft:
+          "M7 25h18a6 6 0 0 0 0-12 8 8 0 0 0-14-4 7 7 0 0 0-4 16Zm0-10 9 5 9-5",
+      }[account.provider],
     );
-    mark.setAttribute("aria-hidden", "true");
-    provider.append(mark, node("b", providers[account.provider]));
-    top.append(provider, node("span", "Konto erfasst", "cloud-catalog-state"));
-    const status = node("dl", undefined, "cloud-status");
-    for (const title of ["Anbindung", "Sicherung"]) {
-      const column = node("div");
-      column.append(node("dt", title), node("dd", "Nicht verfügbar"));
-      status.append(column);
-    }
+    svg.append(path);
+    mark.append(svg);
+    const copy = node("div", undefined, "cloud-identity-copy");
+    copy.append(
+      node("h3", account.label, "cloud-name"),
+      node(
+        "p",
+        {
+          apple: "Apple iCloud · Drive und Fotos",
+          google: "Google · Drive und verfügbare Exportverfahren",
+          microsoft: "Microsoft OneDrive · Dateien, Fotos und Videos",
+        }[account.provider],
+        "provider-description",
+      ),
+    );
+    identity.append(mark, copy);
+    top.append(
+      identity,
+      node("span", "Nicht verbunden", "status-badge status-disconnected"),
+    );
+    const information = node("div", undefined, "acquisition-info");
+    information.append(
+      node("strong", "Noch keine Sicherung gestartet"),
+      node(
+        "p",
+        "Nächster Schritt: Authentifizierung. Die Anbieteranbindung ist noch nicht verfügbar.",
+      ),
+    );
+    const progress = node("div", undefined, "acquisition-progress");
+    const summary = node("div", undefined, "progress-summary");
+    summary.append(
+      node("span", "Übertragungsfortschritt noch nicht verfügbar"),
+      node("span", "Keine Messwerte"),
+    );
+    const track = node("div", undefined, "progress-track unavailable");
+    track.setAttribute("role", "img");
+    track.setAttribute("aria-label", "Kein Sicherungsfortschritt verfügbar");
+    const metrics = node("div", undefined, "transfer-metrics");
+    metrics.append(
+      node("span", "Datenmenge: —"),
+      node("span", "Geschwindigkeit: —"),
+      node("span", "Restzeit: —"),
+      node("span", "Prüfsummen: noch nicht verfügbar"),
+    );
+    progress.append(summary, track, metrics);
     const actions = node("div", undefined, "cloud-actions");
     for (const text of ["Authentifizieren", "Sicherung starten"]) {
       const button = node("button", text);
@@ -385,13 +438,9 @@ function renderClouds() {
     rename.type = "button";
     rename.disabled = !activeCase?.can_edit;
     rename.addEventListener("click", () => openCloud(account));
-    card.append(
-      top,
-      node("h3", account.label, "cloud-name"),
-      status,
-      actions,
-      rename,
-    );
+    const footer = node("div", undefined, "cloud-card-footer");
+    footer.append(actions, rename);
+    card.append(top, information, progress, footer);
     $("cloud-list").append(card);
   }
 }
