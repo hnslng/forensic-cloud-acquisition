@@ -13,9 +13,9 @@ case "${1:-}" in
     mkdir -p /srv/fca/evidence /root/tls
     printf '%s\n' '/dev/disk/by-id/virtio-FCAINSTALLTEST /srv/fca/evidence ext4 defaults,nodev,nosuid,noexec 0 2' >> /etc/fstab
     mount /srv/fca/evidence
-    openssl req -x509 -newkey rsa:2048 -nodes -keyout /root/tls/ca.key -out /root/tls/ca.crt -subj /CN=FCA-disposable-test-CA -days 2 >/dev/null 2>&1
+    openssl req -x509 -newkey rsa:2048 -nodes -keyout /root/tls/ca.key -out /root/tls/ca.crt -subj /CN=FCA-disposable-test-CA -days 30 -addext 'basicConstraints=critical,CA:TRUE' -addext 'keyUsage=critical,keyCertSign,cRLSign' >/dev/null 2>&1
     openssl req -newkey rsa:2048 -nodes -keyout /root/tls/server.key -out /root/tls/server.csr -subj /CN=fca.test >/dev/null 2>&1
-    printf '%s\n' 'subjectAltName=DNS:fca.test,IP:10.0.2.15' > /root/tls/ext
+    printf '%s\n' 'basicConstraints=critical,CA:FALSE' 'keyUsage=critical,digitalSignature,keyEncipherment' 'extendedKeyUsage=serverAuth' 'subjectAltName=DNS:fca.test,IP:10.0.2.15' 'subjectKeyIdentifier=hash' 'authorityKeyIdentifier=keyid,issuer' > /root/tls/ext
     openssl x509 -req -in /root/tls/server.csr -CA /root/tls/ca.crt -CAkey /root/tls/ca.key -CAcreateserial -out /root/tls/server.crt -days 30 -extfile /root/tls/ext >/dev/null 2>&1
     chmod 600 /root/tls/*.key
     echo '10.0.2.15 fca.test' >> /etc/hosts

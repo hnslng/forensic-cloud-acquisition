@@ -18,6 +18,7 @@ import sys
 import tarfile
 import uuid
 from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
 
 from infrastructure.installer.package import Refused, canonical, sha256, verify, verify_exact
 from scripts.prepare_private_https import prepare
@@ -178,7 +179,7 @@ def preflight(config):
     # Checks certificate/key consistency and trusted chain before changing services.
     context.load_cert_chain(config['certificate'], config['certificate_key'])
     field = '-verify_ip' if _is_ip(config['server_name']) else '-verify_hostname'
-    run(['openssl', 'verify', '-CAfile', config['ca_certificate'], '-untrusted', config['certificate'], field, config['server_name'], config['certificate']])
+    run(['openssl', 'verify', '-x509_strict', '-CAfile', config['ca_certificate'], '-untrusted', config['certificate'], field, config['server_name'], config['certificate']])
     run(['openssl', 'x509', '-checkend', '604800', '-noout', '-in', config['certificate']])
 
 
@@ -582,8 +583,15 @@ def diagnose(config):
             if result is False:
                 raise Refused('Prüfung fehlgeschlagen.')
             checks.append({'check': name, 'ok': True})
-        except Exception:
-            checks.append({'check': name, 'ok': False})
+        except Exception as error:
+            entry = {'check': name, 'ok': False, 'error_type': type(error).__name__}
+            if isinstance(error, HTTPError):
+                entry['problem'] = 'HTTP ' + str(error.code)
+            elif isinstance(error, ssl.SSLCertVerificationError):
+                entry['problem'] = error.verify_message
+            elif isinstance(error, URLError) and isinstance(error.reason, ssl.SSLCertVerificationError):
+                entry['problem'] = error.reason.verify_message
+            checks.append(entry)
     check('Installierte Release-Signatur und Dateiintegrität', lambda: verify(CURRENT.resolve(), TRUST))
     check('Sicherungsdatenträger und Kennung', lambda: mounted_evidence(config))
     check('Debian, Ressourcen, private IP und HTTPS-Dateien', lambda: preflight(config))
