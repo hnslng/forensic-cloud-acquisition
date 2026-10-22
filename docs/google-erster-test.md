@@ -70,3 +70,15 @@ Testdaten verwenden.
 Quellen: [Google Web-OAuth und URI-Regeln](https://developers.google.com/identity/protocols/oauth2/web-server#uri-validation),
 [Google Testnutzer und Ablauf](https://support.google.com/cloud/answer/15549945?hl=en),
 [Let's Encrypt DNS-01](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge).
+
+## Fortschritt bei Dokumentexporten
+
+Google liefert für native Dokumentexporte nicht immer eine Größe vorab.
+Nach vollständiger Dateierfassung zeigt FCA in diesem Fall den Anteil der bereits
+vollständig gesicherten Dateien statt eines Byte-Prozentsatzes. Die Karte kennzeichnet
+dies ausdrücklich mit „Fortschritt nach Dateien, Gesamtgröße unbekannt“.
+Die übertragenen Bytes und die Geschwindigkeit bleiben tatsächliche Messwerte;
+eine Restzeit wird ohne bekannte Gesamtgröße nicht geschätzt. Solange noch Dateien
+erfasst werden, zeigt der Balken Aktivität ohne Gesamtprozentsatz. Bei bekannter
+Gesamtgröße wird weiterhin nach Bytes gerechnet. 100 % und Grün erscheinen erst
+beim erfolgreich abgeschlossenen Sicherungslauf.
