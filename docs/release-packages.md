@@ -85,3 +85,7 @@ Nur Debian 13 amd64, private IPv4-Listener, vorhandenes Python 3/iproute2/system
 vorhandenes administrativ freigegebenes HTTPS. Kein automatischer Betrieb einer
 CA, kein DNS-/WireGuard-/Firewallmanagement, keine automatische Übernahme des
 historischen Laboraufbaus und keine automatischen Schema-Downgrades.
+
+## Online-Bootstrap aus demselben Paket
+
+`scripts/build_bootstrap.py` erzeugt aus dem fertig signierten Archiv einen an eine einzige Version gebundenen Bootstrap samt geprüftem Ein-Befehl-Start. Anleitung und Voraussetzungen: [Bootstrap-Installation](bootstrap-installation.md). Testschlüssel aus CI niemals als dauerhafte Produktionsschlüssel übernehmen.

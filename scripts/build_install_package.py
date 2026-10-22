@@ -80,13 +80,13 @@ def main():
     for name in ('infrastructure/installer', 'frontend', 'migrations'):
         copy_tracked(name, args.output)
     (args.output / 'scripts').mkdir()
-    for name in ('fca_admin.py', 'configure_phase1_database.py', 'prepare_private_https.py'):
+    for name in ('fca_admin.py', 'fca_guided_install.py', 'configure_phase1_database.py', 'prepare_private_https.py'):
         shutil.copy(ROOT / 'scripts' / name, args.output / 'scripts' / name)
     shutil.copy(ROOT / 'install.sh', args.output / 'install.sh')
     shutil.copy(ROOT / 'update.sh', args.output / 'update.sh')
     (args.output / 'docs').mkdir()
     # Agency packages carry operating instructions, not private lab history.
-    for name in ('installation.md','backup-restore-rollback.md','release-packages.md','installer-tests.md'):
+    for name in ('installation.md','backup-restore-rollback.md','release-packages.md','installer-tests.md','bootstrap-installation.md'):
         shutil.copy(ROOT / 'docs' / name, args.output / 'docs' / name)
     env = dict(os.environ, FCA_STATE_ROOT='/var/lib/fca', FCA_EVIDENCE_ROOT='/srv/fca/evidence',
                FCA_POSTGRES_PASSWORD_FILE='/etc/fca/secrets/postgres_password',

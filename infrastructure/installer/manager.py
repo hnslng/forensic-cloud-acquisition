@@ -111,6 +111,10 @@ def validate_config(value):
     value.setdefault('state_root', '/var/lib/fca')
     if value['state_root'] != '/var/lib/fca':
         raise Refused('Der Zustandsordner ist in dieser Paketversion fest vorgegeben.')
+    if value.get('storage_mode', 'mount') not in ('mount', 'directory'):
+        raise Refused('Unbekannte Speicherart.')
+    if value.get('storage_mode') == 'directory' and (value['mode'] != 'labor' or not re.fullmatch(r'[A-Za-z0-9-]{8,64}', value.get('storage_filesystem_uuid', ''))):
+        raise Refused('Systemspeicher nur im ausdrücklich bestätigten Laborbetrieb mit Dateisystemkennung verwenden.')
     return value
 
 
@@ -138,7 +142,7 @@ def empty_volume(path):
 
 def mounted_evidence(config, initialize=False):
     path = canonical(config['evidence_root'])
-    if not path.is_dir() or not os.path.ismount(path):
+    if not storage_present(config):
         raise Refused('Sicherungsdatenträger muss vorab an diesem Pfad eingebunden sein; kein Fallback auf die Systemdisk.')
     marker = path / '.fca-volume-id'
     if not marker.exists():
@@ -150,6 +154,17 @@ def mounted_evidence(config, initialize=False):
     if config.get('volume_id') and marker.read_text().strip() != config['volume_id']:
         raise Refused('Falscher Sicherungsdatenträger eingebunden.')
     return marker.read_text().strip()
+
+
+def storage_present(config):
+    path = canonical(config['evidence_root'])
+    if not path.is_dir():
+        return False
+    if config.get('storage_mode', 'mount') == 'mount':
+        return os.path.ismount(path)
+    # An explicitly selected lab directory must stay on exactly the selected FS.
+    identity = run(['findmnt', '-n', '-o', 'UUID', '-T', str(path)]).decode().strip()
+    return bool(identity) and identity == config['storage_filesystem_uuid']
 
 
 def preflight(config):
@@ -383,6 +398,13 @@ def check_trust_key(key):
         raise Refused('Abweichender Freigabeschlüssel. Schlüsselwechsel muss separat administrativ geprüft werden.')
 
 
+def require_new_host():
+    if Path('/opt/fca').exists() or CURRENT.exists() or CURRENT.is_symlink() or COMPOSE.exists() or Path('/etc/systemd/system/fca.service').exists() or Path('/usr/lib/systemd/system/fca.service').exists() or any(p.exists() and any(p.iterdir()) for p in (Path('/var/lib/fca'), Path('/etc/fca/secrets'))):
+        raise Refused('Vorhandene FCA-Installation erkannt. Keine automatische Übernahme oder Neuinstallation.')
+    if any(p.exists() and any(p.iterdir()) for p in (Path('/etc/nginx/conf.d'), Path('/etc/nginx/sites-enabled'))):
+        raise Refused('Bestehenden Webserver administrativ prüfen. Keine automatische Übernahme.')
+
+
 def install(args):
     package = canonical(args.package)
     check_trust_key(args.trusted_key)
@@ -399,19 +421,16 @@ def install(args):
             verify(CURRENT.resolve(), args.trusted_key)
             diagnose(config)
             print('Installation bereits vorhanden und geprüft; keine Daten oder Zugangsdaten geändert.')
+            print('FCA-Webadresse: https://' + config['server_name'])
             return
         # Resume only the exact signed package recorded before the first mutation.
         if config.get('pending_manifest') != sha256(package / 'manifest.json'):
             raise Refused('Abgebrochene Installation benötigt dasselbe geprüfte Paket.')
     else:
-        if Path('/opt/fca').exists() or CURRENT.exists() or CURRENT.is_symlink() or COMPOSE.exists() or Path('/etc/systemd/system/fca.service').exists() or Path('/usr/lib/systemd/system/fca.service').exists() or any(p.exists() and any(p.iterdir()) for p in (Path('/var/lib/fca'), Path('/etc/fca/secrets'))):
-            raise Refused('Vorhandene FCA-Installation erkannt. Keine automatische Übernahme oder Neuinstallation.')
+        require_new_host()
         config = validate_config(json.loads(Path(args.config).read_text())) if args.config else interactive()
-        if not os.path.ismount(config['evidence_root']) or not empty_volume(Path(config['evidence_root'])):
+        if not storage_present(config) or not empty_volume(Path(config['evidence_root'])):
             raise Refused('Für Erstinstallation ist ein bereits eingebundener, vollständig leerer Sicherungsdatenträger erforderlich.')
-        # Never modify an existing web server configuration on a shared host.
-        if any(p.exists() and any(p.iterdir()) for p in (Path('/etc/nginx/conf.d'), Path('/etc/nginx/sites-enabled'))):
-            raise Refused('Bestehenden Webserver administrativ prüfen. Keine automatische Übernahme.')
     preflight(config)
     print('FCA-Installation; Abhängigkeiten werden ausschließlich aus dem signierten Paket installiert.')
     if not args.yes and input('Installation auf diesem vorbereiteten Server beginnen? [ja/NEIN]: ') != 'ja':
@@ -451,6 +470,7 @@ def install(args):
     config.pop('pending_manifest', None)
     write(CONFIG, json.dumps(config, indent=2) + '\n')
     print('FCA eingerichtet. Startkonto: admin. Initialpasswort ausschließlich lokal unter /etc/fca/secrets/initial_admin_password abrufen und anschließend ändern.')
+    print('FCA-Webadresse: https://' + config['server_name'])
 
 
 def stopped():

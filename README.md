@@ -74,3 +74,7 @@ Konfiguration und Geheimnisse liegen später unter `/etc/fca`, Datenbankdaten
 unter `/var/lib/fca` und Testbeweisdaten auf einer separaten Disk unter
 `/srv/fca/evidence`. Diese Verzeichnisse liegen außerhalb des Git-Checkouts.
 Ein frei eingegebenes Bearbeiterkürzel ist niemals eine Zugriffsberechtigung.
+
+### Installation über ein freigegebenes GitHub-Release
+
+Der [Bootstrap-Installer](docs/bootstrap-installation.md) verwendet eine feste, signierte Releaseversion aus diesem Repository. Kein GitHub-Konto am Zielserver erforderlich. Anonyme Downloads setzen ein öffentliches Repository und ein veröffentlichtes Release voraus; die Sichtbarkeit ändert ausschließlich der Eigentümer. Der bestehende Offlineinstaller bleibt verfügbar.

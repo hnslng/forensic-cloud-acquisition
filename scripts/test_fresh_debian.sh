@@ -3,12 +3,15 @@
 set -euo pipefail
 ROOT=$(cd -- "$(dirname -- "$0")/.." && pwd)
 WORK=$(mktemp -d)
+FCA_INSTALL_MODE=${FCA_INSTALL_MODE:-offline}
+[[ $FCA_INSTALL_MODE == offline || $FCA_INSTALL_MODE == bootstrap ]]
 cleanup() {
   test_status=$?
   if [[ $test_status != 0 ]]; then
     for log in "$WORK/bios.log" "$WORK/serial.log"; do [[ ! -f "$log" ]] || tail -n 120 "$log"; done
   fi
   if [[ -f "$WORK/qemu.pid" ]]; then kill "$(cat "$WORK/qemu.pid")" 2>/dev/null || true; fi
+  if [[ -n ${FIXTURE_PID:-} ]]; then sudo kill "$FIXTURE_PID" 2>/dev/null || true; fi
   rm -rf "$WORK"
 }
 trap cleanup EXIT
@@ -49,13 +52,31 @@ for _ in $(seq 1 30); do
 done
 "${SSH[@]}" 'test -f /root/FCA_INSTALLER_DISPOSABLE_GUEST'
 git archive HEAD | "${SSH[@]}" 'mkdir /root/source; tar -x -C /root/source'
-"${SSH[@]}" 'bash /root/source/tests/installer/fresh-debian.sh prepare'
+"${SSH[@]}" "FCA_INSTALL_MODE=$FCA_INSTALL_MODE bash /root/source/tests/installer/fresh-debian.sh prepare"
 "${SCP[@]}" -r root@127.0.0.1:/root/debs "$WORK/debs"
 docker build --target runtime -t fca-install-ci:tested -f infrastructure/docker/Dockerfile .
 APP_IMAGE=$(docker image inspect --format '{{.Id}}' fca-install-ci:tested)
 openssl genpkey -algorithm ED25519 -out "$WORK/signing.key"
 openssl pkey -in "$WORK/signing.key" -pubout -out "$WORK/trusted-release.pub"
 python3 scripts/build_install_package.py --version 0.6.0-test.1 --archive "$WORK/fca-0.6.0-test.1.tar.gz" --output "$WORK/release" --debs "$WORK/debs" --signing-key "$WORK/signing.key" --trusted-key "$WORK/trusted-release.pub" --app-image "$APP_IMAGE"
+if [[ $FCA_INSTALL_MODE == bootstrap ]]; then
+  python3 scripts/build_bootstrap.py --version 0.6.0-test.1 --archive "$WORK/fca-0.6.0-test.1.tar.gz" --trusted-key "$WORK/trusted-release.pub" --output "$WORK/bootstrap"
+  FIXTURE="$WORK/fixture/hnslng/forensic-cloud-acquisition/releases/download/v0.6.0-test.1"
+  mkdir -p "$FIXTURE"
+  cp "$WORK/fca-0.6.0-test.1.tar.gz"* "$FIXTURE/"
+  cp "$WORK/bootstrap/fca-bootstrap.py" "$FIXTURE/"
+  openssl req -x509 -newkey rsa:2048 -nodes -keyout "$WORK/fixture-ca.key" -out "$WORK/fixture-ca.pem" -subj /CN=Disposable-HTTPS-fixture -days 2 -addext 'basicConstraints=critical,CA:TRUE' -addext 'keyUsage=critical,keyCertSign,cRLSign' >/dev/null 2>&1
+  openssl req -newkey rsa:2048 -nodes -keyout "$WORK/fixture.key" -out "$WORK/fixture.csr" -subj /CN=github.com >/dev/null 2>&1
+  printf '%s\n' 'basicConstraints=critical,CA:FALSE' 'keyUsage=critical,digitalSignature,keyEncipherment' 'extendedKeyUsage=serverAuth' 'subjectAltName=DNS:github.com' > "$WORK/fixture.ext"
+  openssl x509 -req -in "$WORK/fixture.csr" -CA "$WORK/fixture-ca.pem" -CAkey "$WORK/fixture-ca.key" -CAcreateserial -out "$WORK/fixture.pem" -days 2 -extfile "$WORK/fixture.ext" >/dev/null 2>&1
+  sudo python3 tests/installer/release_fixture_server.py "$WORK/fixture" "$WORK/fixture.pem" "$WORK/fixture.key" &
+  FIXTURE_PID=$!
+  "${SCP[@]}" "$WORK/fixture-ca.pem" root@127.0.0.1:/root/fixture-ca.pem
+  "${SCP[@]}" -r "$WORK/bootstrap" root@127.0.0.1:/root/bootstrap
+  # Isolated guest only: genuine HTTPS requests use a controlled release fixture.
+  # The production bootstrap and generated install command are not modified.
+  "${SSH[@]}" "echo '10.0.2.2 github.com' >> /etc/hosts"
+fi
 openssl pkeyutl -verify -pubin -inkey "$WORK/trusted-release.pub" -rawin -in "$WORK/fca-0.6.0-test.1.tar.gz.sha256" -sigfile "$WORK/fca-0.6.0-test.1.tar.gz.sha256.sig"
 (cd "$WORK"
  sha256sum -c fca-0.6.0-test.1.tar.gz.sha256)
@@ -63,7 +84,7 @@ mkdir "$WORK/unpacked"
 tar -xzf "$WORK/fca-0.6.0-test.1.tar.gz" -C "$WORK/unpacked"
 "${SCP[@]}" "$WORK/trusted-release.pub" root@127.0.0.1:/root/trusted-release.pub
 tar -C "$WORK/unpacked/fca-0.6.0-test.1" -cf - . | "${SSH[@]}" 'mkdir /root/release; tar -x -C /root/release'
-"${SSH[@]}" 'bash /root/source/tests/installer/fresh-debian.sh install'
+"${SSH[@]}" "FCA_INSTALL_MODE=$FCA_INSTALL_MODE bash /root/source/tests/installer/fresh-debian.sh install"
 # Separate signed next version, no modification of the original package.
 python3 scripts/build_install_package.py --version 0.6.0-test.2 --output "$WORK/release-next" --debs "$WORK/debs" --signing-key "$WORK/signing.key" --trusted-key "$WORK/trusted-release.pub" --app-image "$APP_IMAGE"
 tar -C "$WORK/release-next" -cf - . | "${SSH[@]}" 'mkdir /root/release-next; tar -x -C /root/release-next'

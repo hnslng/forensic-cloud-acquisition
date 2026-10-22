@@ -8,11 +8,16 @@ cd /root/source
 case "${1:-}" in
   prepare)
     # This is the newly created, uniquely identified test disk, never a lab disk.
+    if [[ ${FCA_INSTALL_MODE:-offline} == offline ]]; then
     [[ -z $(lsblk -n -o FSTYPE /dev/disk/by-id/virtio-FCAINSTALLTEST) ]]
     mkfs.ext4 -q -m 0 /dev/disk/by-id/virtio-FCAINSTALLTEST
     mkdir -p /srv/fca/evidence /root/tls
     printf '%s\n' '/dev/disk/by-id/virtio-FCAINSTALLTEST /srv/fca/evidence ext4 defaults,nodev,nosuid,noexec 0 2' >> /etc/fstab
     mount /srv/fca/evidence
+    else
+      # Bootstrap must also work on a fresh VM without a preformatted data disk.
+      mkdir -p /root/tls
+    fi
     openssl req -x509 -newkey rsa:2048 -nodes -keyout /root/tls/ca.key -out /root/tls/ca.crt -subj /CN=FCA-disposable-test-CA -days 30 -addext 'basicConstraints=critical,CA:TRUE' -addext 'keyUsage=critical,keyCertSign,cRLSign' >/dev/null 2>&1
     openssl req -newkey rsa:2048 -nodes -keyout /root/tls/server.key -out /root/tls/server.csr -subj /CN=fca.test >/dev/null 2>&1
     printf '%s\n' 'basicConstraints=critical,CA:FALSE' 'keyUsage=critical,digitalSignature,keyEncipherment' 'extendedKeyUsage=serverAuth' 'subjectAltName=DNS:fca.test,IP:10.0.2.15' 'subjectKeyIdentifier=hash' 'authorityKeyIdentifier=keyid,issuer' > /root/tls/ext
@@ -41,15 +46,30 @@ case "${1:-}" in
     mkdir /root/failing-apt
     printf '#!/bin/sh\nexit 42\n' > /root/failing-apt/apt-get
     chmod 700 /root/failing-apt/apt-get
-    if PATH="/root/failing-apt:$PATH" /root/release/install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes; then exit 1; fi
+    if [[ ${FCA_INSTALL_MODE:-offline} == bootstrap ]]; then
+      python3 tests/installer/run_bootstrap.py first
+    else
+      if PATH="/root/failing-apt:$PATH" /root/release/install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes; then exit 1; fi
+    fi
     test -f /etc/fca/installation.json
     sha256sum /etc/fca/secrets/* > /root/bootstrap-secret-hashes
-    /root/release/install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes
+    if [[ ${FCA_INSTALL_MODE:-offline} == bootstrap ]]; then
+      python3 tests/installer/run_bootstrap.py resume
+    else
+      /root/release/install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes
+    fi
     sha256sum -c /root/bootstrap-secret-hashes
     python3 scripts/fca_admin.py diagnose
     python3 tests/installer/seed_and_check.py seed
     sha256sum /etc/fca/secrets/* > /root/secret-hashes
-    /root/release/install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes
+    if [[ ${FCA_INSTALL_MODE:-offline} == bootstrap ]]; then
+      python3 tests/installer/run_bootstrap.py repeat
+      [[ -z $(lsblk -n -o FSTYPE /dev/disk/by-id/virtio-FCAINSTALLTEST) ]]
+      openssl verify -x509_strict -CAfile /etc/fca/tls/ca.pem -verify_ip 10.0.2.15 /etc/fca/tls/fullchain.pem
+      echo 'FRESH_DEBIAN_SIGNED_BOOTSTRAP_HTTPS_LOGIN_REPEAT_PASS'
+    else
+      /root/release/install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes
+    fi
     sha256sum -c /root/secret-hashes
     python3 tests/installer/seed_and_check.py check
     ;;
@@ -64,9 +84,20 @@ case "${1:-}" in
     /opt/fca-current/update.sh --package /root/release-next --trusted-key /root/trusted-release.pub --yes
     # Missing data mount must fail even if a directory at the mountpoint remains.
     systemctl stop fca
-    umount /srv/fca/evidence
+    if mountpoint -q /srv/fca/evidence; then
+      umount /srv/fca/evidence
+    else
+      # Same missing-storage guarantee for explicitly selected lab directories.
+      mv /srv/fca/evidence /srv/fca/evidence-test-detached
+      mkdir /srv/fca/evidence
+    fi
     if python3 scripts/fca_admin.py guard; then exit 1; fi
-    mount /srv/fca/evidence
+    if [[ -d /srv/fca/evidence-test-detached ]]; then
+      rmdir /srv/fca/evidence
+      mv /srv/fca/evidence-test-detached /srv/fca/evidence
+    else
+      mount /srv/fca/evidence
+    fi
     systemctl start fca
     python3 scripts/fca_admin.py diagnose
     ;;

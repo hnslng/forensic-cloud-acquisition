@@ -30,7 +30,7 @@ path = Path('/srv/fca/evidence/FCA-Sicherungen/preservation.bin')
 if sys.argv[1] == 'seed':
     origin='https://10.0.2.15'
     cookies=http.cookiejar.CookieJar()
-    browser=urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile='/root/tls/ca.crt')),urllib.request.HTTPCookieProcessor(cookies))
+    browser=urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=cfg()['ca_certificate'])),urllib.request.HTTPCookieProcessor(cookies))
     with browser.open(origin+'/',timeout=10) as response:
         assert response.status == 200 and b'FCA' in response.read()
     payload=json.dumps({'username':'admin','password':Path('/etc/fca/secrets/initial_admin_password').read_text().strip()}).encode()
