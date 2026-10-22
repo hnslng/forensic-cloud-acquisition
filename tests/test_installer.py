@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from infrastructure.installer.package import Refused, safe_relative, sha256, verify, verify_exact, write_manifest
 from infrastructure.installer import manager
-from scripts.build_install_package import export_archive
+from scripts.build_install_package import export_archive, copy_tracked
 
 
 class SignedPackageTests(unittest.TestCase):
@@ -148,6 +148,26 @@ class ConfigurationTests(unittest.TestCase):
         self.assertIn('access_log off;', text)
         self.assertNotIn('listen 0.0.0.0', text)
         self.assertNotIn('listen 80', text)
+
+
+class TrackedReleaseSources(unittest.TestCase):
+    def test_ignored_credentials_and_untracked_files_never_enter_package(self):
+        with tempfile.TemporaryDirectory() as root:
+            root=Path(root).resolve()
+            source=root/'source'; source.mkdir()
+            output=root/'output'; output.mkdir()
+            subprocess.run(['git','init','-q',str(source)],check=True)
+            (source/'frontend').mkdir()
+            (source/'frontend/app.js').write_text('tracked application')
+            (source/'frontend/.env').write_text('synthetic secret')
+            (source/'frontend/scratch.txt').write_text('untracked')
+            (source/'.gitignore').write_text('.env\n')
+            subprocess.run(['git','-C',str(source),'add','.gitignore','frontend/app.js'],check=True)
+            with patch('scripts.build_install_package.ROOT',source):
+                copy_tracked('frontend',output)
+            self.assertEqual((output/'frontend/app.js').read_text(),'tracked application')
+            self.assertFalse((output/'frontend/.env').exists())
+            self.assertFalse((output/'frontend/scratch.txt').exists())
 
 
 class StorageTests(unittest.TestCase):

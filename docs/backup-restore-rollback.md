@@ -67,6 +67,12 @@ Schlüssel sind destruktive Maßnahmen und benötigen ausdrückliche Freigabe.
 
 Der automatisierte Test restauriert den ganzen Dump in eine unabhängige neue
 Datenbank und vergleicht synthetische Dateiinhalte sowie Schlüssel im Archiv.
+Zusätzlich liest das echte FCA-Backend unter UID 10001 einen restaurierten Fall,
+eine restaurierte Datei und den mit dem restaurierten Hauptschlüssel
+entschlüsselten synthetischen Cloud-Eintrag aus einer getrennten Verzeichnisstruktur.
+Dafür werden die restriktiven Anwendungsrechte ausdrücklich wiederhergestellt:
+Cloud-Ordner 0700 und Cloud-Dateien 0600 unter UID 10001. Eine Extraktionsroutine,
+die Besitz-/Ordnerrechte absichtlich ignoriert, ersetzt diesen Schritt nicht.
 Ein kompletter Behörden-Notfall mit verschlüsseltem Offsiteziel, individueller
 PKI und neuen OAuth-Adressen benötigt zusätzlich eine dortige Betriebsprobe.
 

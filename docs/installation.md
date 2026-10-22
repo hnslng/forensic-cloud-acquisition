@@ -35,7 +35,9 @@ Datenträgerverschlüsselung bleibt beim Administrator.
    hinterlegt eine eindeutige Kennung und verweigert bei fehlendem/falschem Mount
    den Start. Ein automatischer Fallback auf die Systemdisk ist ausgeschlossen.
 3. Administrativ freigegebene Zertifikatskette, privaten Schlüssel (root, 0600)
-   und vertrauenswürdige CA-Kette bereitstellen. Kein Schlüssel wird versendet.
+   und vertrauenswürdige CA-Kette als reguläre Dateien ohne symbolische
+   Pfadbestandteile bereitstellen. Die CA muss für strikte X.509-Prüfung
+   geeignete Zertifikatsverwendungen besitzen. Kein Schlüssel wird versendet.
    Der Installer erstellt keine CA, fordert kein Zertifikat an und ändert kein DNS.
 4. Geprüftes, signiertes Versionspaket und **unabhängig erhaltenen** öffentlichen
    Release-Prüfschlüssel auf den Server übertragen. Version ausdrücklich wählen;
@@ -55,7 +57,9 @@ internen CA. Mit IP-Zugriff sind nicht alle Google-OAuth-Szenarien möglich.
 
 Vorhandene private WireGuard-/Server-IPv4, internen HTTPS-Namen und ausdrücklich
 zugelassene private Quellnetze verwenden. Der Browser muss den Namen intern
-auflösen und der Zertifikatskette vertrauen. WireGuard wird durch FCA weder
+auflösen und der Zertifikatskette vertrauen. Auch der FCA-Server selbst muss
+den Namen auflösen können. Für seine lokale HTTPS-Prüfung muss seine eigene
+private IP durch die Freigabeliste abgedeckt sein (bei Bedarf zusätzlich `/32`). WireGuard wird durch FCA weder
 installiert noch umkonfiguriert. Für OAuth zusätzlich die Anforderungen des
 Anbieters an Name, Zertifikat, Registrierung und Scopes prüfen; ein interner
 Fantasiename allein garantiert keine Google-Freigabe. Siehe
@@ -84,7 +88,8 @@ bereits veröffentlichte produktive Freigabe von Version 0.6.0.
 Aus den vorher geprüften Werkzeugen, als Administrator:
 
 ```sh
-sudo ./install.sh --package /root/fca-0.6.0 --trusted-key /root/fca-release.pub
+sudo ./fca-entpackt/fca-0.6.0/install.sh \
+  --package ./fca-entpackt/fca-0.6.0 --trusted-key /root/fca-release.pub
 ```
 
 Abgefragt werden Betriebsart, vorhandene IP/HTTPS-Adresse, erlaubte Netze,
@@ -100,7 +105,10 @@ enthaltene Images mit fixierter Inhalts-ID und installiert die enthaltenen,
 versionsgebundenen Debian-Pakete ohne Netzwerkdownload. Fehlende Pakete werden
 installiert; ältere auf den geprüften Stand aktualisiert. Neuere abweichende
 Pakete werden nicht heruntergestuft: hier ist ein neues geprüftes Paket bzw.
-ein administrativer Abgleich nötig. Fremde Paketquellen werden nicht hinzugefügt.
+ein administrativer Abgleich nötig. Fremde Paketquellen werden nicht hinzugefügt. APT darf keine vorhandenen Pakete
+entfernen; Konflikte stoppen die Installation. Wartungsbefehle und der
+Systemdienst verwenden ausdrücklich den lokalen Docker-Socket, unabhängig von
+einem eventuell zuvor ausgewählten entfernten Docker-Kontext.
 
 FCA läuft als Dienst `fca`, mit API und Worker als Benutzer 10001 und PostgreSQL
 im internen Docker-Netz. Nur nginx bindet HTTPS an die ausgewählte private IP,

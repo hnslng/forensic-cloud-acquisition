@@ -20,6 +20,8 @@ des vertrauenswürdigen Schlüssels ist ein eigener administrativer Vorgang.
 ## Releaseprozess
 
 1. Konkreten Commit mit vollständiger Backend-/Browser-/Installer-CI prüfen.
+   Der Paketbau verweigert einen unsauberen Quellstand und übernimmt nur
+   versionierte Dateien; ignorierte lokale Dateien werden nicht mitgeliefert.
 2. Auf sauberem Debian-13-amd64-Builder den festgelegten Abhängigkeitssatz
    herunterladen. `scripts/collect_install_dependencies.py --output <Ordner>`
    löst direkte, versionsgebundene Pakete über signiertes Debian-APT auf und

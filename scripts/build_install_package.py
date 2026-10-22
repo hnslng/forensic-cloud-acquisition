@@ -25,6 +25,18 @@ def call(*args, **kwargs):
     return subprocess.check_output([str(v) for v in args], **kwargs).decode().strip()
 
 
+def copy_tracked(directory, destination):
+    # Never ship ignored/untracked local files (credentials, logs, test data).
+    entries = call('git','-C',ROOT,'ls-files','-z','--',directory).split('\0')
+    for entry in filter(None, entries):
+        source = ROOT / entry
+        if source.is_symlink() or not source.is_file():
+            raise ValueError('Release sources must be regular tracked files')
+        target = destination / entry
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+
+
 def export_archive(directory, archive, version, signing_key):
     import re
     if directory.resolve() in archive.resolve().parents:
@@ -58,13 +70,15 @@ def main():
     parser.add_argument('--trusted-key', type=Path, required=True)
     parser.add_argument('--app-image', required=True, help='CI-tested local image ID sha256:...')
     args = parser.parse_args()
+    if call('git','-C',ROOT,'status','--porcelain'):
+        parser.error('Releasebau benötigt einen sauberen, vollständig versionierten Quellstand.')
     if args.archive and any(Path(str(args.archive)+suffix).exists() for suffix in ('','.sha256','.sha256.sig')):
         parser.error('Archiv oder Signaturdatei existiert bereits.')
     if args.output.exists():
         parser.error('Ausgabe muss neu sein.')
     args.output.mkdir(parents=True)
     for name in ('infrastructure/installer', 'frontend', 'migrations'):
-        shutil.copytree(ROOT / name, args.output / name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+        copy_tracked(name, args.output)
     (args.output / 'scripts').mkdir()
     for name in ('fca_admin.py', 'configure_phase1_database.py', 'prepare_private_https.py'):
         shutil.copy(ROOT / 'scripts' / name, args.output / 'scripts' / name)
