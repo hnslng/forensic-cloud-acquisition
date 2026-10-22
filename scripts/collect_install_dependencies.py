@@ -9,6 +9,7 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 
 
 def main():
@@ -19,7 +20,16 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     subprocess.check_call(['apt-get', 'update'])
     packages = [f'{k}={v}' for k, v in lock['direct_packages'].items()]
-    subprocess.check_call(['apt-get', '-y', '--download-only', '--no-install-recommends', '-o', 'Dir::Cache::archives=' + str(args.output.resolve()), 'install', *packages])
+    # Resolve against an EMPTY package status database. Otherwise APT omits
+    # dependencies already present in the builder and minimal target servers fail.
+    # Download-only never unpacks packages or changes the real dpkg database.
+    with tempfile.TemporaryDirectory(prefix='fca-dependency-state-') as state:
+        empty_status = Path(state) / 'status'
+        empty_status.touch()
+        subprocess.check_call(['apt-get', '-y', '--download-only', '--no-install-recommends',
+            '-o', 'Dir::State::status=' + str(empty_status),
+            '-o', 'Dir::State::extended_states=' + str(Path(state) / 'extended_states'),
+            '-o', 'Dir::Cache::archives=' + str(args.output.resolve()), 'install', *packages])
     # Include exact direct packages even if already present in the baseline image.
     subprocess.check_call(['apt-get', 'download', *packages], cwd=args.output)
     print('Vollständigen Satz vor Freigabe in frischer Debian-VM offline installieren und testen.')
