@@ -1,5 +1,7 @@
 # Microsoft – aktueller FCA-Stand
 
+> Historischer Entwicklungs-/Prüfbericht. Die nachfolgende Domain- und Google-Einrichtung sowie der aktuelle Anbieterstatus stehen im [Betriebsstand vom 22.10.2026](../../docs/betriebsstand-2026-10-22.md).
+
 Der Stufe-B-Entwicklungszweig verwendet das offizielle REST-Inventar und Rclone 1.75.2 für das Standard-OneDrive. Die automatisch ermittelte Drive-ID und der Typ Personal/Business werden in einer getrennten verschlüsselten Kontokonfiguration gespeichert. Rclone besitzt keinen öffentlichen Steuerport. Vor einer Kopie werden Objekt-ID, danach Version und verfügbare Quellhashes geprüft. Outlook-Kalender bleiben beim bestehenden REST-Adapter mit festgelegtem Zeitraum.
 
 Die Webanmeldung behält FCA-PKCE, einmaligen State sowie Benutzer-/Sitzungs-/Fall-/Kontobindung und verwendet eine eigene einmalig administrierte Web-App. Keine gemeinsame fremde Registrierung und kein Device-Code-Standard. Angeforderte Berechtigungen sind lesend. Während einer Dateisitzung ist Rclone alleiniger Token-Refresh-Eigentümer; rotierte Tokens bleiben verschlüsselt erhalten und werden synchronisiert.

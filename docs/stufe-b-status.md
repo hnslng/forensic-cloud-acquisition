@@ -1,5 +1,7 @@
 # Stufe B – Entwicklung und noch offene Echtkonto-Abnahme
 
+> Historischer Entwicklungs-/Prüfbericht. Die nachfolgende Domain- und Google-Einrichtung sowie der aktuelle Anbieterstatus stehen im [Betriebsstand vom 22.10.2026](betriebsstand-2026-10-22.md).
+
 Stand: 22.10.2026 (Europe/Vienna). Die technische Entwicklung ist freigegeben. Der Auftraggeber hat die Domainwahl ausdrücklich zurückgestellt und die weitere Arbeit an Stabilität, Fehlerbehandlung und Rclone mit synthetischen Tests beauftragt. DNS, Zertifikate, externe App-Registrierungen und echte Cloud-Anmeldungen bleiben gesondert freizugeben.
 
 ## Implementiert

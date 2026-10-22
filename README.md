@@ -33,9 +33,10 @@ verwaltet mehrere benannte
 Cloud-Konten je Fall. **Version 0.5.0 implementiert tatsächliche Sicherungen:**
 iCloud Drive/Fotos sowie offizielle Google-Drive-/Kalender- und Microsoft-OneDrive-/Outlook-Kalender-Adapter, eine dauerhafte Warteschlange,
 parallele Übertragungen, Wiederaufnahme auf Dateiebene, SHA-256 und Sicherungsberichte.
-Echtkonto-Abnahmen stehen aus; Google/Microsoft benötigen registrierte Anbieteranwendungen.
+Eine erste echte Google-Drive-Sicherung wurde vom Betreiber durchgeführt; die Google-Web-App ist eingerichtet und auf „In Produktion“ gestellt. Google-Verifizierung, weitergehende Anbieterabnahmen und die Microsoft-App-Einrichtung sind noch offen.
 Nicht verfügbare Kategorien und Bereichsgrenzen sind ausdrücklich dokumentiert.
 
+- [Aktueller Betriebsstand vom 22.10.2026: Server, Google, Tests und Bereitstellung](docs/betriebsstand-2026-10-22.md)
 - [Stufe B: Entwicklungsstand, Stabilität und offene Abnahme](docs/stufe-b-status.md)
 - [Privates HTTPS und erster Google-/Microsoft-Test](docs/private-https-oauth.md)
 - [Stufe A: Google-/OneDrive-Machbarkeit und Freigabeentscheidung](docs/stufe-a-machbarkeit.md)

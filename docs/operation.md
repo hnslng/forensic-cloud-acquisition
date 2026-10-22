@@ -1,5 +1,7 @@
 # Laborbetrieb – Zugang und Administration
 
+Aktueller Abgleich von Serverbetrieb, Anbieterstatus und Bereitstellung: [Betriebsstand 22.10.2026](betriebsstand-2026-10-22.md). Konkrete Zugänge und Geheimnisse bleiben im geschützten Betreiber-Handbuch.
+
 Aktuelle Sicherungsbedienung und Anbietergrenzen: [Cloud-Sicherungen 0.5.0](cloud-acquisition.md).
 Der neue Worker wird zusammen mit dem API-Profil `application` gestartet. Nach Migration/Update bestehende Fallordner einmalig mit `docker compose --env-file /etc/fca/compose.env exec -T api python -m backend.initialize_evidence` ergänzen. Dies bearbeitet ausschließlich neue Verzeichniszuordnungen, keine bisherigen Falldaten.
 

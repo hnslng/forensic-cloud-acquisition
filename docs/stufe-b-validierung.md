@@ -1,5 +1,7 @@
 # Stufe B – Validierung und Ressourcen
 
+> Historischer Entwicklungs-/Prüfbericht. Die nachfolgende Domain- und Google-Einrichtung sowie der aktuelle Anbieterstatus stehen im [Betriebsstand vom 22.10.2026](betriebsstand-2026-10-22.md).
+
 Stand: 22.10.2026 (Europe/Vienna). Entwicklungsstand mit kontrollierter Bereitstellung der geprüften Codeversion b8ac146 auf der Labor-VM. Keine echte Google-/Microsoft-Anmeldung.
 
 ## Automatisierte Prüfung
