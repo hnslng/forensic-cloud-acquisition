@@ -1,5 +1,13 @@
 # Änderungen
 
+## Signierter Online-Bootstrap – 0.6.0-rc.1 – 2026-10-22
+
+- Feste signierte Releaseversion aus dem bestehenden GitHub-Repository, ohne GitHub-Anmeldung am Zielserver.
+- Ein-Befehl-Start mit vorgelagerter Bootstrap-Prüfsumme, Archivsignatur und Integritätskontrolle.
+- Geführte Einrichtung mit optionaler neuer Labor-CA und ausdrücklich bestätigtem leerem Laborordner; kein Partitionieren oder Formatieren.
+- Unveränderter Offlineweg; getrennte Updates und Erhalt bestehender Daten.
+- Veröffentlichung ohne privaten Signierschlüssel in CI; erfolgreiche zusätzliche frische VM-Abnahme über den tatsächlichen öffentlichen GitHub-Befehl.
+
 ## Installation und Update – Entwicklungszweig – 2026-10-22
 
 - Interaktiver Debian-13-Paketinstaller und getrennte Updates; vorhandene Laborinstallation wird nicht übernommen.

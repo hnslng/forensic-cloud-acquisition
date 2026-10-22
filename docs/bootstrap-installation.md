@@ -8,6 +8,12 @@ Debian 13 **amd64**, root-Konsole mit Internetzugang, vorhandene private IP, min
 
 Ein Produktionsrelease und dessen dauerhafter Signierschlüssel sind unabhängig von den synthetischen CI-Testschlüsseln freizugeben. `0.6.0-test.1` ist ausschließlich ein Testpaket und kein freigegebenes Behördenrelease.
 
+## Verfügbarer Installationskandidat
+
+[**v0.6.0-rc.1**](https://github.com/hnslng/forensic-cloud-acquisition/releases/tag/v0.6.0-rc.1) ist als signierter Releasekandidat veröffentlicht. Den exakten, an diese Version gebundenen Befehl enthält [INSTALL.txt](../releases/v0.6.0-rc.1/INSTALL.txt). Auch der Download aus dem Release funktioniert ohne Anmeldung. Archiv und Startprogramm sind fest vorgegeben; der Offlineinstaller steckt im selben Paket.
+
+Der dauerhafte Ed25519-Signierschlüssel bleibt auf dem geschützten Release-System. Er wird nicht in GitHub oder CI gespeichert. **Diesen privaten Schlüssel separat geschützt sichern**, damit zukünftige Updates mit demselben freigegebenen Schlüssel signiert werden können. Der öffentliche Schlüssel und alle Signaturen sind unter `releases/v0.6.0-rc.1/` nachvollziehbar.
+
 ## Der Installationsbefehl
 
 Jedes freigegebene Release erhält eine **eigene `INSTALL.txt` mit genau einem kopierbaren Befehl**. Dieser wird aus dem endgültig signierten Archiv erzeugt. Er enthält die feste Releaseadresse und den SHA-256-Wert des zugehörigen Bootstrap-Programms. Deshalb gibt es bewusst keinen beweglichen `latest`-Befehl und keinen vorab erfundenen Produktions-Prüfwert.
@@ -62,3 +68,7 @@ python3 scripts/build_bootstrap.py \
 `0.6.0` ist hier ein Beispiel, kein bereits veröffentlichtes Release. Archiv, `.sha256`, `.sha256.sig`, `fca-bootstrap.py`, `INSTALL.txt` und `bootstrap-lock.json` gehören als Assets in dasselbe Release mit Tag `v0.6.0` des bestehenden Repositories. Keine persönliche GitHub-Anmeldung wird auf den Zielserver übertragen. Der langfristige private Signierschlüssel bleibt ausschließlich auf dem geschützten Release-System; denselben freigegebenen Schlüssel auch für Updates verwenden.
 
 Der Offlinepaketbau und die äußere Signaturprüfung sind in [Releasepakete](release-packages.md) beschrieben. Signierte Versionen nach Veröffentlichung niemals unter demselben Namen ersetzen. Bei Änderungen eine neue Version erstellen und erneut testen.
+
+## Veröffentlichung ohne Signierschlüssel in GitHub
+
+Die Veröffentlichung übernimmt `scripts/publish_signed_release.py` über den kurzlebigen, repositorygebundenen GitHub-Actions-Token. Diesen Token erhält ausschließlich der Veröffentlichungsjob; auf den Zielservern wird er nicht benötigt und nicht hinterlegt. Der Job prüft den erfolgreichen frischen VM-Test und die unveränderten CI-Artefakte, übernimmt das lokal signierte Manifest und stellt das Archiv reproduzierbar wieder her. Veröffentlichung erfolgt nur bei bytegleicher Prüfsumme und gültiger Signatur. Bestehende Releases werden nicht ersetzt. Danach prüft eine weitere frische VM den tatsächlichen öffentlichen GitHub-Befehl ohne Token im Gast.

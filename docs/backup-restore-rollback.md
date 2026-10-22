@@ -97,3 +97,7 @@ bleiben Schreiber angehalten. Kein automatisches SQL-Downgrade und keine
 Übernahme älterer Beweisdaten über neuere Sicherungen. In diesem Fall den
 geprüften Backupstand zunächst auf separatem Ziel restaurieren und einen
 bewussten Wiederherstellungs-/Übernahmeplan freigeben lassen.
+
+## Wiederherstellung eines ausdrücklich gewählten Laborordners
+
+Bei `storage_mode=directory` ist die Konfiguration zusätzlich an die Dateisystem-UUID gebunden. Auf einem neuen Zielserver diese Kennung nicht blind aus dem alten System übernehmen: das administrativ freigegebene, leere Zielfilesystem auswählen, dessen UUID prüfen und die wiederhergestellte Konfiguration gezielt daran anpassen. Bei Umzug auf einen eigenen eingebundenen Datenträger die Speicherart entsprechend auf `mount` setzen. Die wiederhergestellte `.fca-volume-id` und die Konfiguration müssen weiterhin zusammenpassen. Keine vorhandenen Zieldaten überschreiben und keine Datenträger formatieren. Erst nach kontrollierter Wiederherstellung die Diagnose ausführen und Dienste starten. Der Installer hebt diese Schutzprüfungen nicht automatisch auf.

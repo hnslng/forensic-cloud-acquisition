@@ -78,3 +78,5 @@ Ein frei eingegebenes Bearbeiterkürzel ist niemals eine Zugriffsberechtigung.
 ### Installation über ein freigegebenes GitHub-Release
 
 Der [Bootstrap-Installer](docs/bootstrap-installation.md) verwendet eine feste, signierte Releaseversion aus diesem Repository. Kein GitHub-Konto am Zielserver erforderlich. Anonyme Downloads setzen ein öffentliches Repository und ein veröffentlichtes Release voraus; die Sichtbarkeit ändert ausschließlich der Eigentümer. Der bestehende Offlineinstaller bleibt verfügbar.
+
+Geprüfter Installationskandidat: [v0.6.0-rc.1](https://github.com/hnslng/forensic-cloud-acquisition/releases/tag/v0.6.0-rc.1). [Exakter Ein-Befehl-Start](releases/v0.6.0-rc.1/INSTALL.txt) · [Testergebnisse](docs/bootstrap-tests.md).
