@@ -23,7 +23,6 @@ jobs:
         mode: [offline, bootstrap]
     env:
       FCA_INSTALL_MODE: ${{ matrix.mode }}
-      FCA_RELEASE_OUTPUT: ${{ runner.temp }}/fca-online-candidate
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -36,6 +35,8 @@ jobs:
           dpkg-query -W qemu-system-x86 qemu-utils cloud-image-utils
           if [ -e /dev/kvm ]; then sudo chmod a+rw /dev/kvm; fi
       - name: Fresh Debian 13 installation, repeat, update, restore probe and reboot
+        env:
+          FCA_RELEASE_OUTPUT: ${{ runner.temp }}/fca-online-candidate
         run: bash scripts/test_fresh_debian.sh
       - name: Retain verified synthetic installer candidate (no private signing key)
         if: matrix.mode == 'bootstrap'
