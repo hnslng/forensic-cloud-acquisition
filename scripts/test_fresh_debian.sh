@@ -38,9 +38,9 @@ qemu-system-x86_64 -machine "accel=$ACCEL" -cpu max -m 3072 -smp 2 -display none
   -drive "file=$WORK/system.qcow2,if=virtio" -drive "file=$WORK/data.qcow2,if=none,id=fcadata" -device virtio-blk-pci,drive=fcadata,serial=FCAINSTALLTEST \
   -drive "file=$WORK/seed.iso,format=raw,if=virtio" \
   -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 -device virtio-net-pci,netdev=n0
-SSH=(ssh -i "$WORK/ssh" -o BatchMode=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$WORK/known_hosts" -o ConnectTimeout=3 -p 2222 root@127.0.0.1)
+SSH=(ssh -i "$WORK/ssh" -o BatchMode=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$WORK/known_hosts" -o ConnectTimeout=2 -p 2222 root@127.0.0.1)
 SCP=(scp -q -i "$WORK/ssh" -o BatchMode=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$WORK/known_hosts" -P 2222)
-for _ in $(seq 1 120); do
+for _ in $(seq 1 30); do
   if "${SSH[@]}" 'test -f /root/FCA_INSTALLER_DISPOSABLE_GUEST' 2>/dev/null; then break; fi
   sleep 5
 done
@@ -62,7 +62,7 @@ tar -C "$WORK/release-next" -cf - . | "${SSH[@]}" 'mkdir /root/release-next; tar
 "${SSH[@]}" 'bash /root/source/tests/installer/fresh-debian.sh update'
 "${SSH[@]}" 'systemctl reboot' || true
 sleep 10
-for _ in $(seq 1 120); do
+for _ in $(seq 1 30); do
   if "${SSH[@]}" 'systemctl is-active --quiet fca' 2>/dev/null; then break; fi
   sleep 5
 done
