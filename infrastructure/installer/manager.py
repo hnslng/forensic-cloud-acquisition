@@ -385,7 +385,7 @@ def install(args):
         if not os.path.ismount(config['evidence_root']) or not empty_volume(Path(config['evidence_root'])):
             raise Refused('Für Erstinstallation ist ein bereits eingebundener, vollständig leerer Sicherungsdatenträger erforderlich.')
         # Never modify an existing web server configuration on a shared host.
-        if Path('/etc/nginx/conf.d/fca-managed.conf').exists() or Path('/etc/nginx/sites-enabled').exists() and any(Path('/etc/nginx/sites-enabled').iterdir()):
+        if any(p.exists() and any(p.iterdir()) for p in (Path('/etc/nginx/conf.d'), Path('/etc/nginx/sites-enabled'))):
             raise Refused('Bestehenden Webserver administrativ prüfen. Keine automatische Übernahme.')
     preflight(config)
     print('FCA-Installation; Abhängigkeiten werden ausschließlich aus dem signierten Paket installiert.')
@@ -474,6 +474,8 @@ def backup(config):
 
 def update(args):
     config = cfg()
+    if config.get('installation_status') != 'ready':
+        raise Refused('Erst die abgebrochene Installation mit install.sh abschließen.')
     mounted_evidence(config)
     preflight(config)
     package = canonical(args.package)
@@ -551,6 +553,7 @@ def diagnose(config):
     check('Datenbankschema', lambda: sql('SELECT max(version) FROM schema_migrations;') == '9')
     check('Schlüsselrechte', lambda: all(p.stat().st_uid == 0 and not p.stat().st_mode & 0o007 and not p.is_symlink() for p in Path('/etc/fca/secrets').iterdir()))
     check('Cloud-Zustand und Schreibrechte', lambda: _permissions(config))
+    check('Private Bindung und interne Datenbank', lambda: _bindings(config))
     check('nginx-Konfiguration', lambda: run(['nginx', '-t']))
     check('HTTPS-Vertrauen und Anwendungsantwort', lambda: _https(config))
     memory = {line.split(':')[0]: line.split(':')[1].strip() for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith(('MemTotal:', 'MemAvailable:'))}
@@ -565,8 +568,33 @@ def diagnose(config):
 
 def _services():
     run(['systemctl', 'is-active', '--quiet', 'docker', 'nginx', 'fca'])
-    values = [json.loads(line) for line in compose('ps', '--format', 'json').decode().splitlines() if line]
-    return len(values) == 3 and all(v.get('Health') == 'healthy' and v.get('State') == 'running' for v in values)
+    raw = compose('ps', '--format', 'json').decode().strip()
+    try:
+        values = json.loads(raw)
+        values = values if isinstance(values, list) else [values]
+    except ValueError:
+        values = [json.loads(line) for line in raw.splitlines() if line]
+    return {v.get('Service') for v in values} == {'api','worker','database'} and all(v.get('Health') == 'healthy' and v.get('State') == 'running' for v in values)
+
+
+def _bindings(config):
+    ids = compose('ps', '-q').decode().split()
+    if len(ids) != 3:
+        return False
+    containers = json.loads(run(['docker','inspect',*ids]))
+    for container in containers:
+        service = container['Config']['Labels']['com.docker.compose.service']
+        ports = container['NetworkSettings']['Ports']
+        published = [(port, b) for port, bindings in ports.items() for b in (bindings or [])]
+        if service == 'api':
+            if len(published) != 1 or published[0][0] != '8000/tcp' or published[0][1] != {'HostIp':'127.0.0.1','HostPort':'8000'}:
+                return False
+        elif published:
+            return False
+    # A different nginx include must not introduce a wildcard/HTTP listener.
+    rendered = run(['nginx','-T']).decode()
+    listeners = re.findall(r'^\s*listen\s+([^;]+);', rendered, re.MULTILINE)
+    return listeners == [config['listen_address'] + ':443 ssl']
 
 
 def _permissions(config):
