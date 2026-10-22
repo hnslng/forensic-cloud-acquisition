@@ -60,8 +60,10 @@ elif sys.argv[1] == 'restore-check':
     compose('exec', '-T', 'database', 'createdb', '-U', 'fca_bootstrap', 'installer_restore_probe')
     try:
         with (target / 'database.dump').open('rb') as handle:
-            subprocess.run(['docker', 'compose', '--env-file', '/etc/fca/compose.env', '-f', '/etc/fca/compose.json', 'exec', '-T', 'database', 'pg_restore', '--exit-on-error', '--no-owner', '-U', 'fca_bootstrap', '-d', 'installer_restore_probe'], stdin=handle, check=True)
+            subprocess.run(['docker', 'compose', '--env-file', '/etc/fca/compose.env', '-f', '/etc/fca/compose.json', 'exec', '-T', 'database', 'pg_restore', '--exit-on-error', '-U', 'fca_bootstrap', '-d', 'installer_restore_probe'], stdin=handle, check=True)
         assert sql('SELECT value FROM installer_preservation;', 'installer_restore_probe') == 'synthetic-preserved'
+        assert sql("SELECT tableowner FROM pg_tables WHERE schemaname='public' AND tablename='cases';", 'installer_restore_probe') == 'fca_migrate'
+        assert sql("SELECT has_table_privilege('fca_api','cases','SELECT');", 'installer_restore_probe') == 't'
         assert witnesses('installer_restore_probe') == json.loads(Path('/root/table-witnesses').read_text())
     finally:
         compose('exec', '-T', 'database', 'dropdb', '-U', 'fca_bootstrap', 'installer_restore_probe')

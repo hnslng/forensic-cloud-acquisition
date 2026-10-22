@@ -11,8 +11,11 @@
     "docker-compose": "2.26.1-4",
     "containerd": "1.7.24~ds1-6+deb13u1",
     "runc": "1.1.15+ds1-2+b4",
-    "nginx": "1.26.3-3+deb13u7",
-    "openssl": "3.5.7-1~deb13u2",
-    "ca-certificates": "20250419"
+    "nginx": "1.26.3-3+deb13u10",
+    "openssl": "3.5.7-1~deb13u3",
+    "ca-certificates": "20250419",
+    "nginx-common": "1.26.3-3+deb13u10",
+    "libssl3t64": "3.5.7-1~deb13u3",
+    "openssl-provider-legacy": "3.5.7-1~deb13u3"
   }
 }

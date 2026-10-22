@@ -163,10 +163,6 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(manager.empty_volume(self.path))
 
 
-if __name__ == '__main__':
-    unittest.main()
-
-
 class ServiceDiagnosisTests(unittest.TestCase):
     def test_compose_array_and_json_lines_are_supported(self):
         rows = [{'Service':s,'State':'running','Health':'healthy'} for s in ('api','worker','database')]
@@ -183,3 +179,7 @@ class ServiceDiagnosisTests(unittest.TestCase):
         rows = [{'Service':s,'State':'running','Health':('unhealthy' if s=='worker' else 'healthy')} for s in ('api','worker','database')]
         with patch.object(manager,'run'), patch.object(manager,'compose',return_value=json.dumps(rows).encode()):
             self.assertFalse(manager._services())
+
+
+if __name__ == '__main__':
+    unittest.main()

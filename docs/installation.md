@@ -74,14 +74,14 @@ Sicherungs- und Backup-Speicher, Ressourcenprofil und vorhandene TLS-Dateien.
 Keine Cloud-Zugangsdaten oder Tokens eingeben. Die Zusammenfassung vor der
 Installation prüfen. Für reproduzierbare Administrationsabläufe gibt es eine
 JSON-Antwortdatei (`--config`); das synthetische Schema steht in
-`tests/installer/answers.json`. `--yes` ist für vorab geprüfte automatisierte
+`infrastructure/installer/answers.example.json`. `--yes` ist für vorab geprüfte automatisierte
 Abläufe gedacht und überspringt keine Sicherheitsprüfungen.
 
 Der Installer prüft Release-Signatur und SHA-256 aller Dateien, lädt ausschließlich
 enthaltene Images mit fixierter Inhalts-ID und installiert die enthaltenen,
 versionsgebundenen Debian-Pakete ohne Netzwerkdownload. Fehlende Pakete werden
 installiert; ältere auf den geprüften Stand aktualisiert. Neuere abweichende
-Pakete werden nicht heruntergestuft: hier ist ein neuer geprüftes Paket bzw.
+Pakete werden nicht heruntergestuft: hier ist ein neues geprüftes Paket bzw.
 ein administrativer Abgleich nötig. Fremde Paketquellen werden nicht hinzugefügt.
 
 FCA läuft als Dienst `fca`, mit API und Worker als Benutzer 10001 und PostgreSQL

@@ -42,7 +42,10 @@ def main():
         shutil.copy(ROOT / 'scripts' / name, args.output / 'scripts' / name)
     shutil.copy(ROOT / 'install.sh', args.output / 'install.sh')
     shutil.copy(ROOT / 'update.sh', args.output / 'update.sh')
-    shutil.copytree(ROOT / 'docs', args.output / 'docs')
+    (args.output / 'docs').mkdir()
+    # Agency packages carry operating instructions, not private lab history.
+    for name in ('installation.md','backup-restore-rollback.md','release-packages.md','installer-tests.md'):
+        shutil.copy(ROOT / 'docs' / name, args.output / 'docs' / name)
     env = dict(os.environ, FCA_STATE_ROOT='/var/lib/fca', FCA_EVIDENCE_ROOT='/srv/fca/evidence',
                FCA_POSTGRES_PASSWORD_FILE='/etc/fca/secrets/postgres_password',
                FCA_API_PASSWORD_FILE='/etc/fca/secrets/api_password', FCA_PUBLIC_ORIGIN='https://fca.invalid')

@@ -45,9 +45,12 @@ Schlüssel sind destruktive Maßnahmen und benötigen ausdrückliche Freigabe.
    Enthalten sind `config/`, `cloud-auth/`, `evidence/`, `tls/`. UID 10001 und
    Dateirechte erhalten. Volume-ID muss zur restaurierten Datendisk passen.
 4. Mit PostgreSQL derselben geprüften Hauptversion eine neue leere Datenbank
-   anlegen und `pg_restore --exit-on-error --no-owner` verwenden. Die FCA-Rollen
+   anlegen und `pg_restore --exit-on-error` unter Beibehaltung der Objektbesitzer verwenden. Die FCA-Rollen
    `fca_api` und `fca_migrate` mit den gesicherten Passwortdateien und Rechten
-   anlegen, bevor die Anwendung freigegeben wird. Keine neue Cloud-Hauptschlüssel-
+   vor der Wiederherstellung anlegen. Insbesondere müssen die Tabellen anschließend
+   weiterhin `fca_migrate` gehören, damit spätere Migrationen möglich bleiben.
+   `--no-owner` ohne vollständigen anschließenden Rechte-/Besitzerabgleich ist
+   hierfür nicht geeignet. Die Anwendung erst nach diesen Prüfungen freigeben. Keine neue Cloud-Hauptschlüssel-
    Datei erzeugen: vorhandene Tokens benötigen exakt den gesicherten Schlüssel.
 5. Auf dem **neuen Ziel** zuerst Konfiguration und Schlüssel aus `config/`, dann
    `cloud-auth/` und `evidence/` übernehmen. Bei abweichender Infrastruktur IP,

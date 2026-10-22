@@ -451,17 +451,20 @@ def backup(config):
             raise Refused('Datenbankbackup fehlgeschlagen; Dienste bleiben angehalten.')
     # Independent restore probe verifies the entire archive can be restored.
     probe = 'fca_restore_' + uuid.uuid4().hex
+    probe_created = False
     try:
         compose('exec', '-T', 'database', 'createdb', '-U', 'fca_bootstrap', probe)
+        probe_created = True
         with (target / 'database.dump').open('rb') as handle:
-            result = subprocess.run(command + ['pg_restore', '--exit-on-error', '--no-owner', '-U', 'fca_bootstrap', '-d', probe], stdin=handle, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            result = subprocess.run(command + ['pg_restore', '--exit-on-error', '-U', 'fca_bootstrap', '-d', probe], stdin=handle, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             if result.returncode:
                 raise Refused('Datenbank-Restoreprobe fehlgeschlagen.')
         original = sql('SELECT max(version) FROM schema_migrations;')
         if sql('SELECT max(version) FROM schema_migrations;', probe) != original:
             raise Refused('Restoreprobe stimmt nicht überein.')
     finally:
-        compose('exec', '-T', 'database', 'dropdb', '--if-exists', '-U', 'fca_bootstrap', probe)
+        if probe_created:
+            compose('exec', '-T', 'database', 'dropdb', '--if-exists', '-U', 'fca_bootstrap', probe)
     with tarfile.open(target / 'state.tar', 'w') as archive:
         archive.add('/etc/fca', arcname='config')
         archive.add(Path(config['state_root']) / 'cloud-auth', arcname='cloud-auth')
