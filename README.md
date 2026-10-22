@@ -33,7 +33,10 @@ Nicht verfügbare Kategorien und Bereichsgrenzen sind ausdrücklich dokumentiert
 - [Laborzugang und Administration](docs/operation.md)
 
 - [Prüfbericht und Freigabevorschlag](docs/phase-0-status.md)
-- [Installationsablauf und Abnahme](docs/installation.md)
+- [Paketinstallation auf Debian 13](docs/installation.md)
+- [Installer-Abnahme in frischer Debian-VM](docs/installer-tests.md)
+- [Backup, Wiederherstellung und Rollback](docs/backup-restore-rollback.md)
+- [Versionierte Releases und Behördeninstallation](docs/release-packages.md)
 - [Aktuelle Architektur](docs/architecture.md)
 - [Analyse der TRIAGE//BOX](docs/triagebox-reference.md)
 - [Test- und Nachweisstand](docs/validation.md)
@@ -71,3 +74,7 @@ Konfiguration und Geheimnisse liegen später unter `/etc/fca`, Datenbankdaten
 unter `/var/lib/fca` und Testbeweisdaten auf einer separaten Disk unter
 `/srv/fca/evidence`. Diese Verzeichnisse liegen außerhalb des Git-Checkouts.
 Ein frei eingegebenes Bearbeiterkürzel ist niemals eine Zugriffsberechtigung.
+
+### Installation über ein freigegebenes GitHub-Release
+
+Der [Bootstrap-Installer](docs/bootstrap-installation.md) verwendet eine feste, signierte Releaseversion aus diesem Repository. Kein GitHub-Konto am Zielserver erforderlich. Anonyme Downloads setzen ein öffentliches Repository und ein veröffentlichtes Release voraus; die Sichtbarkeit ändert ausschließlich der Eigentümer. Der bestehende Offlineinstaller bleibt verfügbar.

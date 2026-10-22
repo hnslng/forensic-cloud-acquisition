@@ -65,7 +65,7 @@ Ein administrierter lokaler SSH-Tunnel bleibt eine bewertete Alternative. PC-, V
 
 ## Installation und Update auf selbst verwalteten Servern
 
-Ein allgemeiner Ein-Klick-Installer ist weiterhin nicht fertig. Der dokumentierte Ablauf verwendet die bestehenden Debian-/Compose-Komponenten:
+Der nachfolgende Ablauf beschreibt die historische Laborbereitstellung der Stufe B. Für neue Server entsteht jetzt der getrennte, signierte [Paketinstaller](installation.md) mit [isolierter Debian-Abnahme](installer-tests.md). Bestehende Laborinstallationen werden damit nicht automatisch übernommen. Der historische Ablauf verwendet die bestehenden Debian-/Compose-Komponenten:
 
 1. Freigegebene Version aus Git auschecken; gepinnte Images und Abhängigkeiten nutzen. Separate Datenträger für System/Daten und ausreichend unabhängigen Backupspeicher bereitstellen. Installationswerte für Datenpfade, HTTPS-Origin, erlaubte Netze und Ressourcenprofil extern hinterlegen; keine privaten Laborwerte übernehmen.
 2. Externe Schlüssel und Datenbankrollen einmalig einrichten. Bei Updates vorhandenen Cloud-Hauptschlüssel unbedingt behalten; Tokenkonfigurationen nicht neu erzeugen. Die vorhandenen Laborskripte vor Behördenverwendung auf Hostannahmen prüfen.

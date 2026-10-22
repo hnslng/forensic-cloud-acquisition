@@ -1,0 +1,12 @@
+{
+  "mode": "wireguard",
+  "server_name": "fca.behoerde.example",
+  "listen_address": "10.77.0.5",
+  "allowed_networks": ["10.77.0.0/24"],
+  "evidence_root": "/srv/fca/evidence",
+  "backup_root": "/var/backups/fca",
+  "profile": "labor",
+  "certificate": "/etc/fca/tls/fullchain.pem",
+  "certificate_key": "/etc/fca/tls/privkey.pem",
+  "ca_certificate": "/etc/fca/tls/ca.pem"
+}

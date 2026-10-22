@@ -6,8 +6,10 @@ from pathlib import Path
 import secrets
 import subprocess
 
-ROOT = Path('/etc/fca/secrets')
-COMPOSE = ['docker', 'compose', '--env-file', '/etc/fca/compose.env']
+ROOT = Path(os.environ.get('FCA_SECRET_ROOT', '/etc/fca/secrets'))
+COMPOSE = ['docker', 'compose', '--env-file', os.environ.get('FCA_COMPOSE_ENV', '/etc/fca/compose.env')]
+if os.environ.get('FCA_COMPOSE_FILE'):
+    COMPOSE += ['-f', os.environ['FCA_COMPOSE_FILE']]
 
 
 def sql(statement):
@@ -24,9 +26,14 @@ def main():
         if exists:
             assert path.exists(), 'Existing role without matching external secret; manual recovery required'
             continue
-        password = secrets.token_hex(32)
-        with path.open('x') as handle:
-            handle.write(password + '\n')
+        if path.exists():
+            password = path.read_text().strip()
+            if not password or any(c not in '0123456789abcdef' for c in password):
+                raise RuntimeError('Invalid preexisting role secret')
+        else:
+            password = secrets.token_hex(32)
+            with path.open('x') as handle:
+                handle.write(password + '\n')
         os.chown(path, 0, 10001); path.chmod(0o640)
         sql(f"CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD '{password}';")
     sql('REVOKE CREATE ON SCHEMA public FROM PUBLIC; GRANT USAGE ON SCHEMA public TO fca_api,fca_migrate; GRANT CREATE ON SCHEMA public TO fca_migrate; ALTER TABLE schema_migrations OWNER TO fca_migrate;')

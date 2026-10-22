@@ -1,5 +1,14 @@
 # Änderungen
 
+## Installation und Update – Entwicklungszweig – 2026-10-22
+
+- Interaktiver Debian-13-Paketinstaller und getrennte Updates; vorhandene Laborinstallation wird nicht übernommen.
+- Signierte Offlinepakete mit SHA-256, festen Container-IDs und vollständigem Debian-Abhängigkeitssatz.
+- Diagnose für Dateiintegrität, Dienste, Ressourcen, Berechtigungen, Datenträger und privates HTTPS.
+- Konsistente Backups mit Restoreprobe und bestätigter Programmrollback ohne Zurückschreiben von Beweisdaten.
+- Neue isolierte Debian-VM-Abnahme einschließlich unterbrochener Installation, Updatefehler, Datenerhalt und Neustart.
+- Keine Bereitstellung oder Neuinstallation auf der bestehenden FCA-VM.
+
 ## Stufe B – Entwicklungszweig – 2026-10-22
 
 - Vorhandenen OAuth-/PKCE-Ablauf zusätzlich an Sitzung, Anbieter, Client und Rückkehradresse gebunden.
