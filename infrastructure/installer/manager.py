@@ -263,6 +263,7 @@ def render_compose(config, manifest, release):
         service.pop('build', None)
         service['image'] = manifest['database_image'] if name == 'database' else manifest['app_image']
         service['restart'] = 'on-failure:3'
+        service['pull_policy'] = 'never'
         if name == 'database':
             service['volumes'] = [config['state_root'] + '/postgres:/var/lib/postgresql/data']
         else:
@@ -330,7 +331,7 @@ def migrations(release):
         raise Refused('Datenbankmigration fehlgeschlagen. Dienste bleiben angehalten; geprüftes Backup verwenden.')
     if sql("SELECT count(*) FROM users WHERE role='admin';") == '0':
         # Secret bind exists only for this short-lived bootstrap container.
-        compose('run', '--rm', '--pull', 'never', '--no-deps', '-v', '/etc/fca/secrets/initial_admin_password:/run/secrets/initial_admin_password:ro',
+        compose('run', '--rm', '--no-deps', '-v', '/etc/fca/secrets/initial_admin_password:/run/secrets/initial_admin_password:ro',
                 'api', 'python', '-m', 'backend.manage')
 
 

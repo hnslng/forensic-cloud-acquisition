@@ -28,7 +28,7 @@ case "${1:-}" in
     bootstrap_diagnostics() {
       if [[ -f /var/log/fca-package-error.txt ]]; then cat /var/log/fca-package-error.txt; fi
       if command -v docker >/dev/null && [[ -f /etc/fca/secrets/initial_admin_password ]]; then
-        docker compose --env-file /etc/fca/compose.env -f /etc/fca/compose.json --profile application run --rm --no-deps --pull never -v /etc/fca/secrets/initial_admin_password:/run/secrets/initial_admin_password:ro api python -m backend.manage || true
+        docker compose --env-file /etc/fca/compose.env -f /etc/fca/compose.json --profile application run --rm --no-deps -v /etc/fca/secrets/initial_admin_password:/run/secrets/initial_admin_password:ro api python -m backend.manage || true
       fi
     }
     trap bootstrap_diagnostics ERR
