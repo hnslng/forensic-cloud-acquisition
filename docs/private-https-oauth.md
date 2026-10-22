@@ -14,6 +14,32 @@ Für DNS-01 werden zeitweise TXT-Werte unter `_acme-challenge.<FCA-NAME>` veröf
 
 Empfehlung: vorhandene zentrale Zertifikatsverwaltung beziehungsweise ein administrierter ACME-Client mit getesteter DNS-Automatisierung. DNS-Zugangsdaten gehören nicht in die FCA-Anwendung oder Ermittleroberfläche. Möglichst auf die Challenge begrenzte Rechte oder deren Delegation; falls IONOS das im gewählten Vertrag nicht ermöglicht, Schlüssel auf einem gesondert administrierten Erneuerungssystem halten. IONOS-API-Zugang und genaue Automatisierung erst nach Freigabe prüfen. Keine generischen Zonenupdates, die bestehende Einträge anderer Dienste ersetzen. [IONOS DNS API](https://developer.hosting.ionos.com/docs/dns).
 
+Für freigegebene IONOS-Installationen steht `scripts/ionos_dns_challenge.py` als
+Certbot-Authentifizierungs-/Cleanup-Hook bereit. Er bindet sich an einen einzelnen
+konfigurierten Namen und eine Zone, erzeugt ausschließlich den zugehörigen TXT-Wert
+und entfernt nur den selbst erzeugten, weiterhin passenden Eintrag. Bestehende
+identische TXT-Werte werden nicht übernommen oder gelöscht. HTTPS-Weiterleitungen
+der DNS-API werden abgewiesen; Schlüssel und Zustand benötigen private Dateirechte.
+Ein rootgeschütztes JSON enthält `host`, `zone_id`, `key_file`, `state_directory`
+und `nameservers`. Die Aktionen `auth`/`cleanup` erhalten Domain und Challenge von
+Certbot. Der Hook benötigt nur Python-Standardbibliothek und `dig`; neue Server
+benötigen eine gesondert freigegebene Installation dieses Verwaltungswerkzeugs.
+Die bestehenden Offline-/Bootstrap-Pakete enthalten dadurch noch keine automatische
+IONOS-Einrichtung.
+
+Vor Einsatz zuerst mit einer ACME-Testumgebung prüfen, anschließend öffentliche
+Vertrauenskette, Cleanup und Erneuerung samt Nginx-Neuladung testen. Beim Vergleich
+der DNS-Zone ist die automatisch fortgeschriebene SOA-Seriennummer zu erwarten;
+inhaltliche Änderungen an anderen bestehenden Einträgen sind kein normaler
+Nebeneffekt und müssen die Umstellung anhalten.
+
+AdGuard Home 0.107.79 überspringt lokale Umschreibungen bei Clients mit deaktivierter
+Filterung. Eine vorhandene Umschreibung allein beweist deshalb nicht die Auflösung
+auf jedem Ermittler-PC. Beide Resolver und tatsächliche Clients prüfen. Filterregeln
+nicht stillschweigend verändern. Ein öffentlicher A-Eintrag auf eine private IP ist
+eine gesondert freizugebende Alternative; er ersetzt keine Firewall und ist bei
+DNS-Rebinding-Schutz separat zu prüfen. Im Standardplan bleibt er ausgeschlossen.
+
 Eine einmalige manuelle TXT-Prüfung ist ein möglicher Laborschritt, aber keine wartungsfreie Erneuerung. Certbot `--manual` benötigt für automatische Erneuerung passende Hooks. Nach Erneuerung: Schlüsselrechte und Zertifikatskette prüfen, `nginx -t`, kontrolliertes Reload statt Hostneustart, Ablaufüberwachung und Erneuerungsprobe. [Certbot Erneuerung](https://eff-certbot.readthedocs.io/en/stable/using.html#renewal-with-the-manual-plugin).
 
 Eine interne CA kann technisch genügen, wenn Browser und Betriebssystem der Ermittler-PCs der Kette vertrauen und der DNS-Name im Zertifikat passt. Das ist eine technische Bewertung des browserseitigen Rücksprungs, **kein durchgeführter Google-Akzeptanztest**. Sie ersetzt weder Googles Domainregeln noch eine App-Verifizierung. Eine öffentlich vertraute DNS-01-Kette vermeidet eine zusätzliche Zertifikatsverteilung auf den PCs und ist daher fürs Labor bevorzugt.
