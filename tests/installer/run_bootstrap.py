@@ -10,7 +10,13 @@ import time
 assert Path('/root/FCA_INSTALLER_DISPOSABLE_GUEST').is_file()
 command=Path('/root/bootstrap/INSTALL.txt').read_text().split('\n\n',1)[1].strip()
 # Answers are synthetic; no passwords, tokens or real cloud logins.
-answers=(['labor','10.0.2.15','10.0.2.15','10.0.2.0/24','/srv/fca/evidence','/var/backups/fca','labor','labor','SYSTEMSPEICHER','ja'] if sys.argv[1] in ('first','install') else ['ja'])
+answers=(list(zip([
+    'Betrieb: labor oder wireguard', 'Vorhandene private Server-IP',
+    'HTTPS-Name oder Labor-IP', 'Zugelassene private Netze',
+    'Speicherort der Cloud-Sicherungen', 'Speicherort der Backups',
+    'Ressourcenprofil:', 'HTTPS: vorhandene interne Zertifikate',
+    'Diesen Speicher ausdrücklich verwenden?', 'Installation mit diesen Angaben beginnen?',
+], ['labor','10.0.2.15','10.0.2.15','10.0.2.0/24','/srv/fca/evidence','/var/backups/fca','labor','labor','SYSTEMSPEICHER','ja'])) if sys.argv[1] in ('first','install') else [('Installation auf diesem vorbereiteten Server beginnen?', 'ja')])
 master,slave=pty.openpty()
 env=dict(os.environ)
 if Path('/root/fixture-ca.pem').exists(): env['SSL_CERT_FILE']='/root/fixture-ca.pem'
@@ -26,8 +32,10 @@ try:
             except OSError: break
             if not chunk: break
             sys.stdout.buffer.write(chunk);sys.stdout.buffer.flush();buffer+=chunk
-            if buffer.rstrip().endswith(b':') and answers:
-                os.write(master,(answers.pop(0)+'\n').encode());buffer=b''
+            if answers and answers[0][0].encode() in buffer and buffer.rstrip().endswith(b':'):
+                # APT also prints colons: only answer the exact expected wizard prompt.
+                _, answer = answers.pop(0)
+                os.write(master,(answer+'\n').encode());buffer=b''
         elif process.poll() is not None: break
     else:
         process.kill();raise AssertionError('Bootstrap timeout')
