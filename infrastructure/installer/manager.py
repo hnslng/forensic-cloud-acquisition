@@ -587,6 +587,7 @@ def diagnose(config):
     check('Installierte Release-Signatur und Dateiintegrität', lambda: verify(CURRENT.resolve(), TRUST))
     check('Sicherungsdatenträger und Kennung', lambda: mounted_evidence(config))
     check('Debian, Ressourcen, private IP und HTTPS-Dateien', lambda: preflight(config))
+    check('Gesperrte Debian-Paketversionen', _dependency_versions)
     check('Dienste und Container', lambda: _services())
     check('Datenbankschema', lambda: sql('SELECT max(version) FROM schema_migrations;') == '9')
     check('Schlüssel vorhanden und geschützt', _secrets_secure)
@@ -602,6 +603,15 @@ def diagnose(config):
     if not all(c['ok'] for c in checks):
         raise Refused('Diagnose meldet Fehler. Installation ist noch nicht abgenommen.')
     return report
+
+
+def _dependency_versions():
+    manifest = json.loads((CURRENT / 'manifest.json').read_text())
+    for item in manifest['dependencies']:
+        actual = run(['dpkg-query','-W','-f=${db:Status-Status} ${Version}',item['name']]).decode()
+        if actual != 'installed ' + item['version']:
+            return False
+    return True
 
 
 def _secrets_secure():
@@ -646,13 +656,17 @@ def _bindings(config):
 def _permissions(config):
     cloud = canonical(Path(config['state_root']) / 'cloud-auth')
     return cloud.stat().st_uid == 10001 and cloud.stat().st_mode & 0o777 == 0o700 and \
-        compose('exec', '-T', 'api', 'python', '-c', "from backend.evidence import root; import os; assert os.access(root()/'FCA-Sicherungen',os.W_OK)") is not None
+        compose('exec', '-T', 'api', 'python', '-c', "from backend.evidence import root; from pathlib import Path; import os; assert os.access(root()/'FCA-Sicherungen',os.W_OK); assert len(Path(os.environ['FCA_CLOUD_MASTER_KEY_FILE']).read_bytes().strip()) >= 48") is not None
 
 
 def _https(config):
     # Resolve the configured name, validate the chain AND SAN; no -k / CERT_NONE.
     context = ssl.create_default_context(cafile=config['ca_certificate'])
-    with urlopen('https://' + config['server_name'] + '/api/health', context=context, timeout=10) as result:
+    origin = 'https://' + config['server_name']
+    with urlopen(origin + '/', context=context, timeout=10) as result:
+        if result.status != 200 or b'<!doctype html>' not in result.read(1024).lower():
+            return False
+    with urlopen(origin + '/api/health', context=context, timeout=10) as result:
         return result.status == 200
 
 

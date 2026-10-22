@@ -23,7 +23,10 @@ des vertrauenswürdigen Schlüssels ist ein eigener administrativer Vorgang.
 2. Auf sauberem Debian-13-amd64-Builder den festgelegten Abhängigkeitssatz
    herunterladen. `scripts/collect_install_dependencies.py --output <Ordner>`
    löst direkte, versionsgebundene Pakete über signiertes Debian-APT auf und
-   sammelt deren fehlende transitive Abhängigkeiten. Dies geschieht **nur beim
+   ermittelt gegen eine leere, separate Paketstatusdatei auch alle bereits auf
+   dem Builder vorhandenen transitiven Abhängigkeiten. Die reale Paketdatenbank
+   wird dabei nicht verändert. Alle aufgelösten Versionen und Dateien werden
+   in das signierte Release übernommen. Dies geschieht **nur beim
    Releasebau**, niemals auf einem Behördenserver. Das Ausgangsimage muss dem
    dokumentierten frischen Testimage entsprechen. Sicherheitsaktualisierungen
    der Lockdatei erfordern erneute Abnahme; keine unsignierten APT-Quellen.

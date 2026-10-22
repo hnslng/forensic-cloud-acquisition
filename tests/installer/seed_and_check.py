@@ -1,5 +1,8 @@
 """Synthetic preservation witnesses in a disposable installer VM only."""
 import hashlib
+import http.cookiejar
+import ssl
+import urllib.request
 import json
 from pathlib import Path
 import subprocess
@@ -15,6 +18,20 @@ def witnesses(database='fca'):
 assert Path('/root/FCA_INSTALLER_DISPOSABLE_GUEST').is_file()
 path = Path('/srv/fca/evidence/FCA-Sicherungen/preservation.bin')
 if sys.argv[1] == 'seed':
+    origin='https://10.0.2.15'
+    cookies=http.cookiejar.CookieJar()
+    browser=urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile='/root/tls/ca.crt')),urllib.request.HTTPCookieProcessor(cookies))
+    with browser.open(origin+'/',timeout=10) as response:
+        assert response.status == 200 and b'FCA' in response.read()
+    payload=json.dumps({'username':'admin','password':Path('/etc/fca/secrets/initial_admin_password').read_text().strip()}).encode()
+    request=urllib.request.Request(origin+'/api/auth/login',data=payload,headers={'Origin':origin,'Content-Type':'application/json'})
+    with browser.open(request,timeout=10) as response:
+        assert json.load(response)['role']=='admin'
+    assert all(cookie.secure for cookie in cookies)
+    csrf=next(cookie.value for cookie in cookies if cookie.name=='__Host-fca_csrf')
+    request=urllib.request.Request(origin+'/api/auth/logout',data=b'{}',headers={'Origin':origin,'Content-Type':'application/json','X-CSRF-Token':csrf})
+    with browser.open(request,timeout=10) as response:
+        assert response.status==200
     path.write_bytes(b'FCA synthetic evidence\x00\xff' * 1024)
     compose('exec', '-T', 'api', 'python', '-', data=b'''
 from backend.db import connect

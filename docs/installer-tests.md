@@ -19,10 +19,15 @@ Eigene wegwerfbare QEMU-VM auf einem GitHub-Runner, datiertes offizielles
 Debian-13-Cloudimage mit festgeschriebenem SHA-512, neue Systemdisk und eindeutig
 benannte neue Testdatendisk. Keine Zugangsdaten zur FCA-VM oder zu Proxmox.
 
-Geprüft werden Erstinstallation ohne vorhandenen Docker/nginx, Wiederholung,
-signiertes Update auf zweite Version, Erhalt synthetischer Daten und Schlüssel,
-Datenbank-Restoreprobe und gesicherte Dateiinhalte, fehlender Datenträger sowie
-VM-Neustart mit erneutem Dienste-/Persistenztest. Signierschlüssel und CA sind
+Der Testablauf umfasst Erstinstallation ohne vorhandenen Docker/nginx und ohne
+Internetrouting, kontrolliert fehlgeschlagenen Paketmanager-Aufruf und Fortsetzen
+mit unveränderten Schlüsseln, wiederholte Installation, HTTPS-Startseite und
+Administratoranmeldung, signiertes Update auf zweite Version, expliziten
+Programmrollback und einen absichtlich fehlerhaften Updatekandidaten.
+Synthetischer Fall, Benutzer, Fallrecht, Cloud-Konto, verschlüsselter
+Cloud-Eintrag, Audit und manuell pausierter Auftrag müssen erhalten bleiben.
+Datenbank-Restoreprobe einschließlich Besitzern/Rechten, gesicherte Dateiinhalte,
+fehlender Datenträger und VM-Neustart schließen den Ablauf ab. Signierschlüssel und CA sind
 ausschließlich kurzlebige Testschlüssel. Keine echten Cloud-Konten.
 
 Das Cloudimage wird gegen den über Debian-HTTPS ermittelten, im Repository
