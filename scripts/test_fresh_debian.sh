@@ -111,3 +111,10 @@ for _ in $(seq 1 30); do
   sleep 5
 done
 "${SSH[@]}" 'bash /root/source/tests/installer/fresh-debian.sh reboot-check'
+if [[ $FCA_INSTALL_MODE == bootstrap && -n ${FCA_RELEASE_OUTPUT:-} ]]; then
+  mkdir -p "$FCA_RELEASE_OUTPUT"
+  cp "$WORK/fca-0.6.0-test.1.tar.gz"* "$WORK/trusted-release.pub" "$FCA_RELEASE_OUTPUT/"
+  cp "$WORK/bootstrap/"* "$FCA_RELEASE_OUTPUT/"
+  git rev-parse HEAD > "$FCA_RELEASE_OUTPUT/source-revision.txt"
+  # Only the disposable public test key is exported. Private key is destroyed.
+fi
