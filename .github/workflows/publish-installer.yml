@@ -1,0 +1,41 @@
+name: Publish signed installer candidate
+on:
+  push:
+    branches: [main, codex/install-update]
+    paths: ['releases/**/publish.json']
+permissions:
+  contents: read
+concurrency:
+  group: fca-signed-release-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Publish exact locally signed candidate (no private signing key in CI)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish_signed_release.py releases/v0.6.0-rc.1
+  published-debian13:
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Disposable VM tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils cloud-image-utils
+          if [ -e /dev/kvm ]; then sudo chmod a+rw /dev/kvm; fi
+      - name: Exact public GitHub command on a fresh Debian 13 VM (no token in guest)
+        env:
+          FCA_INSTALL_MODE: published
+        run: bash scripts/test_fresh_debian.sh

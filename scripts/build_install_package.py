@@ -37,7 +37,7 @@ def copy_tracked(directory, destination):
         shutil.copy2(source, target)
 
 
-def export_archive(directory, archive, version, signing_key):
+def write_archive(directory, archive, version):
     import re
     if directory.resolve() in archive.resolve().parents:
         raise ValueError('Archive must be outside the package directory')
@@ -55,6 +55,11 @@ def export_archive(directory, archive, version, signing_key):
     checksum = Path(str(archive) + '.sha256')
     with checksum.open('x') as handle:
         handle.write(sha256(archive) + '  ' + archive.name + '\n')
+    return checksum
+
+
+def export_archive(directory, archive, version, signing_key):
+    checksum = write_archive(directory, archive, version)
     # Sign the small checksum record so verification stays memory-bounded on 2-GiB hosts.
     subprocess.check_call(['openssl','pkeyutl','-sign','-inkey',str(signing_key),'-rawin',
                            '-in',str(checksum),'-out',str(checksum)+'.sig'])

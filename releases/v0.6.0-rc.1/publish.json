@@ -1,0 +1,10 @@
+{
+  "version": "0.6.0-rc.1",
+  "ci_run": 39726255140,
+  "ci_head_sha": "67dfeed81078ec36c5e10496970307e71cbfc4a2",
+  "artifact_id": 12402913895,
+  "artifact_digest": "sha256:a86ee1fee8b489ad09609365b1f0d82c84cffbd36eea6380de9e70b48c2d2a2f",
+  "candidate_sha256": "674687c80bab5bb3ae4bf571de7dd1fb6e3c86817e4a045c29488ba05fb52a1f",
+  "source_revision": "33db5a456ad3076f6b80f852dbd702a8020cbdb0",
+  "archive_sha256": "3d8ff447e6d6cf3e9986fdc625e176802b4ab2dafa16650b834ed8f33df49164"
+}

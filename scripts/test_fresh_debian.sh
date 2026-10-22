@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT=$(cd -- "$(dirname -- "$0")/.." && pwd)
 WORK=$(mktemp -d)
 FCA_INSTALL_MODE=${FCA_INSTALL_MODE:-offline}
-[[ $FCA_INSTALL_MODE == offline || $FCA_INSTALL_MODE == bootstrap ]]
+[[ $FCA_INSTALL_MODE == offline || $FCA_INSTALL_MODE == bootstrap || $FCA_INSTALL_MODE == published ]]
 cleanup() {
   test_status=$?
   if [[ $test_status != 0 ]]; then
@@ -53,6 +53,19 @@ done
 "${SSH[@]}" 'test -f /root/FCA_INSTALLER_DISPOSABLE_GUEST'
 git archive HEAD | "${SSH[@]}" 'mkdir /root/source; tar -x -C /root/source'
 "${SSH[@]}" "FCA_INSTALL_MODE=$FCA_INSTALL_MODE bash /root/source/tests/installer/fresh-debian.sh prepare"
+if [[ $FCA_INSTALL_MODE == published ]]; then
+  "${SSH[@]}" 'mkdir /root/bootstrap'
+  "${SCP[@]}" releases/v0.6.0-rc.1/INSTALL.txt root@127.0.0.1:/root/bootstrap/INSTALL.txt
+  "${SSH[@]}" 'cd /root/source && python3 tests/installer/run_bootstrap.py install && python3 tests/installer/seed_and_check.py seed && sha256sum /etc/fca/secrets/* > /root/secret-hashes && python3 scripts/fca_admin.py backup && python3 tests/installer/seed_and_check.py restore-check'
+  "${SSH[@]}" 'systemctl reboot' || true
+  sleep 10
+  for _ in $(seq 1 30); do
+    if "${SSH[@]}" 'systemctl is-active --quiet fca' 2>/dev/null; then break; fi
+    sleep 5
+  done
+  "${SSH[@]}" 'bash /root/source/tests/installer/fresh-debian.sh reboot-check && echo FRESH_DEBIAN_PUBLIC_GITHUB_SIGNED_RELEASE_PASS'
+  exit 0
+fi
 "${SCP[@]}" -r root@127.0.0.1:/root/debs "$WORK/debs"
 docker build --target runtime -t fca-install-ci:tested -f infrastructure/docker/Dockerfile .
 APP_IMAGE=$(docker image inspect --format '{{.Id}}' fca-install-ci:tested)

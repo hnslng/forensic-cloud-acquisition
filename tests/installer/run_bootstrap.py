@@ -10,9 +10,10 @@ import time
 assert Path('/root/FCA_INSTALLER_DISPOSABLE_GUEST').is_file()
 command=Path('/root/bootstrap/INSTALL.txt').read_text().split('\n\n',1)[1].strip()
 # Answers are synthetic; no passwords, tokens or real cloud logins.
-answers=(['labor','10.0.2.15','10.0.2.15','10.0.2.0/24','/srv/fca/evidence','/var/backups/fca','labor','labor','SYSTEMSPEICHER','ja'] if sys.argv[1]=='first' else ['ja'])
+answers=(['labor','10.0.2.15','10.0.2.15','10.0.2.0/24','/srv/fca/evidence','/var/backups/fca','labor','labor','SYSTEMSPEICHER','ja'] if sys.argv[1] in ('first','install') else ['ja'])
 master,slave=pty.openpty()
-env=dict(os.environ,SSL_CERT_FILE='/root/fixture-ca.pem')
+env=dict(os.environ)
+if Path('/root/fixture-ca.pem').exists(): env['SSL_CERT_FILE']='/root/fixture-ca.pem'
 if sys.argv[1]=='first': env['PATH']='/root/failing-apt:'+env['PATH']
 process=subprocess.Popen(['bash','-c',command],stdin=slave,stdout=slave,stderr=slave,env=env,start_new_session=True)
 os.close(slave)
