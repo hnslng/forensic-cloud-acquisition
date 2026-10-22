@@ -24,7 +24,7 @@ case "${1:-}" in
     openssl x509 -req -in /root/tls/server.csr -CA /root/tls/ca.crt -CAkey /root/tls/ca.key -CAcreateserial -out /root/tls/server.crt -days 30 -extfile /root/tls/ext >/dev/null 2>&1
     chmod 600 /root/tls/*.key
     echo '10.0.2.15 fca.test' >> /etc/hosts
-    if [[ ${FCA_INSTALL_MODE:-offline} != published ]]; then
+    if [[ ${FCA_INSTALL_MODE:-offline} == offline || ${FCA_INSTALL_MODE:-offline} == bootstrap ]]; then
       python3 scripts/collect_install_dependencies.py --output /root/debs
     fi
     ;;

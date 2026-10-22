@@ -1,0 +1,7 @@
+Als root auf einer neuen Debian-13-VM (amd64) ausführen. Den gesamten folgenden Befehl kopieren.
+
+(apt-get update && apt-get install -y wget=1.25.0-2 ca-certificates=20250419 &&
+ cd "$(mktemp -d)" &&
+ wget -qO start.sh https://raw.githubusercontent.com/hnslng/forensic-cloud-acquisition/installer-v1/start.sh &&
+ echo "5df46ffd45b36a71e38be7b720b0bbf2ab37ae42e147866fc8233e5c2e31e967  start.sh" | sha256sum -c - &&
+ bash start.sh)

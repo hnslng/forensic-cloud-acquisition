@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT=$(cd -- "$(dirname -- "$0")/.." && pwd)
 WORK=$(mktemp -d)
 FCA_INSTALL_MODE=${FCA_INSTALL_MODE:-offline}
-[[ $FCA_INSTALL_MODE == offline || $FCA_INSTALL_MODE == bootstrap || $FCA_INSTALL_MODE == published ]]
+[[ $FCA_INSTALL_MODE == offline || $FCA_INSTALL_MODE == bootstrap || $FCA_INSTALL_MODE == published || $FCA_INSTALL_MODE == short ]]
 cleanup() {
   test_status=$?
   if [[ $test_status != 0 ]]; then
@@ -53,9 +53,16 @@ done
 "${SSH[@]}" 'test -f /root/FCA_INSTALLER_DISPOSABLE_GUEST'
 git archive HEAD | "${SSH[@]}" 'mkdir /root/source; tar -x -C /root/source'
 "${SSH[@]}" "FCA_INSTALL_MODE=$FCA_INSTALL_MODE bash /root/source/tests/installer/fresh-debian.sh prepare"
-if [[ $FCA_INSTALL_MODE == published ]]; then
+if [[ $FCA_INSTALL_MODE == published || $FCA_INSTALL_MODE == short ]]; then
   "${SSH[@]}" 'mkdir /root/bootstrap'
-  "${SCP[@]}" releases/v0.6.0-rc.1/INSTALL.txt root@127.0.0.1:/root/bootstrap/INSTALL.txt
+  if [[ $FCA_INSTALL_MODE == short ]]; then
+    "${SCP[@]}" releases/START-v1.txt root@127.0.0.1:/root/bootstrap/INSTALL.txt
+    "${SSH[@]}" '! command -v docker && ! command -v nginx && test -z "${GH_TOKEN:-}${GITHUB_TOKEN:-}"'
+    # Exercise the exact command on a minimal fresh guest without wget.
+    "${SSH[@]}" 'apt-get -y remove wget && ! command -v wget'
+  else
+    "${SCP[@]}" releases/v0.6.0-rc.1/INSTALL.txt root@127.0.0.1:/root/bootstrap/INSTALL.txt
+  fi
   "${SSH[@]}" 'cd /root/source && python3 tests/installer/run_bootstrap.py install && python3 tests/installer/seed_and_check.py seed && sha256sum /etc/fca/secrets/* > /root/secret-hashes && python3 scripts/fca_admin.py backup && python3 tests/installer/seed_and_check.py restore-check'
   "${SSH[@]}" 'systemctl reboot' || true
   sleep 10
@@ -64,6 +71,9 @@ if [[ $FCA_INSTALL_MODE == published ]]; then
     sleep 5
   done
   "${SSH[@]}" 'bash /root/source/tests/installer/fresh-debian.sh reboot-check && echo FRESH_DEBIAN_PUBLIC_GITHUB_SIGNED_RELEASE_PASS'
+  if [[ $FCA_INSTALL_MODE == short ]]; then
+    "${SSH[@]}" 'test -z "$(lsblk -n -o FSTYPE /dev/disk/by-id/virtio-FCAINSTALLTEST)" && echo FRESH_DEBIAN_SHORT_VERIFIED_STARTER_PASS'
+  fi
   exit 0
 fi
 "${SCP[@]}" -r root@127.0.0.1:/root/debs "$WORK/debs"

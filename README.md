@@ -4,6 +4,24 @@ Eigenständige, selbst gehostete Anwendung zur technischen Cloud-Datensicherung.
 Entwicklung ausschließlich im privaten Testlabor mit synthetischen Daten und
 ausdrücklich freigegebenen Testkonten. Keine Freigabe für echte Beweismittel.
 
+## Installation auf einer neuen Debian-13-VM
+
+Als **root** den gesamten Befehl kopieren. Er lädt das kleine Startskript aus diesem Repository, prüft dessen fest vorgegebenen SHA-256-Wert und startet anschließend den bestehenden sicheren Bootstrap:
+
+```sh
+(apt-get update && apt-get install -y wget=1.25.0-2 ca-certificates=20250419 &&
+ cd "$(mktemp -d)" &&
+ wget -qO start.sh https://raw.githubusercontent.com/hnslng/forensic-cloud-acquisition/installer-v1/start.sh &&
+ echo "5df46ffd45b36a71e38be7b720b0bbf2ab37ae42e147866fc8233e5c2e31e967  start.sh" | sha256sum -c - &&
+ bash start.sh)
+```
+
+Der Aufruf richtet **FCA v0.6.0-rc.1** interaktiv ein und zeigt anschließend die HTTPS-Webadresse. Kein GitHub-Konto oder persönlicher Token erforderlich. Die Paket- und Signaturprüfungen bleiben vollständig erhalten; Datenträger werden nicht formatiert. Der bestehende [Offlineinstaller](docs/installation.md) bleibt verfügbar.
+
+**Vertrauen:** Den Befehl einschließlich Prüfsumme aus einer unabhängig freigegebenen Kopie dieser Anleitung übernehmen und den Prüfwert nicht durch eine gleichzeitig heruntergeladene Prüfsummendatei ersetzen. Der kurze Aufruf benötigt einen öffentlichen Zugriff auf Repository und Release. Die Sichtbarkeit ändert ausschließlich der Eigentümer.
+
+[Details zur Installation](docs/bootstrap-installation.md) · [Kopierbarer Aufruf](releases/START-v1.txt)
+
 ## Tatsächlicher Stand
 
 Phase 0 ist nach Freigabe erfolgreich auf VM 105 umgesetzt und praktisch
