@@ -38,7 +38,7 @@ def run(command, *, data=None):
     # Never propagate captured provider/SQL/Compose output or secret-bearing errors.
     result = subprocess.run([str(v) for v in command], input=data, capture_output=True)
     if result.returncode:
-        raise Refused('Befehl fehlgeschlagen: ' + str(command[0]) + '. Details geschützt am Server prüfen.')
+        raise Refused('Befehl fehlgeschlagen: ' + ' '.join(str(v) for v in command[:10]) + '. Details geschützt am Server prüfen.')
     return result.stdout
 
 
@@ -61,6 +61,8 @@ def directory(path, mode=0o700):
     path.mkdir(parents=True, mode=mode, exist_ok=True)
     if not path.is_dir():
         raise Refused('Verzeichnis fehlt.')
+    if path.stat().st_uid != 0 or path.stat().st_mode & 0o022:
+        raise Refused('Verzeichnis muss root gehören und gegen fremde Schreibzugriffe geschützt sein.')
     return path
 
 
@@ -375,7 +377,7 @@ def install(args):
         if config.get('pending_manifest') != sha256(package / 'manifest.json'):
             raise Refused('Abgebrochene Installation benötigt dasselbe geprüfte Paket.')
     else:
-        if Path('/opt/fca').exists() or Path('/var/lib/fca/postgres').exists() or COMPOSE.exists():
+        if Path('/opt/fca').exists() or CURRENT.exists() or CURRENT.is_symlink() or COMPOSE.exists() or any(p.exists() and any(p.iterdir()) for p in (Path('/var/lib/fca'), Path('/etc/fca/secrets'))):
             raise Refused('Vorhandene FCA-Installation erkannt. Keine automatische Übernahme oder Neuinstallation.')
         config = validate_config(json.loads(Path(args.config).read_text())) if args.config else interactive()
         if not os.path.ismount(config['evidence_root']) or not empty_volume(Path(config['evidence_root'])):
@@ -395,7 +397,10 @@ def install(args):
         config['installation_status'] = 'initializing'
         write(CONFIG, json.dumps(config, indent=2) + '\n')
     directory(config['state_root'])
-    cloud = directory(Path(config['state_root']) / 'cloud-auth')
+    cloud = canonical(Path(config['state_root']) / 'cloud-auth')
+    cloud.mkdir(mode=0o700, exist_ok=True)
+    if not cloud.is_dir() or cloud.stat().st_uid not in (0,10001) or cloud.stat().st_mode & 0o077:
+        raise Refused('Cloud-Verzeichnis ist nicht ausreichend geschützt.')
     os.chown(cloud, 10001, 10001)
     directory(config['backup_root'])
     mounted_evidence(config, initialize=True)
@@ -423,7 +428,11 @@ def stopped():
 
 def backup(config):
     mounted_evidence(config)
-    target = directory(Path(config['backup_root']) / ('backup-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8]))
+    backup_root = directory(config['backup_root'])
+    size = sum(p.stat().st_size for root in (Path(config['evidence_root']), Path(config['state_root']) / 'cloud-auth', Path(config['state_root']) / 'postgres') for p in root.rglob('*') if p.is_file() and not p.is_symlink())
+    if shutil.disk_usage(backup_root).free < size + 2 * GIB:
+        raise Refused('Zu wenig freier Backupspeicher für Daten, Dump und 2-GiB-Reserve.')
+    target = directory(backup_root / ('backup-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8]))
     # All writers stay stopped from dump through evidence/credential snapshot.
     stopped()
     command = ['docker', 'compose', '--env-file', str(ENV), '-f', str(COMPOSE), 'exec', '-T', 'database']
