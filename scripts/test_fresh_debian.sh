@@ -29,7 +29,7 @@ ACCEL=tcg
 [[ ! -w /dev/kvm ]] || ACCEL=kvm
 qemu-system-x86_64 -machine "accel=$ACCEL" -cpu max -m 3072 -smp 2 -display none -daemonize -pidfile "$WORK/qemu.pid" \
   -monitor none -serial "file:$WORK/serial.log" \
-  -drive "file=$WORK/system.qcow2,if=virtio" -drive "file=$WORK/data.qcow2,if=virtio,serial=FCAINSTALLTEST" \
+  -drive "file=$WORK/system.qcow2,if=virtio" -drive "file=$WORK/data.qcow2,if=none,id=fcadata" -device virtio-blk-pci,drive=fcadata,serial=FCAINSTALLTEST \
   -drive "file=$WORK/seed.iso,format=raw,if=virtio" \
   -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 -device virtio-net-pci,netdev=n0
 SSH=(ssh -i "$WORK/ssh" -o BatchMode=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$WORK/known_hosts" -o ConnectTimeout=3 -p 2222 root@127.0.0.1)
