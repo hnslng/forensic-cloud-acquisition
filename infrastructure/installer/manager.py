@@ -193,23 +193,36 @@ def install_dependencies(package, manifest):
     # Never apt update, add a repository, download a script or choose a candidate here.
     missing = []
     for item in manifest['dependencies']:
-        result = subprocess.run(['dpkg-query', '-W', '-f=${Version}', item['name']], capture_output=True)
-        if result.returncode == 0:
-            installed = result.stdout.decode()
+        result = subprocess.run(['dpkg-query', '-W', '-f=${db:Status-Status} ${Version}', item['name']], capture_output=True)
+        if result.returncode == 0 and result.stdout.strip():
+            status, installed = result.stdout.decode().split(' ',1)
             if installed != item['version']:
                 newer = subprocess.run(['dpkg', '--compare-versions', installed, 'gt', item['version']]).returncode == 0
                 if newer:
                     raise Refused('Neuere installierte Abhängigkeit: ' + item['name'] + '. Kein automatisches Downgrade.')
                 missing.append(str(package / item['file']))
+            elif status != 'installed':
+                missing.append(str(package / item['file']))
         else:
             missing.append(str(package / item['file']))
     if missing:
+        # --no-download only consumes cached archives, including local .deb inputs.
+        # Keep this mutable APT cache outside the signed release directory.
+        cache = directory('/var/cache/fca-packages/' + sha256(package / 'manifest.json'))
+        for item in manifest['dependencies']:
+            source = package / item['file']
+            target = cache / source.name
+            if not target.exists():
+                shutil.copyfile(source, target)
+            if sha256(target) != manifest['files'][item['file']]['sha256']:
+                raise Refused('Paketcache wurde verändert; keine Installation.')
+        missing = [str(cache / Path(p).name) for p in missing]
         policy = Path('/usr/sbin/policy-rc.d')
         owned_policy = not policy.exists()
         if owned_policy:
             write(policy, '#!/bin/sh\nexit 101\n', 0o755)
         try:
-            run(['apt-get', '-y', '--no-download', '--no-install-recommends', 'install', *missing])
+            run(['apt-get', '-y', '--no-download', '--no-install-recommends', '-o', 'Dir::Cache::archives=' + str(cache), 'install', *missing])
         finally:
             if owned_policy:
                 policy.unlink()
