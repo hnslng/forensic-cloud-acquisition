@@ -27,7 +27,7 @@ def canonical(path):
 
 
 def safe_relative(value):
-    if not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9_./-]+', value):
+    if not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9_./+~:%-]+', value):
         raise Refused('Ungültiger Paketpfad.')
     path = Path(value)
     if path.is_absolute() or any(p in ('..', '.') for p in value.split('/')):

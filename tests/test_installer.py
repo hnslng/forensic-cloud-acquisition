@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from infrastructure.installer.package import Refused, sha256, verify, write_manifest
+from infrastructure.installer.package import Refused, safe_relative, sha256, verify, write_manifest
 from infrastructure.installer import manager
 
 
@@ -65,6 +65,12 @@ class SignedPackageTests(unittest.TestCase):
         shutil.copy(self.public, inside)
         self.sign()
         with self.assertRaises(Refused): verify(self.package, inside)
+
+    def test_debian_version_characters_are_safe_but_traversal_is_not(self):
+        self.assertEqual(str(safe_relative('debs/openssl_3.5.7-1~deb13u2_amd64.deb')), 'debs/openssl_3.5.7-1~deb13u2_amd64.deb')
+        safe_relative('debs/docker.io_26.1.5+dfsg1-9+deb13u1_amd64.deb')
+        for name in ('/etc/passwd','debs/../../etc/passwd','debs/a;touch','debs/./file'):
+            with self.assertRaises(Refused): safe_relative(name)
 
     def test_wrong_key_rejected(self):
         other = self.root/'other.key'
