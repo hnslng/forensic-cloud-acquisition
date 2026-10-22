@@ -24,6 +24,9 @@ case "${1:-}" in
   install)
     # No Docker/nginx preinstalled: this is the actual first installation test.
     ! command -v docker
+    trap 'if [[ -f /var/log/fca-package-error.txt ]]; then cat /var/log/fca-package-error.txt; fi' ERR
+    # Remove internet routing on this disposable guest: installation must be offline.
+    ip route del default
     # Inject one failed package-manager invocation to exercise resumable bootstrap.
     mkdir /root/failing-apt
     printf '#!/bin/sh\nexit 42\n' > /root/failing-apt/apt-get

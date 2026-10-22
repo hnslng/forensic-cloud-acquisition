@@ -82,6 +82,13 @@ def verify(directory, trusted_key):
     return manifest
 
 
+def verify_exact(directory, trusted_key, expected):
+    value = verify(directory, trusted_key)
+    if value != expected:
+        raise Refused('Paket wurde zwischen Prüfung und Übernahme ausgetauscht.')
+    return value
+
+
 def write_manifest(directory, version, app_image, database_image, dependencies, source):
     directory = Path(directory)
     files = {}

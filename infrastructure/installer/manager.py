@@ -19,7 +19,7 @@ import tarfile
 import uuid
 from urllib.request import urlopen
 
-from infrastructure.installer.package import Refused, canonical, sha256, verify
+from infrastructure.installer.package import Refused, canonical, sha256, verify, verify_exact
 from scripts.prepare_private_https import prepare
 
 CONFIG = Path('/etc/fca/installation.json')
@@ -36,6 +36,8 @@ def run(command, *, data=None):
     # Never propagate captured provider/SQL/Compose output or secret-bearing errors.
     result = subprocess.run([str(v) for v in command], input=data, capture_output=True)
     if result.returncode:
+        if str(command[0]) == 'apt-get':
+            write(Path('/var/log/fca-package-error.txt'), (result.stdout + result.stderr).decode(errors='replace'), 0o600)
         raise Refused('Befehl fehlgeschlagen: ' + ' '.join(str(v) for v in command[:10]) + '. Details geschützt am Server prüfen.')
     return result.stdout
 
@@ -415,7 +417,7 @@ def install(args):
     secret('postgres_password', config)
     secret('cloud_master_key', config)
     release = materialize(package, manifest)
-    verify(release, args.trusted_key)
+    verify_exact(release, args.trusted_key, manifest)
     install_dependencies(release, manifest)
     load_images(release, manifest)
     configure_files(config, manifest, release)
@@ -502,7 +504,7 @@ def update(args):
     if not args.yes and input('Geprüfte Version ' + manifest['version'] + ' mit Wartungsunterbrechung installieren? [ja/NEIN]: ') != 'ja':
         raise Refused('Update abgebrochen.')
     release = materialize(package, manifest)
-    verify(release, args.trusted_key)
+    verify_exact(release, args.trusted_key, manifest)
     # OS dependency changes are deliberately not part of an application update.
     for dep in manifest['dependencies']:
         installed = run(['dpkg-query', '-W', '-f=${Version}', dep['name']]).decode()

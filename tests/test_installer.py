@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from infrastructure.installer.package import Refused, safe_relative, sha256, verify, write_manifest
+from infrastructure.installer.package import Refused, safe_relative, sha256, verify, verify_exact, write_manifest
 from infrastructure.installer import manager
 
 
@@ -36,6 +36,12 @@ class SignedPackageTests(unittest.TestCase):
 
     def test_signed_package_validates_all_bytes(self):
         self.assertEqual(verify(self.package, self.public)['version'], '0.6.0-test.1')
+
+    def test_valid_but_exchanged_package_is_not_the_approved_package(self):
+        expected = verify(self.package, self.public)
+        (self.package/'images.tar').write_text('different signed content')
+        self.sign()
+        with self.assertRaises(Refused): verify_exact(self.package, self.public, expected)
 
     def test_tampered_payload_never_installs(self):
         (self.package/'images.tar').write_text('wrong bytes')
