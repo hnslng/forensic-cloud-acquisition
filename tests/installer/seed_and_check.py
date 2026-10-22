@@ -17,6 +17,14 @@ def witnesses(database='fca'):
     tables=sql("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;", database).splitlines()
     return {t:sql('SELECT md5(coalesce(string_agg(row_to_json(t)::text, chr(10) ORDER BY row_to_json(t)::text), chr(10))) FROM '+t+' t;',database) for t in tables}
 
+def restored_probe(*args, data):
+    # Only synthetic data in this guarded disposable VM; preserve failures in CI.
+    result = subprocess.run(['docker','compose','--env-file','/etc/fca/compose.env',
+        '-f','/etc/fca/compose.json','--profile','application',*args], input=data, capture_output=True)
+    if result.returncode:
+        raise AssertionError('Synthetic restored backend probe: ' + (result.stdout+result.stderr).decode(errors='replace'))
+
+
 assert Path('/root/FCA_INSTALLER_DISPOSABLE_GUEST').is_file()
 path = Path('/srv/fca/evidence/FCA-Sicherungen/preservation.bin')
 if sys.argv[1] == 'seed':
@@ -93,10 +101,11 @@ elif sys.argv[1] == 'restore-check':
             for tree in (stage/'cloud-auth',stage/'evidence'):
                 for item in (tree,*tree.rglob('*')):
                     os.chown(item,10001,10001)
+                    item.chmod(0o700 if item.is_dir() else 0o600)
             restored_key=stage/'config/secrets/cloud_master_key'
             os.chown(restored_key,0,10001)
             restored_key.chmod(0o640)
-            compose('run','--rm','--no-deps',
+            restored_probe('run','--rm','--no-deps',
                 '-e','FCA_DB_NAME=installer_restore_probe',
                 '-e','FCA_EVIDENCE_ROOT=/restored-evidence',
                 '-e','FCA_CLOUD_AUTH_ROOT=/restored-cloud',

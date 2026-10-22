@@ -225,7 +225,7 @@ def install_dependencies(package, manifest):
         if owned_policy:
             write(policy, '#!/bin/sh\nexit 101\n', 0o755)
         try:
-            run(['apt-get', '-y', '--no-download', '--no-install-recommends', '-o', 'Dir::Cache::archives=' + str(cache), 'install', *missing])
+            run(['apt-get', '-y', '--no-remove', '--no-download', '--no-install-recommends', '-o', 'Dir::Cache::archives=' + str(cache), 'install', *missing])
         finally:
             if owned_policy:
                 policy.unlink()
@@ -402,7 +402,7 @@ def install(args):
         if config.get('pending_manifest') != sha256(package / 'manifest.json'):
             raise Refused('Abgebrochene Installation benötigt dasselbe geprüfte Paket.')
     else:
-        if Path('/opt/fca').exists() or CURRENT.exists() or CURRENT.is_symlink() or COMPOSE.exists() or any(p.exists() and any(p.iterdir()) for p in (Path('/var/lib/fca'), Path('/etc/fca/secrets'))):
+        if Path('/opt/fca').exists() or CURRENT.exists() or CURRENT.is_symlink() or COMPOSE.exists() or Path('/etc/systemd/system/fca.service').exists() or Path('/usr/lib/systemd/system/fca.service').exists() or any(p.exists() and any(p.iterdir()) for p in (Path('/var/lib/fca'), Path('/etc/fca/secrets'))):
             raise Refused('Vorhandene FCA-Installation erkannt. Keine automatische Übernahme oder Neuinstallation.')
         config = validate_config(json.loads(Path(args.config).read_text())) if args.config else interactive()
         if not os.path.ismount(config['evidence_root']) or not empty_volume(Path(config['evidence_root'])):
@@ -436,6 +436,8 @@ def install(args):
     release = materialize(package, manifest)
     verify_exact(release, args.trusted_key, manifest)
     install_dependencies(release, manifest)
+    if not COMPOSE.exists() and run(['docker','ps','-aq','--filter','label=com.docker.compose.project=fca']).strip():
+        raise Refused('Vorhandenes, nicht registriertes FCA-Containerprojekt erkannt. Keine automatische Übernahme.')
     load_images(release, manifest)
     configure_files(config, manifest, release)
     switch(release)
@@ -678,6 +680,13 @@ def _https(config):
         return result.status == 200
 
 
+def force_local_docker():
+    # A user's active remote Docker context must never redirect server maintenance.
+    for name in ('DOCKER_CONTEXT','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'):
+        os.environ.pop(name, None)
+    os.environ['DOCKER_HOST'] = 'unix:///var/run/docker.sock'
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='FCA-Installation, Update und Diagnose')
     sub = parser.add_subparsers(dest='command', required=True)
@@ -698,6 +707,7 @@ def main(argv=None):
     if os.geteuid() != 0:
         parser.exit(1, 'Als root oder mit sudo ausführen.\n')
     os.umask(0o077)
+    force_local_docker()
     if args.command == 'guard':
         try:
             mounted_evidence(cfg())

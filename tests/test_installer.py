@@ -199,6 +199,12 @@ class StorageTests(unittest.TestCase):
 
 
 class ServiceDiagnosisTests(unittest.TestCase):
+    def test_remote_docker_context_cannot_redirect_maintenance(self):
+        with patch.dict(os.environ, {'DOCKER_HOST':'tcp://other-server:2376','DOCKER_CONTEXT':'remote','DOCKER_TLS_VERIFY':'1','DOCKER_CERT_PATH':'/private/remote'}):
+            manager.force_local_docker()
+            self.assertEqual(os.environ['DOCKER_HOST'],'unix:///var/run/docker.sock')
+            self.assertTrue(all(v not in os.environ for v in ('DOCKER_CONTEXT','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH')))
+
     def test_release_order_does_not_silently_downgrade(self):
         values = ['0.6.0-test.2','0.6.0-test.10','0.6.0','0.6.1','1.0.0']
         self.assertEqual(sorted(reversed(values), key=manager.version_key), values)
