@@ -41,27 +41,27 @@ case "${1:-}" in
     mkdir /root/failing-apt
     printf '#!/bin/sh\nexit 42\n' > /root/failing-apt/apt-get
     chmod 700 /root/failing-apt/apt-get
-    if PATH="/root/failing-apt:$PATH" ./install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes; then exit 1; fi
+    if PATH="/root/failing-apt:$PATH" /root/release/install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes; then exit 1; fi
     test -f /etc/fca/installation.json
     sha256sum /etc/fca/secrets/* > /root/bootstrap-secret-hashes
-    ./install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes
+    /root/release/install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes
     sha256sum -c /root/bootstrap-secret-hashes
     python3 scripts/fca_admin.py diagnose
     python3 tests/installer/seed_and_check.py seed
     sha256sum /etc/fca/secrets/* > /root/secret-hashes
-    ./install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes
+    /root/release/install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes
     sha256sum -c /root/secret-hashes
     python3 tests/installer/seed_and_check.py check
     ;;
   update)
-    ./update.sh --package /root/release-next --trusted-key /root/trusted-release.pub --yes
+    /opt/fca-current/update.sh --package /root/release-next --trusted-key /root/trusted-release.pub --yes
     sha256sum -c /root/secret-hashes
     python3 tests/installer/seed_and_check.py check
     python3 scripts/fca_admin.py backup
     python3 tests/installer/seed_and_check.py restore-check
     printf 'ja\n' | python3 scripts/fca_admin.py rollback --version 0.6.0-test.1 --trusted-key /root/trusted-release.pub
     python3 tests/installer/seed_and_check.py check
-    ./update.sh --package /root/release-next --trusted-key /root/trusted-release.pub --yes
+    /opt/fca-current/update.sh --package /root/release-next --trusted-key /root/trusted-release.pub --yes
     # Missing data mount must fail even if a directory at the mountpoint remains.
     systemctl stop fca
     umount /srv/fca/evidence
@@ -71,7 +71,7 @@ case "${1:-}" in
     python3 scripts/fca_admin.py diagnose
     ;;
   failed-update)
-    if ./update.sh --package /root/release-bad --trusted-key /root/trusted-release.pub --yes; then exit 1; fi
+    if /opt/fca-current/update.sh --package /root/release-bad --trusted-key /root/trusted-release.pub --yes; then exit 1; fi
     test "$(basename "$(readlink -f /opt/fca-current)")" = 0.6.0-test.2
     python3 scripts/fca_admin.py diagnose
     python3 tests/installer/seed_and_check.py check
