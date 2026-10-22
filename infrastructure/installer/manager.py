@@ -349,6 +349,8 @@ RequiresMountsFor={config['evidence_root']} {config['state_root']}
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+Environment=DOCKER_HOST=unix:///var/run/docker.sock
+UnsetEnvironment=DOCKER_CONTEXT DOCKER_TLS_VERIFY DOCKER_CERT_PATH
 ExecStartPre=/usr/bin/python3 /opt/fca-current/scripts/fca_admin.py guard
 ExecStart=/usr/bin/docker compose --env-file /etc/fca/compose.env -f /etc/fca/compose.json --profile application up -d --no-build --pull never --wait --wait-timeout 180
 ExecStop=/usr/bin/docker compose --env-file /etc/fca/compose.env -f /etc/fca/compose.json --profile application stop
