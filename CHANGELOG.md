@@ -1,5 +1,11 @@
 # Änderungen
 
+## Kurzer geprüfter Installationsstart – installer-v1 – 2026-10-22
+
+- Kurzer Download-/Prüf-/Start-Aufruf gut sichtbar am Anfang der README.
+- Eigene feste SHA-256 für das Startskript, bestehender Bootstrap und signierter Release unverändert.
+- Acht zusätzliche Sicherheitstests und erfolgreiche frische Debian-13-Abnahme über den tatsächlichen öffentlichen GitHub-Aufruf.
+
 ## Signierter Online-Bootstrap – 0.6.0-rc.1 – 2026-10-22
 
 - Feste signierte Releaseversion aus dem bestehenden GitHub-Repository, ohne GitHub-Anmeldung am Zielserver.

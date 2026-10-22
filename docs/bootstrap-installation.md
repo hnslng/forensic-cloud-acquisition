@@ -14,7 +14,15 @@ Ein Produktionsrelease und dessen dauerhafter Signierschlüssel sind unabhängig
 
 Der dauerhafte Ed25519-Signierschlüssel bleibt auf dem geschützten Release-System. Er wird nicht in GitHub oder CI gespeichert. **Diesen privaten Schlüssel separat geschützt sichern**, damit zukünftige Updates mit demselben freigegebenen Schlüssel signiert werden können. Der öffentliche Schlüssel und alle Signaturen sind unter `releases/v0.6.0-rc.1/` nachvollziehbar.
 
-## Der Installationsbefehl
+## Bevorzugter kurzer Installationsaufruf
+
+Der kurze Aufruf steht gut sichtbar am Anfang der [README](../README.md#installation-auf-einer-neuen-debian-13-vm) und separat in [START-v1.txt](../releases/START-v1.txt). Den gesamten mehrzeiligen Befehl als root kopieren. Er installiert bei Bedarf die festgelegten Debian-Downloadwerkzeuge, lädt `start.sh` vom festen Tag `installer-v1`, prüft die **im Aufruf vorgegebene** SHA-256 und startet das verifizierte Skript. Ein privates temporäres Verzeichnis schützt die heruntergeladene Datei vor fremden Schreibzugriffen.
+
+Das Startskript prüft Debian/Architektur, ergänzt fehlende Bootstrap-Abhängigkeiten aus signierten Debian-Quellen, prüft den festgelegten Bootstrap gegen dessen bisherigen SHA-256 und startet ihn mit unveränderter interaktiver Konsole. Danach folgen die bestehenden Ed25519-, Archiv-, Manifest- und Dateiprüfungen. Das veröffentlichte Release und der Offlineinstaller werden nicht ersetzt oder abgeschwächt.
+
+Die Starter-Prüfsumme wurde aus dem geprüften lokalen Quellstand berechnet und zusätzlich nach dem anonymen GitHub-Download abgeglichen. Der Wert im Aufruf muss über einen unabhängig freigegebenen Kanal bezogen werden, etwa den separat übermittelten Abschlussbericht oder eine administrativ geprüfte Anleitung. Wer den gesamten Befehl samt Prüfwert austauschen kann, könnte auch diesen Schutz austauschen. Daher keine gleichzeitig heruntergeladene `.sha256`-Datei als alleinigen Vertrauensanker verwenden.
+
+## Bisheriger vollständiger Bootstrap-Aufruf
 
 Jedes freigegebene Release erhält eine **eigene `INSTALL.txt` mit genau einem kopierbaren Befehl**. Dieser wird aus dem endgültig signierten Archiv erzeugt. Er enthält die feste Releaseadresse und den SHA-256-Wert des zugehörigen Bootstrap-Programms. Deshalb gibt es bewusst keinen beweglichen `latest`-Befehl und keinen vorab erfundenen Produktions-Prüfwert.
 

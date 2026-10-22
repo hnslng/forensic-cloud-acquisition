@@ -30,3 +30,13 @@ Die isolierten VMs hatten **2 vCPU, 3 GiB RAM und 32 GiB Systemdisk**; der Offli
 Es gab keine echten Cloud-Anmeldungen, keinen Proxmox-Zugriff und keine Neuinstallation oder Veränderung der vorhandenen FCA-Test-VM. Im Labor muss der Administrator das neu erzeugte öffentliche CA-Zertifikat am Arbeitsplatz vertrauen. Für Behördennetze bleiben bestehender WireGuard-Zugang, interne Namensauflösung und Zertifikate administrative Voraussetzungen.
 
 Der langlebige private Signierschlüssel liegt ausschließlich im geschützten lokalen Release-Verzeichnis `.local/release-signing/` außerhalb der Versionierung. Separat geschützt sichern; künftige Updates benötigen denselben freigegebenen Schlüssel. Endserver erhalten nur den öffentlichen Prüfschlüssel.
+
+## Kurzer Startaufruf – Installer v1
+
+Der kurze Befehl steht am Anfang der README und in `releases/START-v1.txt`. Er umfasst 332 Zeichen, einschließlich fester Version, direktem Download, separat vorgegebenem SHA-256-Wert und Start. Ein einziges Kopieren des gesamten Blocks genügt.
+
+**Abnahme erfolgreich:** [GitHub-Testlauf 39731103469](https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39731103469), Stand `cd15cbe`. Acht zusätzliche Sicherheitstests bestehen. Der exakte README-Aufruf wurde in einer neuen Debian-13-VM mit 2 vCPU, 3 GiB RAM und 32 GiB Systemdisk ausgeführt. Wget war zuvor in dieser wegwerfbaren Testumgebung entfernt worden, um die automatische Nachinstallation zu prüfen. Es waren keine FCA-Dienste vorinstalliert und keine GitHub-Tokens im Gast vorhanden.
+
+Der tatsächliche öffentliche Download vom Tag `installer-v1`, die feste Starter-Prüfsumme, der bisherige Bootstrap, vollständige Einrichtung, HTTPS-Anmeldung/Abmeldung, synthetische Daten, Backup/Restore einschließlich verschlüsseltem Kontozustand und Gast-Neustart wurden geprüft. Der zusätzliche unformatierte Testdatenträger blieb unformatiert. Die bestehende FCA-Test-VM wurde dabei nicht verwendet oder verändert. Der Testtreiber beantwortet gezielt die FCA-Eingabeaufforderungen; Paketmanager-Ausgaben werden nicht als Formularfragen interpretiert.
+
+Die Starter-Prüfsumme wurde lokal aus dem überprüften Quellstand berechnet und nach einem weiteren anonymen GitHub-Download erneut unabhängig abgeglichen. Prüfsummen-/Signaturprüfungen des bereits veröffentlichten Releases bleiben unverändert. Der alte ausführliche Bootstrap-Aufruf und der Offlineweg bleiben gültig. [Maschinenlesbarer Nachweis](test-results/short-install-validation.json).
