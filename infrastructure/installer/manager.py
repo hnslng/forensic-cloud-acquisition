@@ -242,6 +242,8 @@ def secret(name, config):
 def render_compose(config, manifest, release):
     value = json.loads((release / 'compose.template.json').read_text())
     value['name'] = 'fca'
+    for network in value.get('networks', {}).values():
+        network.pop('name', None)
     for name, service in value['services'].items():
         service.pop('build', None)
         service['image'] = manifest['database_image'] if name == 'database' else manifest['app_image']
@@ -284,7 +286,7 @@ def materialize(package, manifest):
     temp = RELEASES / ('.staging-' + uuid.uuid4().hex)
     shutil.copytree(package, temp)
     for path in temp.rglob('*'):
-        path.chmod(0o755 if path.is_dir() else 0o644)
+        path.chmod(0o755 if path.is_dir() or path.name in ('install.sh', 'update.sh') else 0o644)
     temp.chmod(0o755)
     # Caller re-verifies after copy before executing code/loading images.
     temp.rename(release)

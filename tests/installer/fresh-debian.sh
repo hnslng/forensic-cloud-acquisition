@@ -38,6 +38,9 @@ case "${1:-}" in
     python3 tests/installer/seed_and_check.py check
     python3 scripts/fca_admin.py backup
     python3 tests/installer/seed_and_check.py restore-check
+    printf 'ja\n' | python3 scripts/fca_admin.py rollback --version 0.6.0-test.1 --trusted-key /root/trusted-release.pub
+    python3 tests/installer/seed_and_check.py check
+    ./update.sh --package /root/release-next --trusted-key /root/trusted-release.pub --yes
     # Missing data mount must fail even if a directory at the mountpoint remains.
     systemctl stop fca
     umount /srv/fca/evidence

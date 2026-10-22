@@ -3,7 +3,13 @@
 set -euo pipefail
 ROOT=$(cd -- "$(dirname -- "$0")/.." && pwd)
 WORK=$(mktemp -d)
-trap 'if [[ -f "$WORK/qemu.pid" ]]; then kill "$(cat "$WORK/qemu.pid")" 2>/dev/null || true; fi; rm -rf "$WORK"' EXIT
+cleanup() {
+  test_status=$?
+  if [[ $test_status != 0 && -f "$WORK/serial.log" ]]; then tail -n 120 "$WORK/serial.log"; fi
+  if [[ -f "$WORK/qemu.pid" ]]; then kill "$(cat "$WORK/qemu.pid")" 2>/dev/null || true; fi
+  rm -rf "$WORK"
+}
+trap cleanup EXIT
 cd "$ROOT"
 python3 - "$WORK" <<'PY'
 import json,sys,pathlib

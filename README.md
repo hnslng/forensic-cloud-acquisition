@@ -33,7 +33,10 @@ Nicht verfügbare Kategorien und Bereichsgrenzen sind ausdrücklich dokumentiert
 - [Laborzugang und Administration](docs/operation.md)
 
 - [Prüfbericht und Freigabevorschlag](docs/phase-0-status.md)
-- [Installationsablauf und Abnahme](docs/installation.md)
+- [Paketinstallation auf Debian 13](docs/installation.md)
+- [Installer-Abnahme in frischer Debian-VM](docs/installer-tests.md)
+- [Backup, Wiederherstellung und Rollback](docs/backup-restore-rollback.md)
+- [Versionierte Releases und Behördeninstallation](docs/release-packages.md)
 - [Aktuelle Architektur](docs/architecture.md)
 - [Analyse der TRIAGE//BOX](docs/triagebox-reference.md)
 - [Test- und Nachweisstand](docs/validation.md)
