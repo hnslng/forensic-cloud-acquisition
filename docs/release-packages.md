@@ -48,6 +48,7 @@ python3 scripts/build_install_package.py \
   --app-image sha256:VOLLSTAENDIGE_GEPRUEFTE_IMAGE_ID \
   --debs /geschuetzter-builder/debs \
   --output /geschuetzter-builder/fca-0.6.0 \
+  --archive /geschuetzter-builder/fca-0.6.0.tar.gz \
   --signing-key /freigabestelle/release-signing.key \
   --trusted-key /freigabestelle/release.pub
 ```
@@ -69,7 +70,12 @@ Erstverteilung der ausführbaren Installationswerkzeuge: Paket/Archiv als Ganzes
 über eine unabhängig vertrauenswürdige Prüfumgebung bestätigen, bevor darin
 enthaltener Code mit root-Rechten gestartet wird. Die interne Manifestprüfung
 schützt Updates und Nutzdaten, ersetzt aber diese anfängliche Vertrauensbildung
-nicht. Für produktive Releases einen extern signierten Archivhash mitliefern.
+nicht. Mit `--archive` entstehen deshalb zusätzlich `.tar.gz`, `.tar.gz.sha256` und
+`.tar.gz.sha256.sig`. Die kleine SHA-256-Datei wird mit Ed25519 signiert; das
+Archiv selbst wird anschließend speicherschonend gegen diesen Nachweis geprüft.
+Das Archiv besitzt normalisierte Besitzer/Zeitstempel und enthält einen
+eindeutigen Ordner `fca-<Version>`. Diese äußere Prüfung erfolgt vor dem Entpacken
+und vor dem ersten Ausführen der mitgelieferten Werkzeuge.
 
 ## Bewusste Grenzen der ersten Paketversion
 

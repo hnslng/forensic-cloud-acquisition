@@ -6,6 +6,8 @@ must contain the complete dependency closure from that clean baseline (see docs)
 No signing key is copied to the package. No GitHub credentials needed at runtime.
 """
 import argparse
+import gzip
+import tarfile
 import json
 import os
 from pathlib import Path
@@ -13,7 +15,7 @@ import shutil
 import subprocess
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from infrastructure.installer.package import write_manifest, verify
+from infrastructure.installer.package import write_manifest, verify, sha256
 
 ROOT = Path(__file__).resolve().parents[1]
 POSTGRES = 'postgres@sha256:858bb5e98eed02eb8cafbcdc007f9a65d1b613972028944a8ec2133ccaf80d27'
@@ -23,15 +25,41 @@ def call(*args, **kwargs):
     return subprocess.check_output([str(v) for v in args], **kwargs).decode().strip()
 
 
+def export_archive(directory, archive, version, signing_key):
+    import re
+    if directory.resolve() in archive.resolve().parents:
+        raise ValueError('Archive must be outside the package directory')
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', archive.name):
+        raise ValueError('Simple archive filename required')
+    def normalize(info):
+        info.uid = info.gid = 0
+        info.uname = info.gname = 'root'
+        info.mtime = 0
+        return info
+    with archive.open('xb') as destination:
+        with gzip.GzipFile(filename='', mode='wb', fileobj=destination, mtime=0, compresslevel=1) as compressed:
+            with tarfile.open(fileobj=compressed, mode='w') as payload:
+                payload.add(directory, arcname='fca-' + version, filter=normalize)
+    checksum = Path(str(archive) + '.sha256')
+    with checksum.open('x') as handle:
+        handle.write(sha256(archive) + '  ' + archive.name + '\n')
+    # Sign the small checksum record so verification stays memory-bounded on 2-GiB hosts.
+    subprocess.check_call(['openssl','pkeyutl','-sign','-inkey',str(signing_key),'-rawin',
+                           '-in',str(checksum),'-out',str(checksum)+'.sig'])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--version', required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--archive', type=Path, help='Optional versioned .tar.gz plus signed SHA-256 sidecars')
     parser.add_argument('--debs', type=Path, required=True)
     parser.add_argument('--signing-key', type=Path, required=True)
     parser.add_argument('--trusted-key', type=Path, required=True)
     parser.add_argument('--app-image', required=True, help='CI-tested local image ID sha256:...')
     args = parser.parse_args()
+    if args.archive and any(Path(str(args.archive)+suffix).exists() for suffix in ('','.sha256','.sha256.sig')):
+        parser.error('Archiv oder Signaturdatei existiert bereits.')
     if args.output.exists():
         parser.error('Ausgabe muss neu sein.')
     args.output.mkdir(parents=True)
@@ -79,6 +107,8 @@ def main():
     write_manifest(args.output, args.version, args.app_image, postgres_id, dependencies, source)
     subprocess.check_call(['openssl', 'pkeyutl', '-sign', '-inkey', str(args.signing_key), '-rawin', '-in', str(args.output / 'manifest.json'), '-out', str(args.output / 'manifest.sig')])
     verify(args.output, args.trusted_key)
+    if args.archive:
+        export_archive(args.output, args.archive, args.version, args.signing_key)
     print('Signiertes Installationspaket erstellt: ' + str(args.output))
 
 

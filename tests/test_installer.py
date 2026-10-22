@@ -6,11 +6,13 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import tarfile
 import unittest
 from unittest.mock import patch
 
 from infrastructure.installer.package import Refused, safe_relative, sha256, verify, verify_exact, write_manifest
 from infrastructure.installer import manager
+from scripts.build_install_package import export_archive
 
 
 class SignedPackageTests(unittest.TestCase):
@@ -42,6 +44,22 @@ class SignedPackageTests(unittest.TestCase):
         (self.package/'images.tar').write_text('different signed content')
         self.sign()
         with self.assertRaises(Refused): verify_exact(self.package, self.public, expected)
+
+    def test_outer_archive_can_be_verified_before_executing_package_code(self):
+        archive = self.root/'fca-0.6.0-test.1.tar.gz'
+        export_archive(self.package, archive, '0.6.0-test.1', self.private)
+        checksum = Path(str(archive)+'.sha256')
+        command = ['openssl','pkeyutl','-verify','-pubin','-inkey',str(self.public),'-rawin','-in',str(checksum),'-sigfile',str(checksum)+'.sig']
+        self.assertEqual(subprocess.run(command,capture_output=True).returncode,0)
+        self.assertEqual(checksum.read_text().split()[0], sha256(archive))
+        with tarfile.open(archive,'r:gz') as payload:
+            self.assertTrue(all(m.name.startswith('fca-0.6.0-test.1') and not m.issym() and not m.islnk() for m in payload))
+            self.assertEqual(payload.extractfile('fca-0.6.0-test.1/images.tar').read(),b'synthetic fixture')
+        with archive.open('ab') as handle:
+            handle.write(b'corruption')
+        self.assertNotEqual(checksum.read_text().split()[0], sha256(archive))
+        checksum.write_text('0'*64+'  '+archive.name+'\n')
+        self.assertNotEqual(subprocess.run(command,capture_output=True).returncode,0)
 
     def test_tampered_payload_never_installs(self):
         (self.package/'images.tar').write_text('wrong bytes')

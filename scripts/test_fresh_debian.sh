@@ -55,9 +55,14 @@ docker build --target runtime -t fca-install-ci:tested -f infrastructure/docker/
 APP_IMAGE=$(docker image inspect --format '{{.Id}}' fca-install-ci:tested)
 openssl genpkey -algorithm ED25519 -out "$WORK/signing.key"
 openssl pkey -in "$WORK/signing.key" -pubout -out "$WORK/trusted-release.pub"
-python3 scripts/build_install_package.py --version 0.6.0-test.1 --output "$WORK/release" --debs "$WORK/debs" --signing-key "$WORK/signing.key" --trusted-key "$WORK/trusted-release.pub" --app-image "$APP_IMAGE"
+python3 scripts/build_install_package.py --version 0.6.0-test.1 --archive "$WORK/fca-0.6.0-test.1.tar.gz" --output "$WORK/release" --debs "$WORK/debs" --signing-key "$WORK/signing.key" --trusted-key "$WORK/trusted-release.pub" --app-image "$APP_IMAGE"
+openssl pkeyutl -verify -pubin -inkey "$WORK/trusted-release.pub" -rawin -in "$WORK/fca-0.6.0-test.1.tar.gz.sha256" -sigfile "$WORK/fca-0.6.0-test.1.tar.gz.sha256.sig"
+(cd "$WORK"
+ sha256sum -c fca-0.6.0-test.1.tar.gz.sha256)
+mkdir "$WORK/unpacked"
+tar -xzf "$WORK/fca-0.6.0-test.1.tar.gz" -C "$WORK/unpacked"
 "${SCP[@]}" "$WORK/trusted-release.pub" root@127.0.0.1:/root/trusted-release.pub
-tar -C "$WORK/release" -cf - . | "${SSH[@]}" 'mkdir /root/release; tar -x -C /root/release'
+tar -C "$WORK/unpacked/fca-0.6.0-test.1" -cf - . | "${SSH[@]}" 'mkdir /root/release; tar -x -C /root/release'
 "${SSH[@]}" 'bash /root/source/tests/installer/fresh-debian.sh install'
 # Separate signed next version, no modification of the original package.
 python3 scripts/build_install_package.py --version 0.6.0-test.2 --output "$WORK/release-next" --debs "$WORK/debs" --signing-key "$WORK/signing.key" --trusted-key "$WORK/trusted-release.pub" --app-image "$APP_IMAGE"

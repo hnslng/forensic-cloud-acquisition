@@ -61,6 +61,24 @@ Anbieters an Name, Zertifikat, Registrierung und Scopes prüfen; ein interner
 Fantasiename allein garantiert keine Google-Freigabe. Siehe
 [private HTTPS-/OAuth-Konfiguration](private-https-oauth.md).
 
+## Versionspaket vor dem Entpacken prüfen
+
+Beispiel für eine administrativ gewählte und freigegebene Version. Prüfschlüssel
+separat erhalten und dessen Fingerprint unabhängig bestätigen. Archiv und beide
+Nachweisdateien gemeinsam von der zentralen Freigabestelle übernehmen:
+
+```sh
+openssl pkeyutl -verify -pubin -inkey /root/fca-release.pub -rawin \
+  -in fca-0.6.0.tar.gz.sha256 -sigfile fca-0.6.0.tar.gz.sha256.sig
+sha256sum --check fca-0.6.0.tar.gz.sha256
+mkdir fca-entpackt
+tar -xzf fca-0.6.0.tar.gz -C fca-entpackt
+```
+
+Nur nach **beiden erfolgreichen Prüfungen** entpacken und ausführen. Ein
+bestehender Entpackordner wird nicht wiederverwendet. Die Beispiele sind keine
+bereits veröffentlichte produktive Freigabe von Version 0.6.0.
+
 ## Installieren
 
 Aus den vorher geprüften Werkzeugen, als Administrator:
