@@ -17,6 +17,8 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
     lock = json.loads((Path(__file__).resolve().parents[1] / 'infrastructure/installer/debian13-amd64.lock.json').read_text())
+    if args.output.exists() and any(args.output.iterdir()):
+        parser.error('Neuen leeren Ausgabeordner wählen; keine alten .deb-Versionen beimischen.')
     args.output.mkdir(parents=True, exist_ok=True)
     subprocess.check_call(['apt-get', 'update'])
     packages = [f'{k}={v}' for k, v in lock['direct_packages'].items()]

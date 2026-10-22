@@ -133,6 +133,17 @@ class ConfigurationTests(unittest.TestCase):
 
 
 class StorageTests(unittest.TestCase):
+    def test_explicit_permissions_survive_restrictive_umask(self):
+        with tempfile.TemporaryDirectory() as root:
+            old = os.umask(0o077)
+            try:
+                for mode in (0o600,0o640,0o644,0o755):
+                    path=Path(root).resolve()/str(mode)
+                    manager.write(path,'synthetic',mode)
+                    self.assertEqual(path.stat().st_mode & 0o777, mode)
+            finally:
+                os.umask(old)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -170,6 +181,10 @@ class StorageTests(unittest.TestCase):
 
 
 class ServiceDiagnosisTests(unittest.TestCase):
+    def test_release_order_does_not_silently_downgrade(self):
+        values = ['0.6.0-test.2','0.6.0-test.10','0.6.0','0.6.1','1.0.0']
+        self.assertEqual(sorted(reversed(values), key=manager.version_key), values)
+
     def test_compose_array_and_json_lines_are_supported(self):
         rows = [{'Service':s,'State':'running','Health':'healthy'} for s in ('api','worker','database')]
         for raw in (json.dumps(rows), '\n'.join(json.dumps(r) for r in rows)):

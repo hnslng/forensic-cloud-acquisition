@@ -48,6 +48,7 @@ def write(path, text, mode=0o600):
     fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
     try:
         with os.fdopen(fd, 'w') as handle:
+            os.fchmod(handle.fileno(), mode)
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
@@ -63,6 +64,7 @@ def directory(path, mode=0o700):
         raise Refused('Verzeichnis fehlt.')
     if path.stat().st_uid != 0 or path.stat().st_mode & 0o022:
         raise Refused('Verzeichnis muss root gehören und gegen fremde Schreibzugriffe geschützt sein.')
+    path.chmod(mode)
     return path
 
 
@@ -496,6 +498,12 @@ def backup(config):
     return target
 
 
+def version_key(value):
+    number, dash, prerelease = value.partition('-')
+    return (*map(int, number.split('.')), not bool(dash), tuple(
+        (0, int(part)) if part.isdigit() else (1, part) for part in prerelease.split('.') if part))
+
+
 def update(args):
     config = cfg()
     if config.get('installation_status') != 'ready':
@@ -512,6 +520,8 @@ def update(args):
         diagnose(config)
         print('Diese geprüfte Version ist bereits installiert.')
         return
+    if version_key(manifest['version']) <= version_key(current_manifest['version']):
+        raise Refused('Updates müssen eine neuere Version verwenden. Für Rückfall den bestätigten Rollback verwenden.')
     if manifest['schema'] < int(sql('SELECT max(version) FROM schema_migrations;')):
         raise Refused('Kein automatisches Schema-Downgrade. Dokumentierten Rollback verwenden.')
     if not args.yes and input('Geprüfte Version ' + manifest['version'] + ' mit Wartungsunterbrechung installieren? [ja/NEIN]: ') != 'ja':
