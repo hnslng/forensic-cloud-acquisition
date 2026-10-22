@@ -13,6 +13,7 @@ jobs:
         run: |
           python3 -m unittest discover -s tests -p test_infrastructure.py -v
           python3 -m unittest discover -s tests -p test_dependency_locks.py -v
+          node --test tests/test_oauth_callback.cjs
       - name: Validate migrations, API security and Chromium workflows
         shell: bash
         run: |
