@@ -474,7 +474,13 @@ def test_progress_with_unknown_google_export_sizes(page):
                total_known=False, bytes_done=323 * 1024**2, bytes_total=323 * 1024**2,
                files_done=16, files_discovered=17, md5_done=16, files_active=1,
                configured_limit=4, transfer_limit=4, speed=1024**2)
+    # Keep the normal polling response consistent with each synthetic stage.
+    account = page.evaluate('cloudList[0]')
+    stage = {'job': job}
+    page.route('**/api/cases/*/cloud-accounts', lambda route: route.fulfill(
+        json=[{**account, 'acquisition': stage['job']}]))
     def render(values):
+        stage['job'] = values
         page.evaluate('(job) => { cloudList[0].acquisition = job; renderClouds(); }', values)
     render(job)
     bar = page.locator('.cloud-card .progress-track')
