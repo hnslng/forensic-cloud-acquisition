@@ -313,7 +313,7 @@ def migrations(release):
         raise Refused('Datenbankmigration fehlgeschlagen. Dienste bleiben angehalten; geprüftes Backup verwenden.')
     if sql("SELECT count(*) FROM users WHERE role='admin';") == '0':
         # Secret bind exists only for this short-lived bootstrap container.
-        compose('run', '--rm', '--no-deps', '-v', '/etc/fca/secrets/initial_admin_password:/run/secrets/initial_admin_password:ro',
+        compose('run', '--rm', '--pull', 'never', '--no-deps', '-v', '/etc/fca/secrets/initial_admin_password:/run/secrets/initial_admin_password:ro',
                 'api', 'python', '-m', 'backend.manage')
 
 
@@ -560,19 +560,27 @@ def diagnose(config):
     check('Debian, Ressourcen, private IP und HTTPS-Dateien', lambda: preflight(config))
     check('Dienste und Container', lambda: _services())
     check('Datenbankschema', lambda: sql('SELECT max(version) FROM schema_migrations;') == '9')
-    check('Schlüsselrechte', lambda: all(p.stat().st_uid == 0 and not p.stat().st_mode & 0o007 and not p.is_symlink() for p in Path('/etc/fca/secrets').iterdir()))
+    check('Schlüssel vorhanden und geschützt', _secrets_secure)
     check('Cloud-Zustand und Schreibrechte', lambda: _permissions(config))
     check('Private Bindung und interne Datenbank', lambda: _bindings(config))
     check('nginx-Konfiguration', lambda: run(['nginx', '-t']))
     check('HTTPS-Vertrauen und Anwendungsantwort', lambda: _https(config))
     memory = {line.split(':')[0]: line.split(':')[1].strip() for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith(('MemTotal:', 'MemAvailable:'))}
-    report = {'checks': checks, 'memory': memory,
+    report = {'checks': checks, 'memory': memory, 'cpu_count': os.cpu_count(),
               'free_system_bytes': shutil.disk_usage('/var').free,
               'free_evidence_bytes': shutil.disk_usage(config['evidence_root']).free}
     print(json.dumps(report, ensure_ascii=False, indent=2))
     if not all(c['ok'] for c in checks):
         raise Refused('Diagnose meldet Fehler. Installation ist noch nicht abgenommen.')
     return report
+
+
+def _secrets_secure():
+    root = Path('/etc/fca/secrets')
+    required = {'postgres_password','api_password','migrate_password','cloud_master_key'}
+    return required.issubset({p.name for p in root.iterdir()}) and all(
+        p.is_file() and not p.is_symlink() and p.stat().st_uid == 0 and not p.stat().st_mode & 0o007
+        for p in root.iterdir())
 
 
 def _services():

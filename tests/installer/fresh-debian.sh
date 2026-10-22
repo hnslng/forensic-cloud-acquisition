@@ -57,6 +57,13 @@ case "${1:-}" in
     systemctl start fca
     python3 scripts/fca_admin.py diagnose
     ;;
+  failed-update)
+    if ./update.sh --package /root/release-bad --trusted-key /root/trusted-release.pub --yes; then exit 1; fi
+    test "$(basename "$(readlink -f /opt/fca-current)")" = 0.6.0-test.2
+    python3 scripts/fca_admin.py diagnose
+    python3 tests/installer/seed_and_check.py check
+    sha256sum -c /root/secret-hashes
+    ;;
   reboot-check)
     python3 scripts/fca_admin.py diagnose
     python3 tests/installer/seed_and_check.py check

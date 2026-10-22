@@ -5,7 +5,9 @@ ROOT=$(cd -- "$(dirname -- "$0")/.." && pwd)
 WORK=$(mktemp -d)
 cleanup() {
   test_status=$?
-  if [[ $test_status != 0 && -f "$WORK/serial.log" ]]; then tail -n 120 "$WORK/serial.log"; fi
+  if [[ $test_status != 0 ]]; then
+    for log in "$WORK/bios.log" "$WORK/serial.log"; do [[ ! -f "$log" ]] || tail -n 120 "$log"; done
+  fi
   if [[ -f "$WORK/qemu.pid" ]]; then kill "$(cat "$WORK/qemu.pid")" 2>/dev/null || true; fi
   rm -rf "$WORK"
 }
@@ -34,8 +36,9 @@ cloud-localds "$WORK/seed.iso" "$WORK/user-data" "$WORK/meta-data"
 ACCEL=tcg
 [[ ! -w /dev/kvm ]] || ACCEL=kvm
 qemu-system-x86_64 -machine "accel=$ACCEL" -cpu max -m 3072 -smp 2 -display none -daemonize -pidfile "$WORK/qemu.pid" \
-  -monitor none -serial "file:$WORK/serial.log" \
-  -drive "file=$WORK/system.qcow2,if=virtio" -drive "file=$WORK/data.qcow2,if=none,id=fcadata" -device virtio-blk-pci,drive=fcadata,serial=FCAINSTALLTEST \
+  -monitor none -serial "file:$WORK/serial.log" -boot order=c,strict=on \
+  -chardev "file,id=bios,path=$WORK/bios.log" -device isa-debugcon,iobase=0x402,chardev=bios \
+  -drive "file=$WORK/system.qcow2,if=none,id=fcasystem" -device virtio-blk-pci,drive=fcasystem,bootindex=1,serial=FCAINSTALLSYSTEM -drive "file=$WORK/data.qcow2,if=none,id=fcadata" -device virtio-blk-pci,drive=fcadata,serial=FCAINSTALLTEST \
   -drive "file=$WORK/seed.iso,format=raw,if=virtio" \
   -netdev user,id=n0,hostfwd=tcp:127.0.0.1:2222-:22 -device virtio-net-pci,netdev=n0
 SSH=(ssh -i "$WORK/ssh" -o BatchMode=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$WORK/known_hosts" -o ConnectTimeout=2 -p 2222 root@127.0.0.1)
@@ -60,6 +63,21 @@ tar -C "$WORK/release" -cf - . | "${SSH[@]}" 'mkdir /root/release; tar -x -C /ro
 python3 scripts/build_install_package.py --version 0.6.0-test.2 --output "$WORK/release-next" --debs "$WORK/debs" --signing-key "$WORK/signing.key" --trusted-key "$WORK/trusted-release.pub" --app-image "$APP_IMAGE"
 tar -C "$WORK/release-next" -cf - . | "${SSH[@]}" 'mkdir /root/release-next; tar -x -C /root/release-next'
 "${SSH[@]}" 'bash /root/source/tests/installer/fresh-debian.sh update'
+# A signed but deliberately unhealthy candidate must fall back without data restore.
+python3 - "$WORK" <<'PYBAD'
+import json,pathlib,shutil,subprocess,sys
+from infrastructure.installer.package import write_manifest
+p=pathlib.Path(sys.argv[1]); source=p/'release-next'; bad=p/'release-bad'
+shutil.copytree(source,bad)
+compose=json.loads((bad/'compose.template.json').read_text())
+compose['services']['api']['healthcheck']={'test':['CMD','python','-c','raise SystemExit(1)'],'interval':'1s','timeout':'1s','retries':1,'start_period':'0s'}
+(bad/'compose.template.json').write_text(json.dumps(compose))
+m=json.loads((source/'manifest.json').read_text())
+write_manifest(bad,'0.6.0-test.3',m['app_image'],m['database_image'],m['dependencies'],m['source_revision'])
+subprocess.check_call(['openssl','pkeyutl','-sign','-inkey',str(p/'signing.key'),'-rawin','-in',str(bad/'manifest.json'),'-out',str(bad/'manifest.sig')])
+PYBAD
+tar -C "$WORK/release-bad" -cf - . | "${SSH[@]}" 'mkdir /root/release-bad; tar -x -C /root/release-bad'
+"${SSH[@]}" 'bash /root/source/tests/installer/fresh-debian.sh failed-update'
 "${SSH[@]}" 'systemctl reboot' || true
 sleep 10
 for _ in $(seq 1 30); do
