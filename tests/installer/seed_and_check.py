@@ -8,6 +8,8 @@ from pathlib import Path
 import subprocess
 import sys
 import tarfile
+import tempfile
+import os
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from infrastructure.installer.manager import compose, sql, cfg, backup
 
@@ -82,6 +84,36 @@ elif sys.argv[1] == 'restore-check':
         assert sql("SELECT tableowner FROM pg_tables WHERE schemaname='public' AND tablename='cases';", 'installer_restore_probe') == 'fca_migrate'
         assert sql("SELECT has_table_privilege('fca_api','cases','SELECT');", 'installer_restore_probe') == 't'
         assert witnesses('installer_restore_probe') == json.loads(Path('/root/table-witnesses').read_text())
+        # Read the restored case, evidence and encrypted vault with the real backend
+        # under UID 10001, from a separate staging tree and the restored database.
+        with tempfile.TemporaryDirectory(prefix='fca-restored-') as stage:
+            stage=Path(stage)
+            with tarfile.open(target/'state.tar') as archive:
+                archive.extractall(stage, filter='data')
+            for tree in (stage/'cloud-auth',stage/'evidence'):
+                for item in (tree,*tree.rglob('*')):
+                    os.chown(item,10001,10001)
+            restored_key=stage/'config/secrets/cloud_master_key'
+            os.chown(restored_key,0,10001)
+            restored_key.chmod(0o640)
+            compose('run','--rm','--no-deps',
+                '-e','FCA_DB_NAME=installer_restore_probe',
+                '-e','FCA_EVIDENCE_ROOT=/restored-evidence',
+                '-e','FCA_CLOUD_AUTH_ROOT=/restored-cloud',
+                '-e','FCA_CLOUD_MASTER_KEY_FILE=/restored-master-key',
+                '-v',str(stage/'evidence')+':/restored-evidence:ro',
+                '-v',str(stage/'cloud-auth')+':/restored-cloud',
+                '-v',str(restored_key)+':/restored-master-key:ro',
+                'api','python','-',data=b'''
+from backend.db import connect
+from backend import evidence, oauth
+with connect() as conn:
+    assert conn.execute("SELECT name FROM cases WHERE business_number='INSTALL-TEST'").fetchone()['name']=='synthetic'
+    account=conn.execute("SELECT case_id,id FROM cloud_accounts WHERE label='synthetic-disconnected'").fetchone()
+    assert oauth.load(account['case_id'],account['id'])=={'synthetic_preservation':'no real credentials'}
+    assert (evidence.root()/'FCA-Sicherungen/preservation.bin').read_bytes()==(b'FCA synthetic evidence'+bytes([0,255]))*1024
+''')
+
     finally:
         compose('exec', '-T', 'database', 'dropdb', '-U', 'fca_bootstrap', 'installer_restore_probe')
     with tarfile.open(target / 'state.tar') as archive:

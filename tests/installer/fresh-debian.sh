@@ -23,7 +23,10 @@ case "${1:-}" in
     ;;
   install)
     # No Docker/nginx preinstalled: this is the actual first installation test.
-    ! command -v docker
+    if command -v docker >/dev/null || command -v nginx >/dev/null; then
+      echo 'Test environment is not fresh: Docker or nginx already installed.' >&2
+      exit 1
+    fi
     # Diagnostic replay is restricted to this disposable synthetic bootstrap.
     bootstrap_diagnostics() {
       if [[ -f /var/log/fca-package-error.txt ]]; then cat /var/log/fca-package-error.txt; fi
