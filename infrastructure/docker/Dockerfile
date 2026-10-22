@@ -4,7 +4,8 @@ FROM python@sha256:73aa5faee130c60da030e105ec971ccf57473fbd22ce73bd6fc9ba99a40b8
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /app
 COPY backend/requirements.lock /app/backend/requirements.lock
-RUN pip install --no-cache-dir --root-user-action=ignore -r /app/backend/requirements.lock
+COPY backend/requirements.hashes /app/backend/requirements.hashes
+RUN pip install --no-cache-dir --root-user-action=ignore --require-hashes --only-binary=:all: -r /app/backend/requirements.hashes
 COPY backend /app/backend
 COPY providers /app/providers
 COPY --from=icloud-runtime /usr/local/bin/rclone /usr/local/bin/rclone
@@ -18,7 +19,7 @@ RUN pip install --no-cache-dir --root-user-action=ignore -r /app/backend/require
 COPY tests /app/tests
 COPY scripts /app/scripts
 USER 10001:10001
-CMD ["python","-m","pytest","-q","-p","no:cacheprovider","tests/test_phase1.py","tests/test_cloud_auth.py","tests/test_acquisitions.py","tests/test_cloud_transport.py"]
+CMD ["python","-m","pytest","-q","-p","no:cacheprovider","tests/test_phase1.py","tests/test_cloud_auth.py","tests/test_acquisitions.py","tests/test_cloud_transport.py","tests/test_oauth_offline.py"]
 
 # Isolated browser validation only; never used by the application service.
 FROM runtime AS browser-dependencies

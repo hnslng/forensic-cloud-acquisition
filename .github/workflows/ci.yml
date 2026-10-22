@@ -10,7 +10,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Synthetic capacity and inventory safety tests
-        run: python3 -m unittest discover -s tests -p test_infrastructure.py -v
+        run: |
+          python3 -m unittest discover -s tests -p test_infrastructure.py -v
+          python3 -m unittest discover -s tests -p test_dependency_locks.py -v
+          node --test tests/test_oauth_callback.cjs tests/test_progress.cjs
+          python3 -m unittest discover -s tests -p test_ionos_dns.py -v
       - name: Validate migrations, API security and Chromium workflows
         shell: bash
         run: |

@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "generated_at": "2026-10-22T08:03:39.229511+02:00",
+  "tested_revision": "cd15cbe",
+  "starter_tag": "installer-v1",
+  "starter_source_revision": "3c334e83a1baa16e36f19408022a8c9f891b33a7",
+  "starter_sha256": "5df46ffd45b36a71e38be7b720b0bbf2ab37ae42e147866fc8233e5c2e31e967",
+  "bootstrap_sha256": "7f08c70fb33dba6d72c7f0744fc9cf9cf5979b540fd4b82735a94c3ff18414a3",
+  "release": "0.6.0-rc.1",
+  "command_characters": 332,
+  "ci_run": "https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39731103469",
+  "jobs": {
+    "trust_boundary": 119666098839,
+    "fresh_debian13": 119666131224
+  },
+  "unit_tests": 8,
+  "environment": {
+    "distribution": "Debian 13 amd64",
+    "vcpus": 2,
+    "ram_mib": 3072,
+    "system_disk_gib": 32,
+    "wget_removed_before_test": true,
+    "no_github_token_in_vm": true,
+    "extra_evidence_disk_formatted": false,
+    "real_cloud_logins": false,
+    "existing_fca_vm_changed": false
+  },
+  "passed": [
+    "exact README command",
+    "anonymous public download from installer-v1",
+    "independently pinned starter SHA-256",
+    "unchanged pinned bootstrap SHA-256",
+    "existing Ed25519/archive/manifest/integrity checks",
+    "interactive installation",
+    "strict private HTTPS",
+    "administrator login/logout",
+    "database/evidence/encrypted-vault restore",
+    "persistence after guest reboot",
+    "extra test disk unchanged",
+    "corrupted starter and bootstrap refused before execution",
+    "failed download refused",
+    "HTTPS downgrade and foreign redirect refused"
+  ]
+}

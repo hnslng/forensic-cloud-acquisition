@@ -441,10 +441,11 @@ function renderClouds() {
     );
     statusColumn.append(information);
     const progress = node("div", undefined, "acquisition-progress");
+    const displayProgress = acquisitionProgress(job);
     const summary = node("div", undefined, "progress-summary");
     summary.append(
       node("span", job ? formatBytes(job.bytes_done) + " übertragen" : "Noch keine Daten übertragen"),
-      node("span", job ? Number(job.files_discovered ?? 0).toLocaleString("de-DE") + (job.inventory_complete ? " Dateien insgesamt · Erfassung abgeschlossen" : " Dateien erfasst · Dateierfassung noch offen") : ""),
+      node("span", job ? (displayProgress.mode === "files" ? displayProgress.label : Number(job.files_discovered ?? 0).toLocaleString("de-DE") + (job.inventory_complete ? " Dateien insgesamt · Erfassung abgeschlossen" : " Dateien erfasst · Dateierfassung noch offen") + (displayProgress.mode === "bytes" ? " · " + displayProgress.label : "")) : ""),
     );
     const track = node("div", undefined, "progress-track unavailable");
     track.setAttribute("role", "img");
@@ -452,11 +453,17 @@ function renderClouds() {
     if (job) {
       track.classList.remove("unavailable");
       const fill = node("div", undefined, "progress-fill");
-      const percent = job.status === "completed" ? 100 : (job.inventory_complete && job.total_known && job.bytes_total > 0 ? Math.min(99, 100 * job.bytes_done / job.bytes_total) : 0);
-      fill.style.width = percent + "%";
+      fill.style.width = displayProgress.percent === null ? "35%" : displayProgress.percent + "%";
+      track.setAttribute("role", "progressbar");
+      track.setAttribute("aria-valuemin", "0");
+      track.setAttribute("aria-valuemax", "100");
+      track.setAttribute("aria-valuetext", displayProgress.label);
+      track.dataset.progressMode = displayProgress.mode;
+      if (displayProgress.percent !== null) track.setAttribute("aria-valuenow", String(displayProgress.percent));
+      else if (job.status === "running") track.classList.add("indeterminate");
       if (job.status === "completed") fill.style.background = "#47B881";
       track.replaceChildren(fill);
-      track.setAttribute("aria-label", jobLabels[job.status]);
+      track.setAttribute("aria-label", jobLabels[job.status] + " · " + displayProgress.label);
     }
     const metrics = node("div", undefined, "transfer-metrics");
     metrics.append(

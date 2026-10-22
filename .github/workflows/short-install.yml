@@ -1,0 +1,42 @@
+name: Short verified installer
+on:
+  push:
+    branches: [main, codex/install-update]
+    paths:
+      - start.sh
+      - releases/START-v1.txt
+      - tests/test_short_install.py
+      - tests/installer/run_bootstrap.py
+      - scripts/test_fresh_debian.sh
+      - .github/workflows/short-install.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: short-installer-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  trust-boundary:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s tests -p test_short_install.py -v
+  fresh-debian13:
+    needs: trust-boundary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Disposable VM tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils cloud-image-utils
+          if [ -e /dev/kvm ]; then sudo chmod a+rw /dev/kvm; fi
+      - name: Exact short README command, public GitHub, fresh Debian 13, login, restore and reboot
+        env:
+          FCA_INSTALL_MODE: short
+        run: bash scripts/test_fresh_debian.sh

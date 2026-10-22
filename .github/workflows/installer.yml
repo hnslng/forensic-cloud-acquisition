@@ -1,0 +1,50 @@
+name: Fresh Debian installer
+on: [pull_request, workflow_dispatch]
+concurrency:
+  group: installer-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  installer-contracts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s tests -p test_installer.py -v
+      - run: python3 -m unittest discover -s tests -p test_bootstrap.py -v
+      - run: python3 -m unittest discover -s tests -p test_short_install.py -v
+  fresh-debian13:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [offline, bootstrap]
+    env:
+      FCA_INSTALL_MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Disposable runner test tools (not server dependencies)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils cloud-image-utils
+          qemu-system-x86_64 --version
+          dpkg-query -W qemu-system-x86 qemu-utils cloud-image-utils
+          if [ -e /dev/kvm ]; then sudo chmod a+rw /dev/kvm; fi
+      - name: Fresh Debian 13 installation, repeat, update, restore probe and reboot
+        env:
+          FCA_RELEASE_OUTPUT: ${{ runner.temp }}/fca-online-candidate
+        run: bash scripts/test_fresh_debian.sh
+      - name: Retain verified synthetic installer candidate (no private signing key)
+        if: matrix.mode == 'bootstrap'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fca-online-installer-test-candidate
+          path: ${{ runner.temp }}/fca-online-candidate
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error

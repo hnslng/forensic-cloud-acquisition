@@ -1,5 +1,28 @@
 # Änderungen
 
+## Kurzer geprüfter Installationsstart – installer-v1 – 2026-10-22
+
+- Kurzer Download-/Prüf-/Start-Aufruf gut sichtbar am Anfang der README.
+- Eigene feste SHA-256 für das Startskript, bestehender Bootstrap und signierter Release unverändert.
+- Acht zusätzliche Sicherheitstests und erfolgreiche frische Debian-13-Abnahme über den tatsächlichen öffentlichen GitHub-Aufruf.
+
+## Signierter Online-Bootstrap – 0.6.0-rc.1 – 2026-10-22
+
+- Feste signierte Releaseversion aus dem bestehenden GitHub-Repository, ohne GitHub-Anmeldung am Zielserver.
+- Ein-Befehl-Start mit vorgelagerter Bootstrap-Prüfsumme, Archivsignatur und Integritätskontrolle.
+- Geführte Einrichtung mit optionaler neuer Labor-CA und ausdrücklich bestätigtem leerem Laborordner; kein Partitionieren oder Formatieren.
+- Unveränderter Offlineweg; getrennte Updates und Erhalt bestehender Daten.
+- Veröffentlichung ohne privaten Signierschlüssel in CI; erfolgreiche zusätzliche frische VM-Abnahme über den tatsächlichen öffentlichen GitHub-Befehl.
+
+## Installation und Update – Entwicklungszweig – 2026-10-22
+
+- Interaktiver Debian-13-Paketinstaller und getrennte Updates; vorhandene Laborinstallation wird nicht übernommen.
+- Signierte Offlinepakete mit SHA-256, festen Container-IDs und vollständigem Debian-Abhängigkeitssatz.
+- Diagnose für Dateiintegrität, Dienste, Ressourcen, Berechtigungen, Datenträger und privates HTTPS.
+- Konsistente Backups mit Restoreprobe und bestätigter Programmrollback ohne Zurückschreiben von Beweisdaten.
+- Neue isolierte Debian-VM-Abnahme einschließlich unterbrochener Installation, Updatefehler, Datenerhalt und Neustart.
+- Keine Bereitstellung oder Neuinstallation auf der bestehenden FCA-VM.
+
 ## Stufe B – Entwicklungszweig – 2026-10-22
 
 - Vorhandenen OAuth-/PKCE-Ablauf zusätzlich an Sitzung, Anbieter, Client und Rückkehradresse gebunden.

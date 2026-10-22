@@ -464,3 +464,44 @@ def test_pause_resume_controls_finish_a_real_background_job(page,monkeypatch):
     expect(card.locator('.status-badge')).to_have_text('Wartet')
     adapter(monkeypatch,Synthetic());acquisitions.run_job(job['id'])
     expect(card.locator('.status-badge')).to_have_text('Abgeschlossen',timeout=15000)
+
+
+def test_progress_with_unknown_google_export_sizes(page):
+    """Render the actual card through inventory, unequal sizes, exports and completion."""
+    create_case(page)
+    add_cloud(page, 'google', 'SYNTHETIC Google-Fortschritt')
+    job = dict(status='running', category='drive', inventory_complete=True,
+               total_known=False, bytes_done=323 * 1024**2, bytes_total=323 * 1024**2,
+               files_done=16, files_discovered=17, md5_done=16, files_active=1,
+               configured_limit=4, transfer_limit=4, speed=1024**2)
+    # Keep the normal polling response consistent with each synthetic stage.
+    account = page.evaluate('cloudList[0]')
+    stage = {'job': job}
+    page.route('**/api/cases/*/cloud-accounts', lambda route: route.fulfill(
+        json=[{**account, 'acquisition': stage['job']}]))
+    def render(values):
+        stage['job'] = values
+        page.evaluate('(job) => { cloudList[0].acquisition = job; renderClouds(); }', values)
+    render(job)
+    bar = page.locator('.cloud-card .progress-track')
+    expect(bar).to_have_attribute('role', 'progressbar')
+    expect(bar).to_have_attribute('data-progress-mode', 'files')
+    assert 94 < float(bar.get_attribute('aria-valuenow')) < 95
+    expect(page.locator('.progress-summary')).to_contain_text('16 von 17 Dateien gesichert')
+    expect(page.locator('.progress-summary')).to_contain_text('Gesamtgröße unbekannt')
+    assert bar.locator('.progress-fill').evaluate('(el) => el.getBoundingClientRect().width') > 0
+    for width, height in [(1920,1080),(1440,900),(390,844)]:
+        page.set_viewport_size({'width':width,'height':height})
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        screenshot(page, 'progress-google-unknown-'+str(width))
+    # Inventory is still growing: show activity without a misleading denominator.
+    render({**job, 'inventory_complete':False})
+    expect(bar).not_to_have_attribute('aria-valuenow', __import__('re').compile('.+'))
+    expect(bar).to_have_class(__import__('re').compile('indeterminate'))
+    # Different source sizes: the known-size path remains weighted by bytes.
+    render({**job, 'total_known':True, 'bytes_done':250, 'bytes_total':1000})
+    expect(bar).to_have_attribute('aria-valuenow','25')
+    expect(bar).to_have_attribute('data-progress-mode','bytes')
+    render({**job, 'status':'completed', 'files_done':17, 'md5_done':17})
+    expect(bar).to_have_attribute('aria-valuenow','100')
+    assert bar.locator('.progress-fill').evaluate('(el) => el.style.background') == 'rgb(71, 184, 129)'

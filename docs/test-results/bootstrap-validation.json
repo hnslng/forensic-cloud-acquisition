@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "date": "2026-10-22",
+  "release": "0.6.0-rc.1",
+  "repository_visibility_changed_by_agent": false,
+  "package_source_revision": "33db5a456ad3076f6b80f852dbd702a8020cbdb0",
+  "release_preparation_revision": "85cba4e",
+  "archive_sha256": "3d8ff447e6d6cf3e9986fdc625e176802b4ab2dafa16650b834ed8f33df49164",
+  "bootstrap_sha256": "7f08c70fb33dba6d72c7f0744fc9cf9cf5979b540fd4b82735a94c3ff18414a3",
+  "ci": {
+    "offline_and_https_fixture_vms": "https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39726255140",
+    "application_checks": "https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39727511046",
+    "publication_and_actual_public_github_vm": "https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39727506182",
+    "actual_public_vm_job": 119654955521,
+    "repeated_offline_and_bootstrap_vms": "https://github.com/hnslng/forensic-cloud-acquisition/actions/runs/39727511133"
+  },
+  "test_environment": {
+    "distribution": "fresh Debian 13 amd64",
+    "vcpus": 2,
+    "ram_mib": 3072,
+    "system_disk_gib": 32,
+    "offline_evidence_disk_gib": 8,
+    "bootstrap_extra_disk_formatted": false,
+    "real_cloud_logins": false,
+    "existing_fca_vm_modified": false,
+    "proxmox_access": false,
+    "github_token_in_target_vm": false
+  },
+  "passed": [
+    "43 installer/bootstrap trust contracts",
+    "106 infrastructure/dependency/backend/browser/iCloud-offline tests",
+    "signed archive authentication before downloaded code execution",
+    "tamper/wrong-signature/unsafe-tar/private-release refusal",
+    "fresh offline installation without internet route",
+    "exact generated one-command HTTPS fixture bootstrap",
+    "new private lab CA and strictly validated HTTPS/IP",
+    "explicit directory consent and filesystem UUID binding",
+    "injected APT failure and safe bootstrap resumption",
+    "repeat install preserving keys and all table witnesses",
+    "update and failed-update fallback",
+    "backup and separate database/evidence/vault restore probe",
+    "missing-storage refusal",
+    "guest reboot and persistence",
+    "byte-identical keyless CI reconstruction of locally signed release",
+    "actual anonymous public GitHub installation on a separate fresh VM",
+    "public release VM HTTPS admin login/logout, backup/restore and reboot"
+  ],
+  "private_signing_key": "retained only on protected local release system, excluded from Git and CI"
+}

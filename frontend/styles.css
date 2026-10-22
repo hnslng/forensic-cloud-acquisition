@@ -1074,3 +1074,10 @@ th {
 
 .history-entry {padding:1rem 0;border-bottom:1px solid #304B69;overflow-wrap:anywhere;}
 .history-entry a{display:inline-block;color:#60A5FA;margin:1rem 1rem 0 0;}
+
+/* Unknown total: activity indicator, never a fabricated percentage. */
+.progress-track.indeterminate .progress-fill { animation: inventory-progress 1.8s ease-in-out infinite alternate; }
+@keyframes inventory-progress { from { transform: translateX(-100%); } to { transform: translateX(285%); } }
+@media (prefers-reduced-motion: reduce) {
+  .progress-track.indeterminate .progress-fill { animation: none; }
+}

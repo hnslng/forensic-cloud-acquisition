@@ -1,0 +1,12 @@
+{
+  "mode": "labor",
+  "listen_address": "10.0.2.15",
+  "server_name": "10.0.2.15",
+  "allowed_networks": ["10.0.2.0/24"],
+  "evidence_root": "/srv/fca/evidence",
+  "backup_root": "/var/backups/fca",
+  "profile": "labor",
+  "certificate": "/root/tls/server.crt",
+  "certificate_key": "/root/tls/server.key",
+  "ca_certificate": "/root/tls/ca.crt"
+}

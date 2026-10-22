@@ -1,0 +1,81 @@
+{
+  "format": 1,
+  "date_utc": "2026-10-22",
+  "project": "hnslng/forensic-cloud-acquisition",
+  "validated_runtime_revision": "b7a98f9f7e048400ea777f1ca62a31c2d61cacdd",
+  "validated_runtime_ci": {
+    "installer_run_id": 39713522225,
+    "installer_job_id": 119610582206,
+    "application_run_id": 39713522130,
+    "application_job_id": 119610164284
+  },
+  "validated_runtime_results": {
+    "installer_contracts": 29,
+    "dependency_locks": 2,
+    "infrastructure": 11,
+    "backend": 73,
+    "browser": 10,
+    "icloud_offline": 10,
+    "fresh_debian_lifecycle": "passed",
+    "restored_application_readback": "passed"
+  },
+  "additional_local_release_guard_tests": {
+    "tracked_files_only": 1,
+    "total_installer_contracts": 30
+  },
+  "final_release_checks": "https://github.com/hnslng/forensic-cloud-acquisition/pull/2/checks",
+  "test_environment": {
+    "distribution": "Debian 13 amd64",
+    "vcpus": 2,
+    "ram_mib": 3072,
+    "system_disk_gib": 32,
+    "evidence_disk_gib": 8,
+    "internet_route_removed_for_installation": true,
+    "real_cloud_logins": false,
+    "existing_fca_vm_modified": false,
+    "proxmox_access": false
+  },
+  "preservation": {
+    "fca_tables": 15,
+    "additional_synthetic_witness_table": 1,
+    "users": 2,
+    "cases": 1,
+    "case_memberships": 1,
+    "cloud_accounts": 1,
+    "manually_paused_runs": 1,
+    "credential_file_hashes_unchanged": true,
+    "encrypted_vault_decrypts_after_restore": true,
+    "synthetic_file_bytes": 24576
+  },
+  "post_reboot_snapshot": {
+    "mem_total_kib": 3049676,
+    "mem_available_kib": 2582488,
+    "mem_total_minus_available_mib": 456.23828125,
+    "free_system_bytes": 25680117760,
+    "free_evidence_bytes": 8331354112,
+    "load": "idle; no cloud transfers; not a peak measurement"
+  },
+  "implementation_sha256": {
+    "install.sh": "7a27b0e62847c600b0d723340df7cdc2a9dbf0c8146557d167eead5098a2fafd",
+    "update.sh": "d22c24bb748dc4eb2e705360f846eaab14414fe4caa447eff308c0551b3e0ea6",
+    "infrastructure/installer/manager.py": "5e5f1b5c38770993d9c6205fb9f9ca5340caaa5f4d6b78efac94e8a636ffdcf4",
+    "infrastructure/installer/package.py": "31fba9d1ee599166c7bd0e69df00c99b21a8ffd0adfb04fd37555711cb97ce22",
+    "infrastructure/installer/debian13-amd64.lock.json": "176214d79c1372ff13b9c8ecaa408cc5decba0cf5cf2735123a6533cd62cb0ff",
+    "scripts/build_install_package.py": "26fa498b4549389fa2412b2c29d24c20e02750e210c8c36b96417c81cefdc8ac",
+    "scripts/collect_install_dependencies.py": "6d13a0ad76caf01f4e3ad54c7a3be3a94eb22007624f673ff23647e331202512",
+    "scripts/configure_phase1_database.py": "0af6e91c42977cdc1387b60fc3e26dee49fb015c4bcec0963898efa2c747ae43",
+    "scripts/fca_admin.py": "5344eac28005eac0e99a136b2317586988bc6f1f26302dda31b387a5aff37a52",
+    "scripts/test_fresh_debian.sh": "382afe0d9ddaa013b90cbfdf305f195f2519a76452d804737c09c7c8d5d7beed",
+    "tests/installer/fresh-debian.sh": "74a9db71119ba77fb6ad21a813be20e4ae278eb3094e045b80d0f9fc2c373da2",
+    "tests/installer/seed_and_check.py": "1cdb71e12e8f1783eef99bf35863746cfd9f9aa06403c05bad0effb6ef947364",
+    "backend/requirements.lock": "697a4d4ff829fec9806d975f74dba4fec0357f553abb766cd3046ea9a596e879",
+    "backend/requirements.hashes": "4674372f16ac40a07865a48f77becd667086a9380084528992a5fd11f6c4c600",
+    "infrastructure/docker/Dockerfile": "e5499dad170ba6c94250a98936714b7ab7d1f523d2b2b697afc82945dda66a92"
+  },
+  "scope_notes": [
+    "CI keys and accounts are synthetic; no production signing key created.",
+    "Whole VM restart is confined to the disposable QEMU guest.",
+    "Offsite encryption/PKI recovery still requires an agency operations drill.",
+    "Final release-assembly hardening is verified by the linked final PR checks."
+  ]
+}

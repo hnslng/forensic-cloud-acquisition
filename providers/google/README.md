@@ -1,5 +1,7 @@
 # Google – aktueller FCA-Stand
 
+> Historischer Entwicklungs-/Prüfbericht. Die nachfolgende Domain- und Google-Einrichtung sowie der aktuelle Anbieterstatus stehen im [Betriebsstand vom 22.10.2026](../../docs/betriebsstand-2026-10-22.md).
+
 Der Stufe-B-Entwicklungszweig verwendet das offizielle REST-Inventar für „Meine Ablage“ und Rclone 1.75.2 für Dateidownloads anhand der Original-ID. Das verhindert die Verwechslung gleichnamiger Dateien. Docs/Sheets/Slides/Drawings werden als abgeleitete Exporte gekennzeichnet. Google-Kalender bleiben beim vorhandenen REST-Adapter.
 
 Die bestehende Webanmeldung behält PKCE und einmaligen State; zusätzlich sind konkrete FCA-Sitzung, Anbieter, Client und Rückkehradresse gebunden. Anbieterregistrierung und HTTPS-Origin werden einmalig administriert. Rclone-Konfigurationen bleiben pro Konto verschlüsselt; Rclone ist während seiner Dateisitzung alleiniger Token-Refresh-Eigentümer. Keine manuelle Tokenübertragung und kein nativer Rclone-Browserflow.

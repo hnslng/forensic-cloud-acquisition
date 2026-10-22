@@ -12,7 +12,7 @@ def main():
         conn.execute('SELECT pg_advisory_xact_lock(10501)')
         if conn.execute("SELECT id FROM users WHERE role='admin'").fetchone():
             raise SystemExit('Administrator existiert bereits; kein Überschreiben.')
-        user = conn.execute("INSERT INTO users(username,initials,password_hash,role) VALUES ('admin','HNL',%s,'admin') RETURNING id,initials", (hash_password(password),)).fetchone()
+        user = conn.execute("INSERT INTO users(username,initials,password_hash,role) VALUES ('admin','ADMIN',%s,'admin') RETURNING id,initials", (hash_password(password),)).fetchone()
         audit(conn, user, 'administrator_bootstrapped')
     print('Initialer Administrator angelegt. Passwort bleibt in externer Secret-Datei.')
 
