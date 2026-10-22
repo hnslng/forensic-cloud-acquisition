@@ -96,6 +96,7 @@ Datenbank. Vorhandene Webserverkonfigurationen werden nicht übernommen.
 | Unveränderliche Versionen | `/opt/fca-releases/<Version>` |
 | Aktive Programmversion | `/opt/fca-current` |
 | Installation und Compose-Konfiguration | `/etc/fca` |
+| Unabhängig bestätigter Release-Prüfschlüssel | `/etc/fca/release.pub` |
 | Passwortdateien und Cloud-Hauptschlüssel | `/etc/fca/secrets` |
 | Datenbank und verschlüsselter Cloud-Zustand | `/var/lib/fca` |
 | Beweisdaten | konfigurierter, geprüfter Sicherungsmount |
@@ -120,7 +121,7 @@ sudo python3 /opt/fca-current/scripts/fca_admin.py diagnose
 sudo ./update.sh --package /root/fca-0.6.1 --trusted-key /root/fca-release.pub
 ```
 
-Die Diagnose meldet Mount/Kennung, Dienste und Healthchecks, Datenbankschema,
+Die Diagnose prüft erneut Signatur und Dateiinhalt der installierten Version und meldet Mount/Kennung, Dienste und Healthchecks, Datenbankschema,
 Schlüsselrechte, Schreibrechte, CPU/RAM/Speicher und HTTPS-Vertrauen. Sie gibt
 keine Geheimnisse aus und verändert keine Betriebseinstellungen. Zusätzlich
 Firewall und Erreichbarkeit aus einem **nicht zugelassenen** Netz prüfen;

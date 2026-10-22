@@ -1,5 +1,8 @@
 name: Fresh Debian installer
-on: [push, pull_request, workflow_dispatch]
+on: [pull_request, workflow_dispatch]
+concurrency:
+  group: installer-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

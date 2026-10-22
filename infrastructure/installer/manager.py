@@ -25,6 +25,7 @@ from scripts.prepare_private_https import prepare
 CONFIG = Path('/etc/fca/installation.json')
 RELEASES = Path('/opt/fca-releases')
 CURRENT = Path('/opt/fca-current')
+TRUST = Path('/etc/fca/release.pub')
 ENV = Path('/etc/fca/compose.env')
 COMPOSE = Path('/etc/fca/compose.json')
 GIB = 1024**3
@@ -356,8 +357,14 @@ def start():
     run(['systemctl', 'start', 'fca'])
 
 
+def check_trust_key(key):
+    if TRUST.exists() and sha256(canonical(key)) != sha256(canonical(TRUST)):
+        raise Refused('Abweichender Freigabeschlüssel. Schlüsselwechsel muss separat administrativ geprüft werden.')
+
+
 def install(args):
     package = canonical(args.package)
+    check_trust_key(args.trusted_key)
     manifest = verify(package, args.trusted_key)
     resuming = CONFIG.exists()
     if resuming:
@@ -390,6 +397,8 @@ def install(args):
         raise Refused('Installation abgebrochen.')
     directory('/etc/fca', 0o750)
     directory('/etc/fca/secrets', 0o750)
+    if not TRUST.exists():
+        write(TRUST, Path(args.trusted_key).read_text(), 0o644)
     if not resuming:
         config['volume_id'] = str(uuid.uuid4())
         config['pending_manifest'] = sha256(package / 'manifest.json')
@@ -476,6 +485,7 @@ def update(args):
     mounted_evidence(config)
     preflight(config)
     package = canonical(args.package)
+    check_trust_key(args.trusted_key)
     manifest = verify(package, args.trusted_key)
     current_manifest = json.loads((CURRENT / 'manifest.json').read_text())
     if manifest['version'] == current_manifest['version']:
@@ -521,6 +531,7 @@ def rollback(args):
     release = canonical(RELEASES / args.version)
     if release.parent != RELEASES or not release.is_dir():
         raise Refused('Vorherige Version ist lokal nicht vorhanden.')
+    check_trust_key(args.trusted_key)
     manifest = verify(release, args.trusted_key)
     if sql('SELECT max(version) FROM schema_migrations;') != str(manifest['schema']):
         raise Refused('Rollback mit abweichendem Schema benötigt Wiederherstellung auf separatem Ziel und ausdrückliche Freigabe.')
@@ -544,6 +555,7 @@ def diagnose(config):
             checks.append({'check': name, 'ok': True})
         except Exception:
             checks.append({'check': name, 'ok': False})
+    check('Installierte Release-Signatur und Dateiintegrität', lambda: verify(CURRENT.resolve(), TRUST))
     check('Sicherungsdatenträger und Kennung', lambda: mounted_evidence(config))
     check('Debian, Ressourcen, private IP und HTTPS-Dateien', lambda: preflight(config))
     check('Dienste und Container', lambda: _services())
