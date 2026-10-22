@@ -1,10 +1,8 @@
 """Validate all package bytes against an independently trusted signing key."""
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
-import stat
 import subprocess
 
 class Refused(RuntimeError):

@@ -3,7 +3,6 @@
 No partitioning, DNS, firewall, WireGuard, host reboot, remote shell or git pull.
 """
 import argparse
-import contextlib
 import datetime
 import fcntl
 import ipaddress
@@ -13,14 +12,12 @@ from pathlib import Path
 import re
 import secrets
 import shutil
-import socket
 import ssl
 import subprocess
 import sys
 import tarfile
-import tempfile
 import uuid
-from urllib.request import Request, urlopen
+from urllib.request import urlopen
 
 from infrastructure.installer.package import Refused, canonical, sha256, verify
 from scripts.prepare_private_https import prepare

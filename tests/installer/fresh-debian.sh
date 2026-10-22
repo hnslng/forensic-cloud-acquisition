@@ -24,7 +24,15 @@ case "${1:-}" in
   install)
     # No Docker/nginx preinstalled: this is the actual first installation test.
     ! command -v docker
+    # Inject one failed package-manager invocation to exercise resumable bootstrap.
+    mkdir /root/failing-apt
+    printf '#!/bin/sh\nexit 42\n' > /root/failing-apt/apt-get
+    chmod 700 /root/failing-apt/apt-get
+    if PATH="/root/failing-apt:$PATH" ./install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes; then exit 1; fi
+    test -f /etc/fca/installation.json
+    sha256sum /etc/fca/secrets/* > /root/bootstrap-secret-hashes
     ./install.sh --package /root/release --trusted-key /root/trusted-release.pub --config tests/installer/answers.json --yes
+    sha256sum -c /root/bootstrap-secret-hashes
     python3 scripts/fca_admin.py diagnose
     python3 tests/installer/seed_and_check.py seed
     sha256sum /etc/fca/secrets/* > /root/secret-hashes
