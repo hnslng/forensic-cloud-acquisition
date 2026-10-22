@@ -31,11 +31,15 @@ des vertrauenswürdigen Schlüssels ist ein eigener administrativer Vorgang.
    dokumentierten frischen Testimage entsprechen. Sicherheitsaktualisierungen
    der Lockdatei erfordern erneute Abnahme; keine unsignierten APT-Quellen.
 3. Runtimeimage aus dem geprüften Commit bauen. Basisimages sind auf Digests
-   fixiert. Die Python-Versionslocks sind vorhanden; deren Einzelartefakte sind
-   noch nicht als unabhängiger Wheel-Hashlock hinterlegt. Deshalb wird beim
-   Betreiber **nicht** erneut aus diesen Quellen gebaut: getestet und signiert
-   wird das fertige Image mit seiner unveränderlichen Inhalts-ID. Für einen
-   gehärteten zentralen Buildprozess zusätzlich Wheel-Hashes/SBOM einführen.
+   fixiert. Die Python-Versionen und SHA-256-Wheelhashes liegen unter `backend/`
+   fest; der Runtimebuild akzeptiert ausschließlich passende Binärwheels mit
+   `--require-hashes --only-binary=:all:`. CI prüft, dass Versions- und Hashlock
+   übereinstimmen. Ein bewusstes Lockupdate erfolgt über
+   `scripts/lock_python_wheels.py`, anschließend Review und erneute Tests.
+   Beim Betreiber wird **nicht** neu gebaut: geprüft und signiert wird das
+   fertige Image mit seiner unveränderlichen Inhalts-ID. Beide Python-Locks
+   liegen zusätzlich zur Nachprüfbarkeit im Installationspaket. Eine zusätzliche
+   vollständige SBOM kann die zentrale Freigabestelle ergänzen.
 4. Mit dem getrennt verwahrten Freigabeschlüssel signieren:
 
 ```sh

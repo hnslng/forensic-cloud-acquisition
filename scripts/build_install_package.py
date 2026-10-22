@@ -59,6 +59,10 @@ def main():
         if call('docker', 'image', 'inspect', '--format', '{{.Architecture}}', image) != 'amd64':
             parser.error('Nur amd64-Images werden unterstützt.')
     subprocess.check_call(['docker', 'save', '-o', str(args.output / 'images.tar'), args.app_image, postgres_id])
+    locks = args.output / 'dependency-locks'
+    locks.mkdir()
+    for name in ('requirements.lock','requirements.hashes'):
+        shutil.copy(ROOT / 'backend' / name, locks / name)
     debs = args.output / 'debs'
     debs.mkdir()
     dependencies = []
